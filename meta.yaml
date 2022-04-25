@@ -1,0 +1,32 @@
+package:
+  name: "pyva"
+  version: "1.0.0"
+
+source:
+  git_rev: v1.0.0
+  git_url: https://github.com/minipief/pyva
+
+requirements:
+  host:
+    - python
+    - setuptools
+  build:
+    - python
+  run:
+    - python
+    - numpy
+    - scipy
+    - matplotlib
+    - pandas
+    - pint
+
+about:
+  home: https://github.com/minipief/pyva
+  license: 
+  license_familY: GLGPC
+  license_file: LICENSE
+  summary: "Toolbox for vibroacoustics"
+
+extra:
+  recipe-maintainers:
+    - minipief

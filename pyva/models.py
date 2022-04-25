@@ -383,10 +383,10 @@ class TMmodel:
     """
     The TMmodel class deals with systems that are described best by transfer matrices
     
-    The TM-method uses cascades of metrices to calculate the propagtion the sequentially 
+    The TM-method uses cascades of matrices to calculate the propagation through the sequentially 
     connected 1D subsystems with DOF pressure and velocity/volume velocity
     
-    The RHS is considered as excitation, the LHS as response.  
+    The RHS is considered as excitation port, the LHS as response port.  
     
     .. math:: 
         \\begin{Bmatrix} p_1 \\\\ v_1  \\end{Bmatrix} =
@@ -396,12 +396,10 @@ class TMmodel:
         \\end{bmatrix} 
         \\begin{Bmatrix} p_2 \\\\ v_2 \\end{Bmatrix}
         
-    Usally the coefficients are functions of frequency :math:`T_{ij}(\\omega)`
-    but for infinite layes they are also a function of wavenumber 
+    Usally the coefficients :math:`T_{ij}(\\omega)` are functions of frequency 
+    but for infinite layers they are also a function of wavenumber 
     :math:`T_{ij}(\\omega,k_x)`.
     
-    Only one parameter can be a vector here defined by DataAxis. 
-    The second optional parameter defines the scalar 
     """
     
     def __init__(self,layers,**kwargs):
