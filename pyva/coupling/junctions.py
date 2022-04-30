@@ -1873,7 +1873,7 @@ class HybridAreaJunction(Junction) :
         coupling : str,tuple, list or ndarray, optional
             indexes defining nodes coupled to SEA subsystem. The default is 'all'.
         trim : tuple, list of TMmodel, optional
-            trim layer defiition. The default is None.
+            trim layer definition. The default is None.
 
         Returns
         -------
@@ -1930,9 +1930,14 @@ class HybridAreaJunction(Junction) :
 
         Returns
         -------
-        TYPE
-            DESCRIPTION.
-        CLF, CLF_alpha,input_power,modal_displacement
+        CLF : ndarray
+            hybrid coupling loss factor         
+        CLF_alpha : ndarray
+            dymping of SEA systems due to loss in FE-system
+        input_power : ndarray
+            power input to the SEA subsystem due to the force load
+        modal_displacement : ndarray
+            modal displacement due to force load
         """
         
         
@@ -1980,7 +1985,7 @@ class HybridAreaJunction(Junction) :
 
         if self.N_wave > 1:
             D_equal = np.zeros((self.N_wave-1,),dtype=bool)
-            # @todo currently only two hs are checked if equal
+            # @todo currently only two halfspaces are checked if equal
             for ix in range(1,self.N_wave):
                 if self.coupling[0] == self.coupling[ix]:
                     HS.append(hs) # use the same
