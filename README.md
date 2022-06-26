@@ -15,7 +15,7 @@ statistical energy analysis (SEA) and hybrid methods (hybrid FEM/SE), to perform
 
 Direct link to the documentation can be found on [pyva.eu](https://pyva.eu)
 
-# Author page and contact informatino
+# Author page and contact information
 
 [Author Page - Alexander Peiffer](https://docpeiffer.com)
 
