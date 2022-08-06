@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sat Oct 10 16:55:57 2020
-
-two plate script for book presentation 
+Pyva box example with isolation
 
 """
 import numpy as np

@@ -1,7 +1,7 @@
 # Example with 3 layups for sound absorption
 import numpy as np
 import matplotlib.pyplot as plt
-import pyva.models as mods
+import pyva.models as mds
 import pyva.systems.infiniteLayers as iL
 
 # my packages
@@ -36,9 +36,9 @@ fibre_10cm  = iL.FluidLayer(h1,fibre1)
 fibre_20cm  = iL.FluidLayer(h2,fibre1)
 perforate   = iL.PerforatedLayer(0.005, 0.001, distance = 0.02)
 
-TMM_fibre_10      = mods.TMmodel((fibre_10cm,))
-TMM_fibre_20      = mods.TMmodel((fibre_20cm,))
-TMM_perf_fibre_20 = mods.TMmodel((perforate, fibre_10cm,))
+TMM_fibre_10      = mds.TMmodel((fibre_10cm,))
+TMM_fibre_20      = mds.TMmodel((fibre_20cm,))
+TMM_perf_fibre_20 = mds.TMmodel((perforate, fibre_10cm,))
 
 alpha_fibre_10      = TMM_fibre_10.absorption_diffuse(omega,theta_max=np.pi/2,signal = False)
 alpha_fibre_20      = TMM_fibre_20.absorption_diffuse(omega,theta_max=np.pi/2,signal = False)

@@ -40,7 +40,8 @@ class Fluid:
         Identifier for damping model 
     """
     
-    def __init__(self,c0=343.,rho0=1.23,eta=0.01,dynamic_viscosity=1.84e-5,kappa = 1.4, Pr = 0.71, **kwargs):
+    def __init__(self,c0=343.,rho0=1.23,eta=0.01,dynamic_viscosity=1.84e-5,kappa = 1.4, \
+                      Cp=1005.1, heat_conductivity = 0.0257673, **kwargs):
         """
         Constructor for Fluid
 
@@ -56,8 +57,10 @@ class Fluid:
             Dynamic viscosity. The default is 1.84e-5.
         kappa : float, optional
             ratio of specific heat capacities. The default is 1.4.
-        Pr : float, optional
-            Prandtl number. The default is 0.71.
+        Cp : float, optional
+            Heat capacity at constant pressure. The default is 1.0051.
+        heat_conductivity : float, optional
+            Heat conductivity. The default is 0.0257673.
         **kwargs : dict
             Arbitrary keyword argument list.
         dampingModell: str
@@ -85,7 +88,8 @@ class Fluid:
         self.eta  = eta
         self.dynamic_viscosity = dynamic_viscosity
         self.kappa = kappa 
-        self.Pr = Pr
+        self.Cp  = Cp
+        self.heat_conductivity = heat_conductivity
 
         
         for kw in kwargs:
@@ -113,20 +117,51 @@ class Fluid:
 
         """
         #_str  = "name            : {0}\n".format(self.name)
-        _str  = "c0              : {0}\n".format(self.c0)
-        _str += "rho0            : {0}\n".format(self.rho0)
-        _str += "nu0             : {0}\n".format(self.nu0)
-        _str += "eta             : {0}\n".format(self.eta)
-        _str += "dynamic_visc    : {0}\n".format(self.dynamic_viscosity)
-        _str += "Pr              : {0}\n".format(self.Pr)
-        _str += "kappa           : {0}\n".format(self.kappa)
+        _str  = "c0                : {0}\n".format(self.c0)
+        _str += "rho0              : {0}\n".format(self.rho0)
+        _str += "nu0               : {0}\n".format(self.nu0)
+        _str += "eta               : {0}\n".format(self.eta)
+        _str += "dynamic_visc      : {0}\n".format(self.dynamic_viscosity)
+        _str += "Cp                : {0}\n".format(self.Cp)
+        _str += "heat_conductivity : {0}\n".format(self.heat_conductivity)
+        _str += "Pr                : {0}\n".format(self.Pr)
+        _str += "kappa             : {0}\n".format(self.kappa)
         
         return _str
 
     def __repr__(self):
         _str = 'Fluid(c0={0},rho0={1},eta={2})'.format(self.c0, self.rho0,self.eta)
         return _str
-            
+    
+    @staticmethod
+    def air(temperature, pressure):
+        """
+        
+
+        Parameters
+        ----------
+        temperature : float
+            temperature in Kelvin
+        pressure : float
+            atmospheric pressure
+
+        Returns
+        -------
+        Fluid 
+            air with properties according to environmental conditions.
+
+        """
+        
+        T0 = 273.15
+        TC = temperature-T0
+        rho_ = 1.293*T0/temperature*pressure/1.013
+        eta_ = 1.e-5*(1.723+0.0047*TC)
+        lambda_ = (0.02427+7.130e-5*TC)
+        c_p_ = 1003.+0.1*TC
+        c0_ = 331.5+0.6*TC
+        
+        return Fluid(c0=c0_,rho0=rho_,eta=0,dynamic_viscosity=eta_,Cp=c_p_, heat_conductivity=lambda_)
+        
     @property    
     def z0(self):
         """
@@ -139,6 +174,19 @@ class Fluid:
 
         """
         return self.c0*self.rho0
+    
+    @property    
+    def Pr(self):
+        """
+        Prandtl number
+
+        Returns
+        -------
+        float
+            Prandtl number.
+
+        """
+        return self.Cp/self.heat_conductivity*self.dynamic_viscosity
     
     @property    
     def nu0(self):
@@ -683,7 +731,8 @@ class EquivalentFluid(Fluid):
     """
     
     def __init__(self,flow_res,porosity,tortuosity,rho_bulk,length_visc,length_therm,limp = True,\
-                     c0=343.,rho0=1.23,eta=0.01,dynamic_viscosity=1.84e-5,kappa = 1.4, Pr = 0.71):
+                     c0=343.,rho0=1.23,eta=0.0,dynamic_viscosity=1.84e-5,kappa = 1.4, \
+                     Cp=1005.1, heat_conductivity = 0.0257673):
         """
         Construcutor of equivalent fluid class
         
@@ -728,7 +777,7 @@ class EquivalentFluid(Fluid):
 
         """
     
-        super().__init__(c0,rho0,eta,dynamic_viscosity,kappa,Pr)
+        super().__init__(c0,rho0,eta,dynamic_viscosity,kappa,Cp,heat_conductivity)
     
         self.flow_res   = flow_res
         self.porosity   = porosity
@@ -819,7 +868,8 @@ class EquivalentFluid(Fluid):
         
         eta0 = self.dynamic_viscosity
         
-        return self.c0*self.z0/(self.kappa-(self.kappa-1)/ \
+        # /porosity added
+        return self.c0*self.z0/self.porosity/(self.kappa-(self.kappa-1)/ \
             (1+8*eta0*np.sqrt(1+(1j*self.rho0*omega*self.Pr*self.length_therm**2)/(16*eta0))/\
             (1j*self.rho0*omega*self.Pr*self.length_therm**2)))
 

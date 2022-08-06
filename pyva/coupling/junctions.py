@@ -75,7 +75,7 @@ def three_step(x,x1,x2):
 
 class Junction:
     """ 
-    Junction defines the physics and systems of junctions
+    Abstract base class for all Junction classes
     
     Junction handle a specific set of dofs similar to the dynamix DOFS, but 
     the space direction and rotation DOFs are replaced by wave field DOFs for
@@ -415,7 +415,7 @@ def all2array(*A):
         
 class LineJunction(Junction) :
     """ 
-    LineJunction defines the physics based on the connected systems of junctions 
+    Class for line junctions  
 
     Attributes
     ----------
@@ -1432,7 +1432,7 @@ class LineJunction(Junction) :
         
 class AreaJunction(Junction):
     """ 
-    AreaJunction defines the dynamics and transmission of area junctions 
+    Class for Area Junctions between plates and cavities
 
     Attributes
     ----------
@@ -1848,8 +1848,7 @@ class AreaJunction(Junction):
 
 class HybridAreaJunction(Junction) :
     """ 
-    HybridAreaJunction defines the physics and systems of hybrid area junctions
-    for SEA-FEM or SEA-FEM-SEA configuration
+    Class for hybrid area junctions between FEM systems and cavities 
 
     Attributes
     ----------
@@ -2189,7 +2188,7 @@ class HybridAreaJunction(Junction) :
         
 class SemiInfiniteFluid(AreaJunction):
     """
-    Class for non reverberant fluid sinks
+    Class for non reverberant sinks due to semi infinite fluid half space
     
     The aim of this class is to add absoption to the connected area junctions, to calculate
     the radiated power into the sink and to calculate the power at certain discance

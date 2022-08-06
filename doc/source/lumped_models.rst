@@ -4,7 +4,7 @@ Lumped Models
 The lumpedSystems module has only one system implemented, but this is an important one: 
 The harmonic oscillator, the mother system of all vibro-acousticians! 
 
-Not really useful in technical application but helpful for understanding damping and resonance effects.
+Not really useful in all technical application but helpful for understanding of damping and resonance effects.
 A simple oscillator is created with::
 
     import pyva.systems.lumpedSystems as lSys
@@ -16,7 +16,8 @@ A simple oscillator is created with::
     # Undamped HO
     myHO = lSys.HarmonicOscillator(mass,ks)
 
-With specific initial conditions the motion of the HarmonicOscillator is given with::
+With specific initial conditions the motion of the HarmonicOscillator can be calculated by the 
+:meth:`~pyva.systems.lumpedSystems.HarmonicOscillator.displacement` method ::
 
     # evenly sampled time at 200ms intervals
     time = np.arange(0., 0.5, 0.001)
@@ -37,7 +38,7 @@ Leading to the following graph
    
    Oscillatory motion of undamped harmonic oscillator.
    
-Interesting damped cases are created using the critical damping as reference ::
+Interesting damped cases are created using the critical damping as reference constant ::
 
     # Derive all other constants from this
     c_vc   = myHO.critical_viscous_damping
@@ -64,7 +65,7 @@ Providing the following plot from ::
    
    Oscillatory motion of damped harmonic oscillators.
    
-Forced harmonic motion can also be found with the u_force method ::
+Forced harmonic motion can also be found with the :meth:`~pyva.systems.lumpedSystems.HarmonicOscillator.u_force` method ::
 
     force = 10.0
     omega = np.linspace(0,4*myHO.omega_mode,200)

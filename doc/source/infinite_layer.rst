@@ -7,8 +7,8 @@ In contrast to pipe networks the chance for side paths is much lower in infinite
 A typical example application is the design of sound absorption systems. 
 
 Infinite layers are a special version of one-dimensional system. Such system are one-dimensional in that 
-sense, that the properties change in one dimension and remain constant for the over two space dimensions.
-The systems or layers are supposed to infinite in those remaining two dimensions.
+sense, that the properties change in one dimension and remain constant for the other two space dimensions.
+The systems or layers are supposed to be infinite in those remaining two dimensions.
 
 In contrast to acoustic networks from section :ref:`sec-acoustic-network` there is an additional 
 variable required to describe the propagation parallel to the layers: the wavenumber perpendicular to the main dimension.
@@ -113,7 +113,7 @@ In this example the materials from above are used with an additional aluminium p
     alu = matC.IsoMat()
     alu1mm = stPC.PlateProp(0.001,alu)
     
-that is used in combination with several fluid and mass layers ::
+that is used in combination with several :class:`~pyva.systems.infiniteLayers.FluidLayer` and :class:`~pyva.systems.infiniteLayers.MassLayer` ::
 
     # Fluid layer
     air_5cm    = iL.FluidLayer(0.05,air)
@@ -131,7 +131,7 @@ All these layers are compiled in four different versions::
     T_alu_fibre_mass10 = mds.TMmodel((iL_alu1mm,fibre_5cm,heavy_1kg))
     T_alu_fibre_mass27 = mds.TMmodel((iL_alu1mm,fibre_5cm,heavy_2kg7))
 
-Once the TMmodels are created the transmission coefficient is calculated by the transmission_diffuse method::
+Once the TMmodels are created the transmission coefficient is calculated by the :meth:`~pyva.models.TMmodel.transmission_diffuse` method::
 
     tau_alu = T_alu.transmission_diffuse(omega,signal = False)
     tau_alu_air_mass = T_alu_air_mass.transmission_diffuse(omega,theta_step=np.pi/1000,signal = False)
@@ -140,7 +140,7 @@ Once the TMmodels are created the transmission coefficient is calculated by the 
 
 Plotting the results in the following figure shows the tremendous increase of isolation above the
 double wall resonance. However, in addition is becomes obvious that the inner cavity requires damping and that 
-that lower resonance frequencies provide a much better performance in the mid-frequency.
+the lower resonance frequencies provide a much better performance in the mid-frequency.
 
 .. figure:: ./images/TMM_DW_transmission.*
    :align: center

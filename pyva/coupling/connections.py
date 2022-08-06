@@ -18,7 +18,7 @@ debug_sw = 0 # 2 global 3 amplitude 4 force_in 5 Pow_in 6 Pow_out
 class Connection:
     
     """ 
-    Connections define the contact between systems. 
+    Class for topology definition of cpnnected systems. 
 
     Attributes
     ----------

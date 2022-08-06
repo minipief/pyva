@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-This module provides nethods for mesh handling. 
+This module provides methods for mesh handling. 
 This comprised simple and regular meshes without an element definition 
-but will late invlude complex meshed of irregular elements, different 
-coordinate systes and node definition.
+but will later invlude complex meshes of irregular elements, different 
+coordinate systems and node definitions.
 
 The latter is not yet implemeneted. Feel free :)
 """
@@ -303,7 +303,7 @@ class RegMesh2D:
 class RegShape2D(RegMesh2D):
 
     """ 
-    This class deals with regular and flat 2D meshes. 
+    This class deals with shapes mapped on regular and flat 2D meshes. 
     These meshes are very useful for radiation stiffness calculation of vibrating structures
     
     Check if required, usefull for function based shapes. 

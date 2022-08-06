@@ -9,7 +9,7 @@ the wave motion, the coupling physics and the sources.
 Required imports
 ++++++++++++++++
 
-The examples in this section require the import of the ``pyva.models`` module and further modules from subpackages.
+The examples in this section require the import of the :mod:`~pyva.models` module and further modules from subpackages.
 Thus, we start with the following import commands::
 
     # Other modules
@@ -55,7 +55,7 @@ The configuration is shown in figure :ref:`fig-two-rooms`.
    
    Two rooms separated by a concrete wall.
    
-We start with the material properties. We use typical data for air and light concrete::
+We start with the material properties and use typical data for air and light concrete::
 
     h        = 0.05           # wall thickness
     air      = matC.Fluid()   # default air
@@ -79,36 +79,35 @@ Due to the fact that the setup is rectangular we use the rectangular versions of
     As1  = 8.
     As2  = 10.
     
-Now the subsystems can be created::
-
     wall  = st2Dsys.RectangularPlate(2, Ly,Lz,prop=concrete_5cm, eta = 0.03)
     room1 = ac3Dsys.RectangularRoom(1, Lx1, Ly, Lz, air, absorption_area = As1, damping_type= ['surface'] )
     room2 = ac3Dsys.RectangularRoom(3, Lx2, Ly, Lz, air, absorption_area = As2, damping_type= ['surface'])
 
 The ``damping_type`` argument assures that the air damping is not used but only damping from surface absorption.
-The logical next step is to couple all systems by an area junction. If no area argument is given 
-the coupling surface is the surface of the wall::
+The logical next step is to couple all systems by an :class:`~pyva.coupling.junctions.AreaJunction`. 
+If no area argument is given the coupling surface defaults to the surface of the wall::
 
     J123 = con.AreaJunction((room1,wall,room2))
     
-The centre system must be the wall if three systems are involved. Once the systems are coupled 
-a source will introduce power into the first room. 
-A frequency range must be defined, usually third-octave
-band in SEA and building acoustics. ::
+The centre system must be the wall if three systems are involved. 
+
+In addition, the frequency range must be defined. This is usually a third-octave
+band spectrum in SEA and building acoustics. ::
 
     omega = mC.DataAxis.octave_band(f_max=2*np.pi*10000)
     
-And create helper variables are created in addition for easier plotting of the frequency axis in Hertz::
+Helper variables are created in addition for easier plotting of the frequency axis in Hertz::
 
     om    = omega.data
     freq  = om/2/np.pi 
     
-The load is defined by::
+One source is assumed to introduce power into the first room. 
+This load is defined by::
     
     pow_dof     = dof.DOF(1,0,dof.DOFtype(typestr = 'power')
     power1mWatt = lC.Load(omega, 0.001*np.ones(omega.shape), pow_dof), name = '1mWatt')
     
-We have collected all input to create the model using the ``HybridModel`` class but without FEM systems included ::
+We have collected all input to create the model using the :class:`~pyva.models.HybridModel` class but without FEM systems included ::
 
     two_rooms = mds.HybridModel((wall,room1,room2),xdata=omega)
     two_rooms.add_junction({'areaJ_12':J123})
@@ -119,10 +118,8 @@ and solve it::
     two_rooms.create_SEA_matrix()
     two_rooms.solve()
     
-
-
 The next step is to work with the model, query some details and access the result.
-We start with the evaluation of the random properties. We start with the modal density ::
+We start with the evaluation of the random properties and take a deeper look on the modal density ::
 
     plt.plot(freq,wall.modal_density(om,3),label = 'wall')
     plt.plot(freq,wall.modal_density(om,5),label = 'wall')
@@ -162,9 +159,9 @@ modal overlap becomes high enough above 1kHz.
 
 For better understanding of the coupling dynamics it is helpful to investigate the radiation 
 physics of the wall. The coincidence frequency is a method of the 
-:class:`pyva.properties.structuralPropertyClasses.PlateProp` class::
+:class:`~pyva.properties.structuralPropertyClasses.PlateProp` class::
 
-    f_c = concrete_5cm   .coincidence_frequency(air.c0)/2/np.pi
+    f_c = concrete_5cm.coincidence_frequency(air.c0)/2/np.pi
     >>> f_c
     702.353
     
@@ -187,7 +184,7 @@ the second method is an implementation of the ISO EN 12354-1.
    
 Both methods agree well except in the coincidence peak. See [Pei2022]_ for details of the implementation.
 
-Next, the SEA results are investigated in detail. In general the result of each simulations are of class Signal.
+Next, the SEA results are investigated in detail. In general the result of each simulations are of class :class:`~pyva.data.matrixClasses.Signal`.
 The solution generate results in the energy and result attribute :
 
     >>> two_rooms.energy
@@ -226,7 +223,7 @@ For, all systems the engineering unit was also calculated automatically::
    
    Velocity of the wall.
 
-.. _fig-two-rooms-velocity:
+.. _fig-two-rooms-pressure:
     
 .. figure:: ./images/two_rooms_pressure.*
    :align: center
@@ -283,7 +280,7 @@ The floor is supposed to have higher thickness than the wall ::
 
     concrete_17cm  = stPC.PlateProp(h_f,concrete)
 
-and the floor subsystems have ``ID=4`` and 5 ::
+and the floor subsystems have ``ID=4`` and ``5`` ::
 
     floor1 = st2Dsys.RectangularPlate(4, Lx1,Ly,prop=concrete_17cm, eta = 0.03)
     floor2 = st2Dsys.RectangularPlate(5, Lx2,Ly,prop=concrete_17cm, eta = 0.03)
@@ -293,7 +290,7 @@ Both floor are connected to the rooms by area junctions ::
     J14  = con.AreaJunction((room1,floor1))
     J35  = con.AreaJunction((room2,floor2))
 
-The 'T'-connection of both floor plates and the wall is a line junction of length Ly ::
+The 'T'-connection of both floor plates and the wall is a :class:`~pyva.coupling.junctions.LineJunction` of length Ly ::
 
     J425 = con.LineJunction((floor1,wall,floor2),length = Ly, thetas = (0,90,180))
     
@@ -376,9 +373,9 @@ the pressure and velocity results read as follows:
    
    Bending wave field velocity.
    
-The pressure in room 1 shows  a coincidence peek at the floor coincidence. So the floor1 is the main
-radiator for room 1. Room 2 has the coincidence peek at wall coincidence. 
-In order to determine the dominant path we apply the ``power_in`` method::
+The pressure in room 1 shows  a coincidence peak at the floor coincidence. So the floor1 is the main
+radiator for room 1. Room 2 has the coincidence peak at wall coincidence. 
+In order to determine the dominant path we apply the :meth:`pyva.models.HybridModel.power_input` method::
 
     pow_in_room1.plot(32,yscale = 'log',xscale = 'log')
     pow_in_room2.plot(32,yscale = 'log',xscale = 'log')
@@ -410,7 +407,8 @@ Box cover of sound source
 +++++++++++++++++++++++++
 
 The next example shows an application of box structures for sound isolation. 
-In addition it is an application of the ``SemiInfiniteFluid`` class and it illustrates
+In addition it is an application of the :class:`~pyva.coupling.junction.SemiInfiniteFluid` class of the junctions module 
+and it illustrates
 the limit of text based model description. Due to the large number of junction and systems
 even for such a simple box it becomes clear that for later complex model applications a GUI and 
 a 3D representation of the models will be mandatory.
@@ -509,7 +507,7 @@ and solve it ::
     box.solve()
     
 The interesting feature here is how much of the power is removed from the source. With the 
-``power_input`` method, we get the power inputs into the SIFs ::
+:meth:`pyva.models.HybridModel.power_input` method, we get the power inputs into the SIFs ::
 
     sif1_in = box.power_input('sif1')
     sif2_in = box.power_input('sif2')
@@ -528,7 +526,8 @@ space.
    
    Input power to SIF1
    
-All values are added by using the sum method of Signal that add all those paths in one signal and adding all SIF contributions::
+All values are added by using the :meth:`~pyva.data.matrixClasses.Signal.sum` method of :class:`~pyva.data.matrixClasses.Signal` 
+that add all those paths in one signal and adding all SIF contributions::
 
     sif_all = sif1_in.sum()+sif2_in.sum()+sif3_in.sum()+sif4_in.sum()+sif5_in.sum()
     
@@ -602,7 +601,7 @@ For the box cavity absorption we use the absorption_diffuse method ::
 The ``abs_area`` is created from the specifically treated areas ::
     
     abs_area = alpha_nct*(Lx*Ly)+alpha_nct_mass*(A-Lx*Ly)
-    # This is a signal those dof must be set to the
+    # This is a signal those dof must be set to the area DOF
     abs_area.dof = area_dof 
     
 The absorption area is not constant and therefore a Signal::

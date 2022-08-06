@@ -60,12 +60,14 @@ After populating the database ::
     alu    = matC.IsoMat(nu=0.3,eta = 0.0)
     alu4mm = stPC.PlateProp(0.004,alu)
     
-we create the rectangular plate model ::
+we create the rectangular plate system ::
 
     plate = st2Dsys.RectangularPlate(2,Lx,Ly,prop=alu4mm,wave_DOF = [3],eta = 0.02)
     
-as usual. The FEM objetc is now created by mapping modes and defining a mesh with the 
-``normal_modes`` method of the rectangular plate class ::
+as usual. 
+The FEM object is now created by mapping modes and defining a mesh with the 
+:meth:`~pyva.systems.structure2Dsystems.RectangularPlate.normal_modes` method of 
+the :class:`~pyva.systems.structure2Dsystems.RectangularPlate`class ::
  
     # Create plate as FE-Model
     modes,mesh = plate.normal_modes(omega_max*1.2,mapping = 'mesh')
@@ -88,7 +90,7 @@ We populate the database and define the SEA systems ::
     room1 = ac3Dsys.Acoustic3DSystem(1, 64 , 96, 48, air)
     room2 = ac3Dsys.Acoustic3DSystem(3, 80 ,112, 52, air, absorption_area = Lx* Ly, damping_type= ['surface'])
 
-Note, that the absorption area of room 2 equals the plate surface to keep log10(S/A)=0. 
+Note, that the absorption area of room 2 equals the plate surface to keep :math:`\log10(S/A)=0`. 
 All systems are connected via a hybrid junction::
 
     HJ123 = jun.HybridAreaJunction((room1,room2),plateFE)

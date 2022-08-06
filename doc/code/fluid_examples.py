@@ -20,6 +20,11 @@ omega = np.geomspace(100,10000,5)
 air.c_freq(omega)
 air.c_freq()
 
+air_20C_980 = matC.Fluid.air(294.15,0.980)
+air_21C_1013 = matC.Fluid.air(295.15,1.023)
+air_10C_1000 = matC.Fluid.air(284.15,1.0)
+
+
 z1 = air.impedance()*1.5
 
 reflection_factor = air.reflection_factor(omega, z1, theta = 0)

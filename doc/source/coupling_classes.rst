@@ -3,10 +3,9 @@ Coupling package
 
 The work share between both modules is as follows:
 
-The connections module shall deal with the topological details of the junction, for example length, angle, orientation 
+- The connections module shall deal with the topological details of the junction, for example length, angle, orientation 
 connected systems.
-
-The junctions module deals with the physics of wave transmission over the coupling.
+- The junctions module deals with the physics of wave transmission over the coupling.
 
 
 Connections

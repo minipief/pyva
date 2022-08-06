@@ -15,6 +15,7 @@ The full code of all examples can be found in :ref:`sec-code-examples`
    lumped_models
    acoustic_network
    infinite_layer
+   material_parameter_testing
    sea_models
    hybrid_models
    

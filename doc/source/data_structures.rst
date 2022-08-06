@@ -22,18 +22,18 @@ One typical example is given in equation :eq:`dynamicStiffnessEOM`.
 :math:`\boldsymbol{q}_{i}(\omega)` the qeneralised displacement degrees of freedom and  
 :math:`\boldsymbol{F}_{i}(\omega)` the generalized forces. 
 
-The first idea might be to use numpy arrays for both the matrices and the vectors but the properties
+The first idea might be to use ``numpy`` arrays for both the matrices and the vectors but the properties
 of both motivate the introduction of new classes to handle them more efficiently.
 The dynamic stiffness matrix is frequency dependent and therefore a three-dimensional array, the generalized vector
-become two dimensional. 
+becomes two-dimensional. 
 In addition typical matrices have symmetry properties. Thus, the full storage of symmetric, hermitian, diagonal or sparse
 matrices would be inefficient.
 Furthermore, every degree of freedom belongs to a certain node with location in space and local degrees of freedom
 such as displacements in x-, y- or z-directions. These degrees of freedom must be efficiently managed, meaning
 that the index and positioning of each degree of freedom in the matrices and vectors must be dealt with.
 
-For the matrices this motivated the introduction of the LinearMatrix (:class:`pyva.data.matrixClasses.LinearMatrix`) and the 
-DynamicMatrix (:class:`pyva.data.matrixClasses.DynamicMatrix`)class.
+For the matrices this motivated the introduction of the :class:`~pyva.data.matrixClasses.LinearMatrix` and the 
+:class:`~pyva.data.matrixClasses.DynamicMatrix` class.
 The first class aims at the consideration of symmetry and frequency dependence and the latter at relating each index in the matrix
 to a specific degreed of freedom.
 By using the above matrix classes the user shall not care too much about the symmetry because the implementation will
@@ -43,15 +43,16 @@ The generalized vector is represented by the Signal class.
 Vibroacoustic models are usually based on meshes, thus the physical domain is discretized into several elements whose vertices are represented 
 by nodes. Every node has many local degrees of freedom (for example the displacement in x- and y- direction) and a physical quantity 
 (for example pressure, displacement or force). 
-The class that organises this topic is the DOF class (:class:`pyva.data.dof.DOF`). The type attribute of the DOF class consists of 
-a further class called DOFtype (:class:`pyva.data.dof.DOFtype`). This class deals with unit and the physical type of degrees of freedom.
+The class that organises this topic is the :class:`~pyva.data.dof.DOF` class. The type attribute of the DOF class consists of 
+a further class called :class:`~pyva.data.dof.DOFtype`. 
+This class deals with unit and the physical type of degrees of freedom.
 For example the physical quantity length hat unit meter.
 
 
 DOFtype
 -------
 
-The most basic level of data handling is performed by the ``DOFtype`` class. 
+The most basic level of data handling is performed by the :class:`~pyva.data.dof.DOFtype` class. 
 This class uses many internal attributes in order to handle units and physical quantities and operations with them.
 
 This class is organised as a fraction to allow for the treatment of spectral density. The following formula shows 
@@ -154,7 +155,7 @@ In figure :ref:`fig-dof` the DOF attributes are sketched.
 	- 4-6: for rotations around the three space axis 
 - ``type``: DOFtype of node 
 
-Internally the ID and the dof are ndarrays of int. The type attribute is a list of DOFtype object.
+Internally the ``ID`` and the ``dof`` are ndarrays of int. The type attribute is a list of DOFtype object.
 Normally all attributes must have the same size, except when the constructor is used with repetition=True option.
 
 Before creating a DOF instance, a DOFtype instance is required::
@@ -163,7 +164,7 @@ Before creating a DOF instance, a DOFtype instance is required::
     >>> force = dof.DOFtype(typestr='force')
     >>> dof.DOFtype(typestr='displacement')
 	
-Next, we create appropriate ID and ldof arrays::
+Next, we create appropriate ``ID`` and ``ldof`` arrays::
 
     >>> ID   = np.arange(1,3)
     >>> ldof = np.arange(1,4)
@@ -182,9 +183,9 @@ A pure displacement DOF vector is created by::
     >>> my_dof
     DOF object with ID [1 1 1 2 2 2], DOF [1 2 3 1 2 3] of type [displacement in meter]
     
-The same can be created using the repetion argument::
+The same can be created using the ``repetition`` argument::
 
-    >>> my_dof = dof.DOF([1,2],[1,2,3],disp,repetition = True)
+    >>> my_dof = dof.DOF([1,2],[1,2,3],disp, repetition = True)
     >>> my_dof
     DOF object with ID [1 1 1 2 2 2], DOF [1 2 3 1 2 3] of type [displacement in meter]
 
@@ -206,12 +207,12 @@ This index can be used to extract the dofs from the main set::
     >>> my_dof[ix]
     DOF object with ID [1 2], DOF [2 2] of type [displacement in meter]
     
-This is usefull when indexes into system matrices are required.
+This is useful when indexes into system matrices are required.
 
 DataAxis
 ---------
 
-In contrast to degrees of freedom classes the DataAxis provides information about the third dimension 
+In contrast to degrees of freedom classes the :class:`~pyva.data.matrixClasses.DataAxis` class provides information about the third dimension 
 of the vibroacoustic system. In most cases this is frequency, but it can also be time, wavenumber or other 
 quantities.
 
@@ -223,7 +224,7 @@ A frequency axis is generated by::
     >>> freq_axis
     DataAxis of 20 samples and type frequency in hertz
     
-A useful method is the angular_frequency method that always provides the data in angular units::
+A useful method is the :meth:`~pyva.data.matrixClasses.DataAxis.angular_frequency` method that always provides the data in angular units::
 
     >>> freq_axis.data
     array([0. , 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1. , 1.1, 1.2,
@@ -237,9 +238,9 @@ A useful method is the angular_frequency method that always provides the data in
 Signal
 ------
 
-The Signal sequence of a physical quantity of managed by the Signal class.
-The rows of the two-dimensional array represent the sequence over the DataAxis for every degree
-of freedom.
+The Signal sequence of a physical quantity of managed by the :class:`~pyva.data.matrixClasses.Signal` class.
+The rows of the two-dimensional array represent the sequence over the :class:`~pyva.data.matrixClasses.DataAxis` 
+for every degree of freedom.
 
 .. _fig-Signal:
     
@@ -255,7 +256,7 @@ to one specific degree of freedom::
     >>> p_dof = dof.DOF([1,2],[0,0],dof.DOFtype(typestr = 'pressure'))
     ydata = np.array([np.sin(omega),np.cos(omega)])
     
-A Signal can the be constructed by::
+A Signal is then constructed by::
 
     >>> sig1 = mC.Signal(freq_axis,ydata,p_dof)
     >>> sig1
@@ -281,7 +282,7 @@ Until now we have explained the required classes to handle the vector types of t
 LinearMatrix
 ------------
 
-The LinearMatrix class aims at efficient handling of complex matrices that change over frequency or sometimes other parameters like time or wavenumber.
+The :class:`~pyva.data.matrixClasses.LinearMatrix` class aims at efficient handling of complex matrices that change over frequency or sometimes other parameters like time or wavenumber.
 In order to  present the functionality we create some test data::
 
     >>> from pyva.data import matrixClasses as mC
@@ -365,9 +366,9 @@ For example the cond method::
 DynamicMatrix
 -------------
 
-The dynamic matrix extends the LinearMatrix class by excitation and response degrees of freedom.
+The dynamic matrix extends the :class:`~pyva.data.matrixClasses.LinearMatrix` class by excitation and response degrees of freedom.
 For example a dynamic stiffness matrix has displacement degrees of freedom as excitation and force DOFs as
-response. In addition the meening of the third- or in-depth dimension is determined by xdata an instance of DataAxis.
+response. In addition the meaning of the third- or in-depth dimension is determined by xdata an instance of DataAxis.
 
 .. _fig-dynmat:
     
@@ -377,8 +378,8 @@ response. In addition the meening of the third- or in-depth dimension is determi
    
    Sketch of DynamicMatrix.
    
-To summarize, the main extension of DynamicMatrix to LinearMatrix is, that all dimensions of the three dimensional 
-array are linked to either degrees of freedom of xdata, for example frequency as shown in figure :ref:`fig-dynmat`.
+To summarize, the main extension of :class:`~pyva.data.matrixClasses.DynamicMatrix` to :class:`~pyva.data.matrixClasses.LinearMatrix` is, 
+that all dimensions of the three dimensional array are linked to either degrees of freedom of xdata, for example frequency as shown in figure :ref:`fig-dynmat`.
 
 An example for a dynamic stiffness matrix is::
 
@@ -424,7 +425,7 @@ for the non zero components::
     >>> f_data = np.ones((1,3))
     >>> force_load = mC.Signal(x_data,f_data, f_dof[0])
     
-The implemented dot method applies the load only to the excited degree of freedom ::
+The implemented :meth:`~pyva.data.matrixClasses.DynamicMatrix.dot` method applies the load only to the excited degree of freedom ::
 
     >>> u_res = DDinv.dot(force_load)
     

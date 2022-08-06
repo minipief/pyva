@@ -64,11 +64,11 @@ For the comparison to a reference system a similar tube of full length and small
 
     tube_ref = ac1D.AcousticTube(L1+L2+L3,air,A1)
     
-We suppose a flanged free half space, so the system we need for radiation is the CircularPiston ::
+We suppose a flanged free half space, so the system we need for radiation is the :class:`pyva.systems.acousticRadiators.CircularPiston` ::
 
     end4  = acR.CircularPiston(R3,air)
     
-For all these systems we use the acoustic_FE method ::
+For all these systems we use the ``acoustic_FE`` method ::
 
     # Create finite elements
     elem1 = tube1.acoustic_FE(xdata,ID=[1,2])
@@ -116,7 +116,7 @@ Next step is the creation of a load ::
     tube_network.add_load({1:volume_source})
     tube_ref_network.add_load({1:volume_source})
     
-and solving with `loadresponse=True` ::
+and solving with ``loadresponse=True`` ::
 
     tube_network.solve(loadresponse=True)
     tube_ref_network.solve(loadresponse=True)
@@ -135,7 +135,7 @@ When we check the content of the model we can identify loads and results ::
     Results with ID=1 Signal of 253 samples and 4 DOFs
  
 The results can be plotted with the usual methods for signals. 
-The power method calculates the power flow through the nodes::
+The :meth:`~pyva.models.VAmodel.power` method calculates the power flow through the nodes::
  
     pow_in  = tube_network.power(1,1)
     pow_in.plot(10)
@@ -163,7 +163,7 @@ leading to the following plot.
    
    Expansion chamber in- and output power of expansion chamber   
    
-The insertion loss is determined using the transfer method of the Signal class ::
+The insertion loss is determined using the transfer method of the :class:`~pyva.data.matrixClasses.Signal` class ::
 
     IL = pow_out.transfer(pow_ref,IDs=[4,4])
     IL.plot(13,res = 'dB')
@@ -180,8 +180,8 @@ Helmholtz resonator in pipe
 +++++++++++++++++++++++++++
 
 A further means of noise reduction is a Helmholtz resonator located in the pipe.
-The resonator is tuned at a certain frequency and work for tonal noise issues for examples in 
-hydraulic pipes or for and air intake.
+The resonator is tuned at a certain frequency and works well for tonal noise issues for example in 
+hydraulic pipes or for air intakes.
 
  .. figure:: ./images/tjoint.*
    :align: center
@@ -218,7 +218,7 @@ We define the frequency data and the dimensions of the set-up by the following v
     R         = 0.01
     Ac        = np.pi*R**2
 
-The Helmholtz resonator is created using the PerforatedLayer class that provides the radiation_impedance function for the end_impedance keyword argument ::
+The Helmholtz resonator is created using the :class:`~pyva.systems.acoustic1Dsystems.PerforatedLayer` class that provides the radiation_impedance function for the end_impedance keyword argument ::
 
     myPerf    = ac1D.PerforatedLayer(thickness,holeR,Ac,porosity = porosity)
     myResPerf = ac1D.HelmholtzResonator(V0,LH,R,air,0.85,end_impedance=myPerf.radiation_impedance)   

@@ -65,13 +65,33 @@ calculate the reflection_factor and absorption coefficient for plane interfaces 
 Even though the perpendicular absorption is not perfect, the acoustic design goal for diffuse field absorbers should be 
 1.5 times the specific air impedance as it can be shown be the absorption_diffuse method ::
 
-    absorption_diffuse    = air.absorption_diffuse(omega, z1)
+    >>> absorption_diffuse    = air.absorption_diffuse(omega, z1)
     >>> absorption_diffuse
     array([0.9510412, 0.9510412, 0.9510412, 0.9510412, 0.9510412])
     
 Other fluids can also be created by using the paramter list of the contructor::
 
     water = matC.Fluid(c0=1500, rho0=1000,dynamic_viscosity=1.0087,eta = 0.) 
+    
+More detailed air
++++++++++++++++++
+
+In some applications the properties of air must be precisely known. For example in pressurise aircraft cabins
+that have lower static pressure conditions as on the ground or during tests of porous materials.
+
+For this purpose there is the :meth:`~pyva.properties.materialClasses.Fluid.air` method that creates a Fluid object with the desired properties. ::
+    
+    >>> air_10C_1000 = matC.Fluid.air(284.15,1.0) # (T in Kelvin, pressure in bar) 
+    >>> print(air_10C_1000)
+    c0                : 338.1
+    rho0              : 1.226994522552932
+    nu0               : 1.4463797249131084e-05
+    eta               : 0
+    dynamic_visc      : 1.7747000000000005e-05
+    Cp                : 1004.1
+    heat_conductivity : 0.0250543
+    Pr                : 0.7112456823778754
+    kappa             : 1.4
     
 Equivalent fluids
 +++++++++++++++++
@@ -83,16 +103,17 @@ that the state variables are the same as for fluids: pressure and velocity.
 The number of parameters, models and model details is quite complex and study of related literature is strongly recommended. 
 The following table summarises the parameters.
 
-========================= ===================== ================================
+========================= ===================== ====================================
 Symbol                    Constructor argument  Description 
-========================= ===================== ================================
+========================= ===================== ====================================
+:math:`\rho_{bulk}`       rho_bulk              Density of absorber matrix and fluid
 :math:`\sigma`            flow_res              static air flow resistivity
 :math:`\Phi`              porosity              volume porosity
 :math:`\alpha_\infty`     tortuosity            tortuosity
 :math:`\Lambda`           length_visc           viscous characteristic length
 :math:`\Lambda'`          length_therm          thermal characteristic length
 limp or rigid model       limp                  switch
-========================= ===================== ================================
+========================= ===================== ====================================
 
 The equivalent fluid class is a daughter class of Fluid. Thus, the rest of the constructor parameters are the same as for fluids.
 For demonstration we create two equivalent fluids but with different limb switch settings ::

@@ -37,20 +37,9 @@ of [Pei2022]_.
    :width: 100%
 
    Modules for special systems 
-    
-Acoustic Systems
-----------------
-
-Systems that are constituted by fluid volumes are considered as acoustic systems. 
-In both classes the fluid is described by the Fluid class :class:`pyva.properties.materials.Fluid` or subclasses.
-
-The topology is restricted to one- and three dimensional systems because two-dimensional systems are either rarely used 
-in real applications or can be modelled by a infinite fluid layer :class:`pyva.systems.infiniteLayers.AcousticLayer`
-
-.. _sec-SEA_system:
 
 SEA_system
-++++++++++
+----------
 
 This class is the abstract base class for all SEA systems. 
 All daughter classes are obliged to implement specific methods, that are required for SEA simulation.
@@ -68,6 +57,19 @@ One important detail of SEA system classes is that an ID attribute is mandatory.
 the wave degree of freedom is created. For example the degree of freedom of a cavity SEA system of ID=4 is
 DOF(4,0,typestr='pressure').
 The DOF of SEA systems is similar to the DOF of nodes in deterministic models but here related to reverberant wave fields.
+
+    
+Acoustic Systems
+----------------
+
+Systems that are constituted by fluid volumes are considered as acoustic systems. 
+In both classes the fluid is described by the Fluid class :class:`pyva.properties.materials.Fluid` or subclasses.
+
+The topology is restricted to one- and three dimensional systems because two-dimensional systems are either rarely used 
+in real applications or can be modelled by a infinite fluid layer :class:`pyva.systems.infiniteLayers.AcousticLayer`
+
+.. _sec-SEA_system:
+
 
 One dimensional acoustic systems
 ++++++++++++++++++++++++++++++++

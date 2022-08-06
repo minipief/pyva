@@ -2,7 +2,7 @@ Geometry package
 ================
 
 Currently the geometry classes is implemented very simplistic. The only module
-is the mod:`pyva.geometry.meshClasses` module. 
+is the :mod:`~pyva.geometry.meshClasses` module. 
 
 The required import is ::
 
@@ -24,7 +24,7 @@ The mesh is created with ::
 
     my_mesh = meshC.RegMesh2D(0., 0., Lx, Ly, Nx, Ny)
     
-There are many properties that can be found in the API description of class:`pyva.geometry.meshClasses.RegMesh2D`.
+There are many properties that can be found in the API description of :class:`~pyva.geometry.meshClasses.RegMesh2D`.
 An important method that gives the X and Y positions is the nodes method ::
 
     X,Y = my_mesh.nodes()
@@ -89,8 +89,8 @@ The upper trangle can be reconstructed by ::
 
     dist_triu = dist[index]
     
-Thus, with the indexing trick the number of data is tremendously reduces. As the distance 
-is used in many stiffness matrix formula this increases the calculation speed also.
+Thus, with the indexing trick the number of data is tremendously reduced. 
+As the distance is used in many stiffness matrix formulas this increases the calculation speed also.
 Finally, the mesh can be plotted with ::
 
     my_mesh.plot3D(1)
