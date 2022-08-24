@@ -136,7 +136,7 @@ class Fluid:
     @staticmethod
     def air(temperature, pressure):
         """
-        
+        Determines precise properties from ambient conditions
 
         Parameters
         ----------

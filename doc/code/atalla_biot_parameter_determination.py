@@ -21,7 +21,7 @@ omega = 2*np.pi*np.geomspace(200,2000,100)
 freq  = omega/2/np.pi
 
 # default fluid
-air    = matC.Fluid(eta = 0.0)
+# air    = matC.Fluid(eta = 0.0)
 
 # Frequency range
 f_min = 500
@@ -31,7 +31,7 @@ test = input('Enter test selector 1-4!')
 test = int(test)
 
 # switch if fibres are calculated based on limp model
-fibre_sw = True # True # False means rigid
+fibre_sw = True # False means rigid
 
 # name test
 test_str = ('foam1','foam2','fibrous1','fibrous2')
@@ -99,7 +99,7 @@ elif test == 4:
     Lam_term_ref = 114.27e-6
         # Environment
     T = 24.6+273.15
-    P0 = 1.002
+    P0 = 0.977
 
 
 # Set air under test conditions
@@ -184,7 +184,7 @@ def impedance_fit(f,tor,Lam_visc,Lam_term):
 
 
 
-z0     = air.z0
+z0     = air_test.z0
 
 # Import test data
 f_test,Zs_re,Zs_im = np.loadtxt ('.//data//'+test_str[test-1]+'.csv',
@@ -237,7 +237,7 @@ res = dual_annealing(cost_function, bounds = bounds)
 plt.figure(1)
 plt.plot(f_test,Zs_re,'d:',label='Re')
 plt.plot(f_test,Zs_im,'d:',label='Im')
-
+1
 # check fit function f,por,sigma,Lam_visc,Lam_term
 plt.plot(freq,np.real(impedance_fit(freq, *res.x)/z0), label = 'pyva_Re') 
 plt.plot(freq,np.imag(impedance_fit(freq, *res.x)/z0), label = 'pyva_Im') 

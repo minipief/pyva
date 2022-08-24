@@ -162,7 +162,7 @@ However, the general option to receive the parameters from impedance tests witho
 some powerful toolboxes is demonstrated. 
 
 Further materials from [Ata2005]_ can be tested with the full example in :ref:`sec-MPD-examples`. 
-If you interested in applying the method onm your test data, feel free to contact the author at author@alexanderpeiffer.de.
+If you interested in applying the method on your test data, feel free to contact the author at author@alexanderpeiffer.de.
 Test impedance data with additional parameters derived by other methods are very welcome.
 
 .. _fig-fibrous1_fit:
