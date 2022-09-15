@@ -3,7 +3,6 @@ Test script for regular meshes
 """
 
 import pyva.geometry.meshClasses as rC
-import pyva.data.matrixClasses as mC
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -38,14 +37,18 @@ dist,index = myMesh.distance()
 
 shapefun = lambda x,y: np.sin(NmodeX*np.pi*(x-X0)/Lx)*np.sin(NmodeY*np.pi*(y-Y0)/Ly)
 
-myShape = rC.RegShape2D(X0,Y0,X0+Lx,Y0+Ly,Nx,Ny,shapefun)
+my_shape = rC.RegShape2D(X0,Y0,X0+Lx,Y0+Ly,Nx,Ny,shape=shapefun)
 
-myShape.plot3d(2)
+my_shape.plot3d(2)
 
-fineshape = myShape.normalised_shape()
-myShape = rC.RegShape2D(X0,Y0,X0+Lx,Y0+Ly,Nx,Ny,fineshape)
+fineshape = my_shape.normalised_shape()
+my_shape = rC.RegShape2D(X0,Y0,X0+Lx,Y0+Ly,Nx,Ny,shape=fineshape)
 
-myShape.plot3d(3)
+my_shape.plot3d(3)
+
+very_simple_shape = rC.RegShape2D(X0,Y0,X0+Lx,Y0+Ly,Nx,Ny)
+very_simple_shape.plot3d(4)
+
 
 
 

@@ -204,7 +204,7 @@ class RegMesh2D:
         if isinstance(index, str ) and index =='all':
             return np.meshgrid(self.X,self.Y)
         else:
-            return (self._X0+self._dX*index[0],self._Y0+self._dY*index[1])
+            return (self.X0+self.dX*index[0],self.Y0+self.dY*index[1])
                 
 
     def distance(self):
@@ -311,7 +311,7 @@ class RegShape2D(RegMesh2D):
     
     """
     
-    def __init__(self,X0,Y0,X1,Y1,NX,NY, doftype = dof.DOFtype(typestr='displacement'), shape = 1.):
+    def __init__(self,X0,Y0,X1,Y1,NX,NY, doftype = dof.DOFtype(typestr='displacement'), shape = lambda x,y: 1.+x*0.):
         """
         Class constructor of RegShape2D
         
@@ -331,8 +331,8 @@ class RegShape2D(RegMesh2D):
             number of nodes in Y-direction
         doftype : DOFtype, optional
             type of shape. The default is dof.DOFtype(typestr='displacement').
-        shape : functin, optional
-            Function for shape. The default is 1..
+        shape : function of (x,y), optional
+            Function for shape. The default is a function that is 1.
 
         Returns
         -------
@@ -341,7 +341,7 @@ class RegShape2D(RegMesh2D):
             shape: shape of mesh, 2D fun or ndarray of shape NX,NY function is only defines in mesh area the rest is ignored
             
         Examples:
-            >>> regMesh(0,0,0.8,0.9,10,10)
+            >>> regShape(0,0,0.8,0.9,10,10)
 
         """  
         
@@ -357,7 +357,7 @@ class RegShape2D(RegMesh2D):
 
     def shapefun(self,X,Y):
         """
-        Shape function with consideratin of mesh limits 
+        Shape function with consideration of mesh limits 
 
         Parameters
         ----------
@@ -488,8 +488,8 @@ class RegShape2D(RegMesh2D):
         ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
 
         ax.set_zlim(np.min(Z.flatten())*1.01, np.max(Z.flatten())*1.01)
-        ax.set_xlim(self._X0-0.01, self._X1+.01)
-        ax.set_ylim(self._Y0-0.01, self._Y1+.01)
+        ax.set_xlim(self.X0-0.01, self.X1+.01)
+        ax.set_ylim(self.Y0-0.01, self.Y1+.01)
 
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
@@ -508,7 +508,7 @@ class RegShape2D(RegMesh2D):
         # Add a color bar which maps values to colors.
         fig.colorbar(surf, shrink=0.5, aspect=5)
 
-        ax.auto_scale_xyz([self._X0, self._X1], [self._Y0, self._Y1], [Z.max(), Z.min()])
+        ax.auto_scale_xyz([self.X0, self.X1], [self.Y0, self.Y1], [Z.max(), Z.min()])
         ax.pbaspect = [mid_x, mid_y, mid_z]
         #ax.set_aspect('equal')
 

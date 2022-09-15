@@ -19,5 +19,5 @@ The required package can then be installed via
 
 .. code-block:: console
 
-   pip install pyva-1.0-py3-none-any.whl
+   pip install pyva-1.0.0-py3-none-any.whl
    
