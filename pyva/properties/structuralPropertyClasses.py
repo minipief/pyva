@@ -319,7 +319,7 @@ class PlateProp:
     
     """
     
-    def __init__(self,thickness,material):
+    def __init__(self, thickness, material, name='default property name'):
         """
         Class constructor of plate property
 
@@ -329,6 +329,8 @@ class PlateProp:
             plate thickness.
         material : IsoMat
             isotropic plate material.
+        name : string
+            property name
 
         Returns
         -------
@@ -338,9 +340,10 @@ class PlateProp:
         
         self.thickness = thickness
         self.material  = material
+        self.name      = name
     
     def __str__(self):
-        _str  = "PlateProp object with propeties:\n"
+        _str  = "PlateProp object '" + self.name + "' with properties:\n"
         _str += "thickness      : {0}\n".format(self.thickness)
         _str += "material\n--------\n{0}".format(self.material)
         return _str
@@ -1359,8 +1362,8 @@ class PlateProp:
         f_ = np.zeros((4,1,len(wavenumber)),dtype=np.complex128)
 
         if wave_DOF == 5: # 0 + 1 together
-            f  = self.wave_excitation_force(omega,wavenumber,1,matrix)
-            f += self.wave_excitation_force(omega,wavenumber,2,matrix)
+            f  = self.edge_wave_excitation_force(omega,wavenumber,1,matrix)
+            f += self.edge_wave_excitation_force(omega,wavenumber,2,matrix)
             return f
         
         if matrix: # Blocked force is calculated from force and displacment exlicitely
@@ -1473,7 +1476,7 @@ class PlateProp:
             Sff = self.wave_excitation_force_cross_correlation(omega,wavenumber,1,matrix) \
                 + self.wave_excitation_force_cross_correlation(omega,wavenumber,2,matrix)
         else:
-            f = self.wave_excitation_force(omega,wavenumber,wave_DOF,matrix)
+            f = self.wave_excitation_force(omega,wavenumber,wave_DOF,matrix) # should this be edge_wave_excitation_force(...) ???
             fH = f.H()
             Sff = f.dot(fH) # this is surprisingly simple
                          
@@ -1566,8 +1569,6 @@ class PlateProp:
 
         """
         
-        
-        
         if wave_DOF == 1:
             k_plate = np.real(self.wavenumber_L(omega))
         elif wave_DOF == 2:
@@ -1592,6 +1593,43 @@ class PlateProp:
             return 0.5*self.mass_per_area*omega**3*k_plate*Psi2*sin_phi        
         elif wave_DOF in (3,4):
             return self.mass_per_area*omega**3*Psi2/k_plate*sin_phi
+        
+        
+    def plot_wavenumbers(self, omega):
+        """
+        Parameters
+        ----------
+        omega : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
+        k_b = np.zeros(len(omega))
+        k_l = np.zeros(len(omega))
+        k_s = np.zeros(len(omega))
+        
+        for idx, om in enumerate(omega):
+            k_b[idx] = self.wavenumber_B(om)
+            k_l[idx] = self.wavenumber_L(om)
+            k_s[idx] = self.wavenumber_S(om)
+            
+        freq = omega/2/np.pi
+            
+        plt.figure()
+        plt.title('Wavenumbers of ' + self.name)
+        plt.plot(freq, k_b, label = 'bending')
+        plt.plot(freq, k_l, label = 'longitudinal')
+        plt.plot(freq, k_s, label = 'shear')
+        plt.xscale('log')
+        plt.xlabel('$f / $Hz')
+        plt.ylabel('$k$')
+        plt.ylim(bottom=0.0)
+        # plt.xticks(fc[2:],fclabels[2:])
+        plt.legend()
+        plt.show
         
        
 
