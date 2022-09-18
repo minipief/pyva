@@ -2,7 +2,7 @@
 """
 Created on Thu Sep 15 14:45:39 2022
 
-@author: SQPEABB
+@author: Johannes Seidel
 """
 
 import numpy as np
