@@ -56,6 +56,13 @@ steel_27mm.plot_wavenumbers(om)
 k = np.zeros(len(om))
 for idx, o in enumerate(om):
     k[idx] = steel_27mm.wavenumber_L(o) / steel_27mm.wavenumber_B(o)
+       
+plt.figure()
+plt.plot(freq, k, label = r'$k_L/k_B$')
+plt.xlabel(r'$f / [Hz]$')
+plt.ylabel(r'$k_L/k_B$')
+plt.legend()
+plt.show()
     
     
 #%% Figure 2
