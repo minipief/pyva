@@ -359,11 +359,6 @@ class Junction:
             wave_DOF of rows.
 
         """
-
-   
-
-
-
         i_rows,i_cols = np.triu_indices(self.N,1)
         return self.wave_DOF[i_rows]
 
@@ -393,7 +388,7 @@ class Junction:
         return mC.DynamicMatrix(data, mC.DataAxis(omega), self.exc_DOF, self.res_DOF, sym = 1, shape = (self.N_wave,self.N_wave,N_freq))
 
         
-def all2array(*A):
+def all2array_OLD(*A):
     """
     Converts input to np.arrays
 
@@ -412,6 +407,30 @@ def all2array(*A):
     for a in A:
         r += np.array(a),
     return r
+
+
+def all2array(*A):
+    """
+    Converts input to np.arrays
+
+    Parameters
+    ----------
+    *A : list of tupel, np.arrays, lists, integers or floats
+
+    Returns
+    -------
+    r : tuple of np.arrays of input A
+
+    """
+    
+    r = ()
+    
+    for a in A:
+        if isinstance(a, (float, int)):
+            a = [a] # convert single values to a list first
+        r += ( np.array(a), )
+    return r
+
         
 class LineJunction(Junction) :
     """ 
@@ -426,9 +445,7 @@ class LineJunction(Junction) :
     thetas : ndarray
         angles of connected plates
     
-    """
- 
-       
+    """ 
     
     def __init__(self,systems,length,thetas):
         """
@@ -477,7 +494,8 @@ class LineJunction(Junction) :
         _str += 'length       : {0}\n'.format(self.length) 
         
         return _str
-        
+    
+    
     def __repr__(self):
         """
         Implements __repr__ 
@@ -489,6 +507,26 @@ class LineJunction(Junction) :
 
         """
         return self.__str__()
+    
+    
+    def set(self, attribute, value):
+        """
+        Sets the attributes of the LineJunction object.
+
+        Parameters
+        ----------
+        attribute : string
+            This is the name of the attribute.
+        value : of different type
+            This is the new value of the object's attribute.
+
+        Returns
+        -------
+        None.
+
+        """
+        setattr(self, attribute, value)
+        
                 
     def total_radiation_stiffness_wavenumber(self,omega,wavenumber):
         """
@@ -511,7 +549,6 @@ class LineJunction(Junction) :
 
         """
         
-                
         # # manage datastorage
         # if omega in self._D_tot.keys():
         #     # check is frequency parameters have not changed
@@ -538,6 +575,7 @@ class LineJunction(Junction) :
         #self._D_tot.update({omega : D_tot})
         
         return(D_tot)
+    
     
     def transmission_wavenumber(self,omega,wavenumber,i_sys = (0,1),i_in_wave = (1,2,3),i_out_wave = (1,2,3),rad_sw = 'wave',Signal = True):
         """
@@ -746,7 +784,6 @@ class LineJunction(Junction) :
             return mC.Signal(xdata,_ydata,dof.DOF(i_out_wave,np.zeros((1,Nsig)),_tdof))
         else:
             return _ydata
-            
 
 
     def transmission_wavenumber_wave(self,omega,wavenumber,i_sys = (0,1),i_in_wave = (1,)*3+(2,)*3+(3,)*3,i_out_wave = (1,2,3)*3,matrix = False):
@@ -910,9 +947,7 @@ class LineJunction(Junction) :
 
 
         return mC.Signal(xdata,_ydata,dof.DOF(np.array(i_out_wave),np.zeros((1,Nsig)),_tdof))
-     
-                
-   
+
                 
     def transmission_wavenumber_langley(self,omega,wavenumber,i_sys = (0,1),i_in_wave = (1,)*3+(2,)*3+(3,)*3,i_out_wave = (1,2,3)*3,matrix=False,Signal = True):
         """
@@ -1172,13 +1207,6 @@ class LineJunction(Junction) :
             raise(ValueError,'unknown option for method')
         return kx[:-1]
         
-        
-        
-        
-        
-        
-        
-
 
     def CLF(self,omega,i_sys = (0,1),i_in_wave = (5,5),i_out_wave = (5,3), N_step = 100,method = 'diffuse',Signal = True):
         """
@@ -1188,7 +1216,6 @@ class LineJunction(Junction) :
         The wavefields that are considered  are given by i_in_wave and i_out_wave.
         The CLF is calculated running through through both indexes
         
-
         Parameters
         ----------
         omega : ndarray or float
@@ -1222,7 +1249,7 @@ class LineJunction(Junction) :
         # i_sys      = np.array(i_sys)
         # i_in_wave  = np.array(i_in_wave)
         # i_out_wave = np.array(i_out_wave)
-        i_sys,i_in_wave,i_out_wave = all2array(i_sys,i_in_wave,i_out_wave)
+        i_sys,i_in_wave,i_out_wave,omega = all2array(i_sys,i_in_wave,i_out_wave,omega)
                 
         if i_out_wave.size != i_in_wave.size:
             raise ValueError('In and out wave must have same size')
@@ -1247,7 +1274,7 @@ class LineJunction(Junction) :
             #k_in = self.systems[i_sys[0]].plate_wavenumber(om,i_in_wave[0])
             
             kx   = self.kx(om,i_sys,i_in_wave[0],i_out_wave,N_step,method = 'in-plane')
-            
+
             if method == 'diffuse':
                 taus = self.transmission_wavenumber(om,kx,i_sys,i_in_wave,i_out_wave,Signal=False) # check late with Signal option
             elif method == 'langley':
@@ -1255,14 +1282,13 @@ class LineJunction(Junction) :
                         
             for i_o_wave,i_type in enumerate(i_out_wave):
                 etas[i_o_wave,ifreq] = fak1[ifreq]/modal_dens*integrate.trapz(taus[i_o_wave,:],kx)
-                
-                
 
         if Signal:
             xdata = mC.DataAxis(omega,typestr = 'angular frequency')
             return mC.Signal(xdata,etas,dof.DOF(i_out_wave,np.zeros((1,Nsig)),_tdof))
         else:
-            return etas
+            return etas, taus, kx
+        
     
     def CLF_angle(self,omega,i_sys = (0,1),i_in_wave = (5,3),i_out_wave = (5,3), N_step = 200,method = 'diffuse',Signal = True):
         """
