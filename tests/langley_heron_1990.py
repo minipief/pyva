@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import scipy.integrate as integrate
 
 # pyva packages
-import pyva.models as mds
 import pyva.coupling.junctions as con
 
 import pyva.systems.structure2Dsystems as st2Dsys
@@ -18,13 +17,7 @@ import pyva.systems.structure2Dsystems as st2Dsys
 import pyva.properties.structuralPropertyClasses as stPC
 import pyva.properties.materialClasses as matC
 
-import pyva.data.dof as dof
 import pyva.data.matrixClasses as mC
-
-import pyva.useful as uf
- 
-# x-axis tics
-fc,fclabels = uf.get_3rd_oct_axis_labels(range='SEA')
 
 # plate dimensions
 lx = 1
@@ -47,10 +40,6 @@ omega = mC.DataAxis.octave_band(f_max=2*np.pi*10000)
 om    = omega.data
 freq  = om/2/np.pi 
 
-lj = con.LineJunction( [plate1, plate2], 1, [0, 180*np.pi/180])
-
-print(lj)
-
 steel_27mm.plot_wavenumbers(om)
 
 k = np.zeros(len(om))
@@ -66,7 +55,7 @@ plt.show()
     
     
 #%% Figure 2
-o = np.array([2*np.pi*10000]) # 10000Hz will give k_l/k_b = 0.3 for the 27mm thick steel plate
+o = 2*np.pi*10000 # 10000Hz will give k_l/k_b = 0.3 for the 27mm thick steel plate
 
 nSamples = 100
 
@@ -77,27 +66,33 @@ tau_BS = np.zeros(nSamples)
 phi = np.linspace(0, np.pi, nSamples)
 
 for idx, angle in enumerate(phi):
-    
-    lj.set('thetas', [0, angle])
-    
-    etas, taus, kx = lj.CLF(omega = o, i_in_wave = (1,1,1), i_out_wave = (1,2,3),
-                        method = 'langley', Signal = False)
 
-    # tau_BB[idx] = taus[0, 1]
-    # tau_BL[idx] = taus[1, 1]
-    # tau_BS[idx] = taus[2, 1]
-    tau_BB[idx] = integrate.trapz(taus[0,:],kx)
-    tau_BL[idx] = integrate.trapz(taus[1,:],kx)
-    tau_BS[idx] = integrate.trapz(taus[2,:],kx)
+    lj = con.LineJunction( [plate1, plate2], 1, [0, angle])
+
+    taus = lj.transmission_wavenumber_diffuse(omega      = o,
+                                              i_sys      = (0,1), 
+                                              i_in_wave  = (3,3,3),
+                                              i_out_wave = (1,2,3),
+                                              N_step     = 100,
+                                              method     = 'langley',
+                                              Signal     = False)
+    
+    tau_BL[idx] = taus[0,:]
+    tau_BS[idx] = taus[1,:]
+    tau_BB[idx] = taus[2,:]
 
 phi = phi * 180/np.pi
  
 plt.figure()
-plt.title('Figure 2. Diffuse wave transmission coefficients for a "V" plate junction with subtended angle $\Phi$ and $k_L$/$k_B$ = 0.3')
+plt.title(r'Figure 2. Diffuse wave transmission coefficients for a "V" plate junction with subtended angle $\theta$ and $k_L$/$k_B$ = 0.3')
 plt.plot(phi, tau_BB, label = r'$\tau^{12}_{BB}$', linestyle = '-')
 plt.plot(phi, tau_BS, label = r'$\tau^{12}_{BS}$', linestyle = '--')
 plt.plot(phi, tau_BL, label = r'$\tau^{12}_{BL}$', linestyle = '-.')
-plt.xlabel(r'$\Phi(degrees)$')
+plt.xlabel(r'$\theta(degrees)$')
 plt.ylabel(r'$\tau(\omega)$')
+plt.xticks((0,45,90,135,180))
+plt.yticks((0,0.25,0.5,0.75,1.0))
+plt.xlim(0, 180)
+plt.ylim(0, 1)
 plt.legend()
 plt.show()
