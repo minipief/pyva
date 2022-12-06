@@ -60,11 +60,11 @@ the CLF is calculated from diffuse field angular averaging.
 Even though the parameters of the junction: length and the angles of connected subsystems the theory behind this type of junction is very complex.
 Thus, there are several versions for the calculation of the transmission coefficients.  
 
-The main and important methods are :meth:`pyva.coupling.junctions.LineJunction.transmission_wavenumber` and 
-:meth:`pyva.coupling.junctions.LineJunction.transmission_wavenumber_diffuse`
+The main and important methods are :meth:`~pyva.coupling.junctions.LineJunction.transmission_wavenumber` and 
+:meth:`~pyva.coupling.junctions.LineJunction.transmission_wavenumber_diffuse`
 that use the CLF implementation as shown in [Pei2022]_. However, there are additional methods for validation purpose: 
-The :meth:`pyva.coupling.junctions.LineJunction.transmission_wavenumber_langley` using Langleys implementation [Lan1990]_ and 
-:meth:`pyva.coupling.junctions.LineJunction.transmission_wavenumber_wave` that shows my struggle with a simple application by simply using the 
+The :meth:`~pyva.coupling.junctions.LineJunction.transmission_wavenumber_langley` using Langleys implementation [Lan1990]_ and 
+:meth:`~pyva.coupling.junctions.LineJunction.transmission_wavenumber_wave` that shows my struggle with a simple application by simply using the 
 hybrid coupling loss factor implementation, that is not possible as shown in detail in [Pei2022]_.
 
 .. _fig-line-junction:
@@ -248,9 +248,9 @@ The hybrid area junction is created in such a way that a flat FE-model radiates 
 The contructor requires the connected SEA systems, the trim if applicable and the FE-model that represents the centered plate.
 Due to the current simplistic implementation of FE-models the mesh is always supposed as regular mesh.
 
-The use of the constructor is given in example :ref:`sec-two-rooms-with-FE-plate`. 
+The use of the constructor is given in example :ref:`sec-two-rooms-with-FE-plate`. ::
 
-HJ123 = jun.HybridAreaJunction((room1,room2),plateFE)
+    HJ123 = jun.HybridAreaJunction((room1,room2),plateFE)
 
 In contrast to SEA area junctines the trim must be explicitely defined with::
 
@@ -270,7 +270,7 @@ solution. In this case further additional output arguments are required::
     eta, eta_alpha, power_in, modal_disp = HJ123.CLF(omega.angular_frequency, force = 1N@Node200)
 
 Due to the fact that the reverberant fields in the cavities excite the FEM-system one further method is neccessary. 
-This is :meth:`pyva.coupling.junctions.HybridAreaJunction.FEM_response` that calculates the modal cross spectral density of FEN-system due to 
+This is :meth:`~pyva.coupling.junctions.HybridAreaJunction.FEM_response` that calculates the modal cross spectral density of FEN-system due to 
 the energy in the connected SEA systems::
 
     Sqq = FEM_response(omega,energy)

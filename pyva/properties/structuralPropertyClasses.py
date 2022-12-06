@@ -8,7 +8,6 @@ import pyva.properties.geometricalPropertyClasses as geoPC
 import pyva.properties.materialClasses as mc
 import pyva.data.matrixClasses as mC
 import scipy.special as scs
-import matplotlib.pyplot as plt
 import scipy.integrate as integrate
 
 class BeamProp:
@@ -340,7 +339,7 @@ class PlateProp:
         self.material  = material
     
     def __str__(self):
-        _str  = "PlateProp object with propeties:\n"
+        _str  = "PlateProp object with properties:\n"
         _str += "thickness      : {0}\n".format(self.thickness)
         _str += "material\n--------\n{0}".format(self.material)
         return _str
@@ -362,9 +361,7 @@ class PlateProp:
         """
         
         nu = self.material.nu
-        #eta = self.material.eta
-        # *(1+1j*eta)
-        return self.material.E*self.thickness**3/(12*(1-nu*nu)) #(1+1j*eta) 
+        return self.material.E*self.thickness**3/(12*(1-nu*nu))
     
     @property
     def B_complex(self):
@@ -966,19 +963,18 @@ class PlateProp:
             uL= -np.sqrt(Kx**2-np.complex128(kL)**2)
             uS= -np.sqrt(Kx**2-np.complex128(kS)**2)
 
-#        uL= self.muL(omega,wavenumber)
-#        uS= self.muT(omega,wavenumber)
- 
-
-
-                 
-        # Try removing not allowed values
-        #uL[np.isreal(uL)] = 0
-        #uS[np.isreal(uS)] = 0
+        #kyL = np.sqrt(np.complex128(kL**2-Kx**2))
+        kyS = np.sqrt(np.complex128(kS**2-Kx**2))
 
         data_ = np.zeros((4,4,Kx.size),dtype=np.complex128)
 
         Sfac  = S/(Kx**2-uL*uS)
+        #Denominator for in-plane waves with kx < kL
+        #Sdenom = (Kx**2+kyL*kyS)
+        #Sfac   = S/Sdenom
+        #Denominator for in-plane waves with kx > kL
+        
+        S2fac  = S/(Kx**2-1j*kyS*uL) 
     
         # out-of-plane motion, roots
         uB1 = -np.sqrt(Kx**2+kB**2)
@@ -1025,19 +1021,140 @@ class PlateProp:
 
 
             
-        elif wave_DOF == 5: #in plane
-            # seperate version for kX > kL
+        elif wave_DOF == 5: #in plane Eq. (8.121)
             # in-plane motion, matrix function elements
             data_[0,0,:] = -Sfac*(uL*kS**2) 
             data_[0,1,:] = -Sfac*(1j*Kx*(2*uS*uL+kS**2-2*Kx**2)) 
             data_[1,0,:] = -data_[0,1,:]#*Sfac*(1j*Kx*(2*uS*uL+kS**2-2*Kx**2))#asym_SL*data_[0,1,:]
             data_[1,1,:] = -Sfac*(uS*kS**2)
             
+            # seperate version for kS > kX > kL 
+            # Did not work
+            #ix = np.logical_and(Kx < kS,Kx >= kL)
+            #data_[0,0,ix] =  -S2fac[ix]*(uL[ix]*kS**2)  
+            #data_[0,1,ix] =  -S2fac[ix]*Kx[ix]*(2*kyS[ix]*uL[ix]+1j*(kS**2-2*Kx[ix]**2)) 
+            #data_[1,0,ix] =  -data_[0,1,ix]
+            #data_[1,1,ix] =  -S2fac[ix]*1j*kyS[ix]*kS**2       
+            
+            
+            
 
             
                                                   
         return mC.LinearMatrix(data_)
-  
+
+    def edge_radiation_stiffness_wavenumber_f(self,omega,wavenumber,wave_DOF = 0):
+        """
+        Structural radiation stiffness of straight plate edges
+
+        This method calculates the structural dynamic radiation
+        stiffness matrix of a semi-infinite plate in the wave number domain. The
+        force-displacement relations in wave number domain are derived from the
+        harmonic solution of the vibrating plate equation, as explained in [Pei2022]_.
+        Given a cartesian system with
+        the x-axis along the plate edge and the y-axix looking inside the plate, 
+        four degrees of freedom are considered at the edge of the plate: three
+        displacement (u,v,w) and the rotation (theta) in the edge direction (x),
+        so that the force-displacement function is a 4 X 4 matrix, function of
+        wavenumber and time frequency, where the out-of-plane behavior is 
+        decoupled from the in-plane behavior. The matrix is given in terms of its
+        single coefficients a_ij.
+              
+        Parameters
+        ----------
+        omega : float
+            angular frequency
+        wavenumber : float
+            wavenumber kx 
+        wave_DOF : int
+            identifier of radiation matrix 0 all waves, 1,2,3 correponds to longitudinal, shear and bending wave 
+
+        Returns
+        -------
+        nd.array
+            matrix [Nkx x 4 x 4] of the stiffness element
+            
+        """
+         
+        Kx=wavenumber
+        # Npoint=len(Kx);
+ 
+ 
+        #eta = self.material.eta
+        kB = self.wavenumber_B(omega) #bending wavenumber
+        kL = self.wavenumber_L(omega) #longitudinal wavenumber
+        kS = self.wavenumber_T(omega) #shear wavenumber
+        B = self.B # bending stiffness with damping
+        S = self.S #shear stiffness with damping
+        nu= self.material.nu #poisson
+          
+ 
+        # in-plane motion, roots
+        
+        if wave_DOF ==  5:
+            uL= self.muL(omega,wavenumber)
+            uS= self.muT(omega,wavenumber)
+        else:
+            uL= -np.sqrt(Kx**2-np.complex128(kL)**2)
+            uS= -np.sqrt(Kx**2-np.complex128(kS)**2)
+
+        data_ = np.zeros((Kx.size,4,4),dtype=np.complex128)
+
+        Sfac  = S/(Kx**2-uL*uS)
+    
+        # out-of-plane motion, roots
+        uB1 = -np.sqrt(Kx**2+kB**2)
+        uB2 = -np.sqrt(Kx**2-np.complex128(kB)**2)
+
+        #uB1[np.isreal(uB1)] = 1.E100
+
+        if wave_DOF == 0:
+            
+            # in-plane motion, matrix function elements langs_SL = -1 gives Langleys convention
+            data_[:,0,0] = -Sfac*(uL*kS**2) 
+            data_[:,0,1] = -Sfac*(1j*Kx*(2*uS*uL+kS**2-2*Kx**2)) 
+            data_[:,1,0] = -data_[:,0,1]#*Sfac*(1j*Kx*(2*uS*uL+kS**2-2*Kx**2))#asym_SL*data_[0,1,:]
+            data_[:,1,1] = -Sfac*(uS*kS**2)
+
+     
+            # out-of-plane motion, matrix function elements
+            data_[:,2,2] = -B*(uB1**2*uB2+uB2**2*uB1) 
+            data_[:,2,3] = B*(uB2*uB1+nu*Kx**2)
+            data_[:,3,2] = data_[:,2,3]
+            data_[:,3,3] = -B*(uB2+uB1)
+            
+            
+        elif wave_DOF == 1: #in [1]: NOt VALID
+            data_[:,0,0] = -Sfac*2*(uL*Kx**2) 
+            data_[:,0,1] = -Sfac*2j*Kx*uS*uL 
+            data_[:,1,0] = -Sfac*1j*Kx*(2*Kx**2-kS**2)
+            data_[:,1,1] = Sfac*uS*(2*Kx**2-kS**2)
+
+        elif wave_DOF == 2: # not valid
+            data_[:,0,0] = Sfac*uL*(2*Kx**2-kS**2)
+            data_[:,0,1] = Sfac*1j*Kx*(2*Kx**2-kS**2) 
+            data_[:,1,0] = Sfac*2j*Kx*uS*uL
+            data_[:,1,1] = -Sfac*(uS*Kx**2)
+            
+        elif wave_DOF in (3,4):
+            # out-of-plane motion, matrix function elements
+            data_[:,2,2] = -B*(uB1**2*uB2+uB2**2*uB1) 
+            data_[:,2,3] = B*(uB2*uB1+nu*Kx**2)
+            data_[:,3,2] = data_[:,2,3]
+            data_[:,3,3] = -B*(uB2+uB1)
+
+
+            
+        elif wave_DOF == 5: #in plane
+            # seperate version for kX > kL
+            # in-plane motion, matrix function elements
+            data_[:,0,0] = -Sfac*(uL*kS**2) 
+            data_[:,0,1] = -Sfac*(1j*Kx*(2*uS*uL+kS**2-2*Kx**2)) 
+            data_[:,1,0] = -data_[:,0,1]#*Sfac*(1j*Kx*(2*uS*uL+kS**2-2*Kx**2))#asym_SL*data_[0,1,:]
+            data_[:,1,1] = -Sfac*(uS*kS**2)
+            
+        return data_
+
     
     def edge_imaginary_radiation_stiffness_wavenumber(self,omega,wavenumber,wave_DOF=0):
         """
@@ -1048,7 +1165,7 @@ class PlateProp:
         radation_stiffness_wavenumber except for bendig waves where both
         expressions are similar. See [Pei2022]_ for details
         
-        Used for demonstration purpose only!
+        Will be deprecated in the new future, because it is equivalent to the skew hermitian matrix.
         
         Parameters
         ----------
@@ -1068,8 +1185,8 @@ class PlateProp:
             
         """
 
-        if wave_DOF == 0:
-            return self.radiation_stiffness_wavenumber(omega,wavenumber,wave_DOF).imag()
+        if wave_DOF == 0: # Return standard values
+            return self.edge_radiation_stiffness_wavenumber(omega,wavenumber,wave_DOF=wave_DOF).imag()
 
          
         Kx=wavenumber
@@ -1102,12 +1219,12 @@ class PlateProp:
         #Denominator for in-plane waves with kx < kL
         Sdenom = (Kx**2+kyL*kyS)
         #Denominator for in-plane waves with kx > kL
-        
         S2denom = (Kx**4+uL**2*kyS**2)
 
-
+        
         Sfac   = S/Sdenom
-    
+        S2fac  = S/S2denom*kS**2*kyS    
+
         # out-of-plane motion, roots
         uB1 = -np.sqrt(Kx**2+kB**2)
         uB2 = -np.sqrt(Kx**2-np.complex128(kB)**2)
@@ -1115,7 +1232,7 @@ class PlateProp:
         #uB1[np.isreal(uB1)] = 1.E100
         
             
-        if wave_DOF == 1: #in [1]:
+        if wave_DOF == 1: #in [1] Only for demonstration purpose, see Appendix B
             fak1 = Sfac/Sdenom*kS**2*kyL
             ix = Kx < kL
             data_[0,0,ix] =  fak1[ix]*Kx[ix]**2 
@@ -1123,7 +1240,7 @@ class PlateProp:
             data_[1,0,ix] =  data_[0,1,ix]
             data_[1,1,ix] =  fak1[ix]*kyS[ix]**2
 
-        elif wave_DOF == 2:
+        elif wave_DOF == 2: # Only for demonstration purpose, see Appendix B
             fak1 = Sfac/Sdenom*kS**2*kyS # Sdenom is squared for single wave
             ix = Kx <= kS
             data_[0,0,ix] =  fak1[ix]*kyL[ix]**2 
@@ -1137,37 +1254,98 @@ class PlateProp:
             data_[1,0,ix] =  -data_[0,1,ix]
             data_[1,1,ix] =  fak1[ix]*Kx[ix]**2
             
-        elif wave_DOF in (3,4):
+        elif wave_DOF in (3,4): # Eq before (B.53)
             # out-of-plane motion, matrix function elements
             data_[2,2,:] = np.imag(-B*(uB1**2*uB2+uB2**2*uB1)) 
             data_[2,3,:] = np.imag(B*(uB2*uB1+nu*Kx**2))
             data_[3,2,:] = data_[2,3,:]
             data_[3,3,:] = np.imag(-B*(uB2+uB1))
         elif wave_DOF == 5: #in plane
+            # for Kx < kL
             ix = Kx < kL
-            Ddir_SL = True
-            if Ddir_SL:
-                data_[0,0,ix] = np.imag(-Sfac[ix]*(uL[ix]*kS**2)) 
-                data_[0,1,ix] = np.imag(-Sfac[ix]*(1j*Kx[ix]*(2*uS[ix]*uL[ix]+kS**2-2*Kx[ix]**2))) 
-                data_[1,0,ix] = -data_[0,1,ix]#*Sfac*(1j*Kx*(2*uS*uL+kS**2-2*Kx**2))#asym_SL*data_[0,1,:]
-                data_[1,1,ix] = np.imag(-Sfac[ix]*(uS[ix]*kS**2))                
-            else:
-                data_[0,0,ix] = Sfac[ix]*(kyL[ix]*kS**2) 
-                data_[1,1,ix] = Sfac[ix]*(kyS[ix]*kS**2)
+            data_[0,0,ix] = np.imag(-Sfac[ix]*(uL[ix]*kS**2)) 
+            data_[0,1,ix] = np.imag(-Sfac[ix]*(1j*Kx[ix]*(2*uS[ix]*uL[ix]+kS**2-2*Kx[ix]**2))) 
+            data_[1,0,ix] = -data_[0,1,ix]#*Sfac*(1j*Kx*(2*uS*uL+kS**2-2*Kx**2))#asym_SL*data_[0,1,:]
+            data_[1,1,ix] = np.imag(-Sfac[ix]*(uS[ix]*kS**2))                
+            # for kL < Kx <= kS Eq (B.76) must be used
+            
             ix = np.logical_and(Kx < kS,Kx >= kL)
-            fak1 = S/S2denom*kS**2*kyS
-            data_[0,0,ix] =  fak1[ix]*uL[ix]**2 
-            data_[0,1,ix] =  1j*fak1[ix]*uL[ix]*Kx[ix] 
+            data_[0,0,ix] =  S2fac[ix]*uL[ix]**2 
+            data_[0,1,ix] =  1j*S2fac[ix]*uL[ix]*Kx[ix] 
             data_[1,0,ix] =  -data_[0,1,ix]
-            data_[1,1,ix] =  fak1[ix]*Kx[ix]**2            
+            data_[1,1,ix] =  S2fac[ix]*Kx[ix]**2            
+            
             
                                                                           
         return mC.LinearMatrix(data_)
     
+    def edge_skew_radiation_stiffness_wavenumber(self,omega,wavenumber,wave_DOF=0):
+        """
+        Structural edge radiation stiffness for specific wave types
+        
+        Due to special relationships there are different formulations of the
+        imaginary radiation stiffness as following directly from the 
+        radation_stiffness_wavenumber except for bendig waves where both
+        expressions are similar. See [Pei2022]_ for details
+                
+        Parameters
+        ----------
+        omega : float
+            angular frequency
+        wavenumber : float
+            wavenumber kx 
+        wave_DOF : int
+            identifier of radiation matrix 0 all waves, 1,2,(3 or 4) correponds 
+            to longitudinal, shear and bending wave
+            5 stands for inplane (1+2)
+
+        Returns
+        -------
+        LinearMatrix
+            matrix [4 x 4] of the stiffness element
+            
+        """
+
+        M = self.edge_radiation_stiffness_wavenumber(omega,wavenumber,wave_DOF=wave_DOF)
+
+
+        return -0.5j*(M-mC.hermitian(M)) 
+
+    def edge_skew_radiation_stiffness_wavenumber_f(self,omega,wavenumber,wave_DOF=0):
+        """
+        Structural edge radiation stiffness for specific wave types.
+        
+        Due to special relationships there are different formulations of the
+        imaginary radiation stiffness as following directly from the 
+        radation_stiffness_wavenumber except for bendig waves where both
+        expressions are similar. See [Pei2022]_ for details
+                
+        Parameters
+        ----------
+        omega : float
+            angular frequency
+        wavenumber : float
+            wavenumber kx 
+        wave_DOF : int
+            identifier of radiation matrix 0 all waves, 1,2,(3 or 4) correponds 
+            to longitudinal, shear and bending wave
+            5 stands for inplane (1+2)
+
+        Returns
+        -------
+        LinearMatrix
+            matrix [4 x 4] of the stiffness element
+            
+        """
+        M = self.edge_radiation_stiffness_wavenumber_f(omega,wavenumber,wave_DOF=wave_DOF)
+
+
+        return -0.5j*(M-np.conj(np.transpose(M,axes=(0,2,1)))) 
+
     
     def wave_transformation_matrix(self,omega,wavenumber,inv=False):
         """
-        Transformation matrix from wave amplitude coordinates into edge harmonic displacement
+        Transformation matrix from wave amplitude coordinates into edge harmonic displacement.
     
         Parameters
         ----------
@@ -1182,8 +1360,7 @@ class PlateProp:
         -------
         LinearMmatrix
             [4 x 4] transformation matrix
-        """
-         
+        """         
         Kx=np.real(wavenumber);
         # Npoint=len(Kx);
  
@@ -1240,6 +1417,71 @@ class PlateProp:
             data_[3,3,:] = uB2                   # Mx - beta
                 
         return mC.LinearMatrix(data_)
+    
+    def wave_transformation_matrix_f(self,omega,wavenumber,inv=False):
+        """
+        Transformation matrix from wave amplitude coordinates into edge harmonic displacement.
+    
+        Parameters
+        ----------
+        omega : float
+            angular frequency
+        wavenumber : float
+            wavenumber
+        inv : bool
+            switch for inverse version
+
+        Returns
+        -------
+        np.ndarray
+            [Nkx x 4 x 4] transformation matrix
+        """         
+        Kx=np.real(wavenumber);
+        # Npoint=len(Kx);
+ 
+ 
+        # use methods from property2structure to get properties
+        kB = self.wavenumber_B(omega) #bending wavenumber
+          
+ 
+        # in-plane motion, roots
+        uL= self.muL(omega,wavenumber)
+        uS= self.muT(omega,wavenumber)        
+
+        # out-of-plane motion, roots
+        uB1 = -np.sqrt(Kx**2+kB**2)
+        uB2 = -np.sqrt(Kx**2-np.complex128(kB)**2)
+        
+        data_ = np.zeros((len(wavenumber),4,4),dtype=np.complex128)
+
+        if inv:
+            facSL = 1/(Kx**2-uS*uL)
+            # in-plane motion, matrix function elements
+            data_[:,0,0] = facSL*Kx                        # Fx - u
+            data_[:,0,1] = 1j*facSL*uS                     # Fx - v 
+            data_[:,1,0] = 1j*facSL*uL                     # Fy - u
+            data_[:,1,1] = -facSL*Kx                       # Fy - v
+            # out-of-plane motion, matrix function elements
+            facB = -1/(uB1-uB2)
+            data_[:,2,2] = facB*uB2                     # Fx - w
+            data_[:,2,3] = -facB                     # Fx - beta
+            data_[:,3,2] = -facB*uB1                   # Mx - w
+            data_[:,3,3] = facB                  # Mx - beta
+            
+        else:
+            
+            # in-plane motion, matrix function elements
+            data_[:,0,0] = Kx                        # Fx - u
+            data_[:,0,1] = 1j*uS                     # Fx - v 
+            data_[:,1,0] = 1j*uL                     # Fy - u
+            data_[:,1,1] = -Kx                       # Fy - v
+            # out-of-plane motion, matrix function elements
+            data_[:,2,2] = 1                     # Fx - w
+            data_[:,2,3] = 1                     # Fx - beta
+            data_[:,3,2] = uB1                   # Mx - w
+            data_[:,3,3] = uB2                   # Mx - beta
+                
+        return data_
     
     def plate_wavenumber(self,omega,wave_DOF):
         """
@@ -1401,7 +1643,7 @@ class PlateProp:
             f = mC.LinearMatrix(f_)
             f = D_edge.dot(q)-f_ # claculate force excplicitely
         
-        else: # us the analytical solution of the above equation 
+        else: # use the analytical solution of the above equation 
           
             if wave_DOF in (1,2):
             

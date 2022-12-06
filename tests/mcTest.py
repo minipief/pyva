@@ -47,8 +47,8 @@ CdotDdata = np.zeros((Nx,Nx,Nz),dtype = complex)
 for iz in range(4):
     AdotBdata[:,:,iz] = Adata[:,:,iz].dot(B.data[:,:,iz])
     CdotDdata[:,:,iz] = Cdata[:,:,iz].dot(D.data[:,:,iz])
-    
 
+    
 sqA = A.sqrt
 
 Ateil1 = A[1,1,:]

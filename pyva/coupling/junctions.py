@@ -44,6 +44,8 @@ def edge_transform(theta):
     Calculates the coordinate transfer matrix for local edge coordinates 
     to global edge coordinates
     
+    Equation (8.126)
+    
     Parameters
     ----------
     theta : double
@@ -64,6 +66,34 @@ def edge_transform(theta):
                                      [0., cs, -sn, 0.],
                                      [0., sn,  cs, 0.],
                                      [0., 0.,  0., 1.]],dtype = np.complex128))
+
+def edge_transform_f(theta):
+    """
+    helper function for edge coordinate transformation
+    
+    Calculates the coordinate transfer matrix for local edge coordinates 
+    to global edge coordinates
+    
+    Parameters
+    ----------
+    theta : double
+        plate angle
+
+    Returns
+    -------
+    LinearMatrix 
+        4x4 coordinate transformation matrix
+
+    """
+
+        
+    cs = np.cos(theta)
+    sn = np.sin(theta)
+    
+    return np.array([[1., 0.,  0., 0.],
+                     [0., cs, -sn, 0.],
+                     [0., sn,  cs, 0.],
+                     [0., 0.,  0., 1.]],dtype = np.complex128)
 
 def three_step(x,x1,x2):
     buf_ = np.ones(x.shape)
@@ -131,7 +161,7 @@ class Junction:
         
     def __repr__(self):
         """
-        Implements __repr__ 
+        Implements __repr__.
 
         Returns
         -------
@@ -492,10 +522,12 @@ class LineJunction(Junction) :
                 
     def total_radiation_stiffness_wavenumber(self,omega,wavenumber):
         """
-        Calculates the total radiation stiffness of line junctions
+        Calculate the total radiation stiffness of line junctions.
         
         The result is given in wavenumber domain and global displacement 
-        coordinate system 
+        coordinate system.
+        
+        In ref [Pei2022_] this is Equation (8.129).
         
         Parameters
         ----------
@@ -508,7 +540,6 @@ class LineJunction(Junction) :
         -------
         LinearMatrix
             Total stiffness matrix of line junction 
-
         """
         
                 
@@ -539,7 +570,179 @@ class LineJunction(Junction) :
         
         return(D_tot)
     
-    def transmission_wavenumber(self,omega,wavenumber,i_sys = (0,1),i_in_wave = (1,2,3),i_out_wave = (1,2,3),rad_sw = 'wave',Signal = True):
+    def total_radiation_stiffness_wavenumber_f(self,omega,wavenumber):
+        """
+        Calculates the total radiation stiffness of line junctions
+        
+        The result is given in wavenumber domain and global displacement 
+        coordinate system 
+        
+        Parameters
+        ----------
+        omega : float
+            angular frequency.
+        wavenumber : ndarray
+            wavenumber in x- (edge) direction.
+
+        Returns
+        -------
+        nd.array
+            Total stiffness matrix of line junction 
+
+        """
+        
+
+        # start with the first plate
+        D_tot = self.systems[0].edge_radiation_stiffness_wavenumber_f(omega,wavenumber)
+        # Rotation matrix from egde coordinate transformation
+        T_rot = edge_transform_f(self.thetas[0])
+        # Transform to global system
+        D_tot = np.matmul(np.matmul(T_rot,D_tot),T_rot.transpose())
+        
+        for i_sys in range(1,self.N):
+            _D_buf = self.systems[i_sys].edge_radiation_stiffness_wavenumber_f(omega,wavenumber)
+            # Rotation matrix from egde coordniate transformation
+            T_rot = edge_transform_f(self.thetas[i_sys])
+            
+            _T_buf = np.matmul(np.matmul(T_rot,_D_buf),T_rot.transpose())
+            
+            D_tot += _T_buf
+            
+        #self._wavenumber.update({omega : wavenumber})
+        #self._D_tot.update({omega : D_tot})
+        
+        return(D_tot)
+    
+    def transmission_wavenumber(self,omega,wavenumber,i_sys = (0,1),i_in_wave = (1,2,3),i_out_wave = (1,2,3),rad_sw = 'wave',\
+                                Signal = True):
+        """
+        Calculate the transmission coefficient of line junctions.
+        
+        This methods applies the hybrid CLF formulation from [1] but
+        using the radiated power calculated from the wave amplitude as 
+        disscussed in the reference.
+        
+        The rad_sw argument is used for validation. For simulation always use 'wave'
+
+        Parameters
+        ----------
+        omega : float or ndarray
+            angular frequency.
+        wavenumber : float or ndarray
+            wavenumber in x- or edge-direction.
+        i_sys : tuple or list, optional
+            incident and radiating system index vector. The default is (0,1).
+        i_in_wave : tuple or list, optional
+            incident wave type. The default is (1,2,3).
+        i_out_wave : tuple or list, optional
+            radiating wave type. The default is (1,2,3).
+        rad_sw : str, 'wave' or 'im_dir', optional
+            identifier for radiated power method. The default is 'wave'.
+        Signal : bool, optional
+            switch for Signal output. The default is True.
+
+        Raises
+        ------
+        ValueError
+            When input values are not or correct type of not constent.
+
+        Returns
+        -------
+        ndarray or Signal
+            transmission coefficient for one frequency over wavenumber.
+        """
+        i_sys,i_in_wave,i_out_wave = all2array(i_sys,i_in_wave,i_out_wave)
+
+        if i_out_wave.size != i_in_wave.size:
+            raise ValueError('In and out wave must have same size')
+   
+        Nsig = len(i_in_wave)
+        
+        # convert to np.array to become independent from tupels
+        i_sys,i_in_wave,i_out_wave = all2array(i_sys,i_in_wave,i_out_wave)
+        # Total radiation stiffness in global coordinates
+        D_tot = self.total_radiation_stiffness_wavenumber(omega,wavenumber)
+   
+        # Determine transformation matrices for in-(1)  and out-(2) systems
+        T_rot_1  = edge_transform(self.thetas[i_sys[0]])
+        T_rot_1_T = T_rot_1.transpose()
+        T_rot_2  = edge_transform(self.thetas[i_sys[1]])
+        #T_rot_2_T = T_rot_2.transpose()
+        
+        # Determine wave transformation for output wave amplitude determiniation
+        T_wave_2 = self.systems[i_sys[1]].wave_transformation_matrix(omega,wavenumber)
+
+        D_mn_part = T_rot_1_T.dot(D_tot).dot(T_rot_2) # Eq. (8.144))
+        
+        # Prepare Signal data
+        Nsig = len(i_in_wave)
+        _ydata= np.zeros((Nsig,np.size(wavenumber)))
+        _tdof = dof.DOFtype(typestr='transmission')
+        xdata = mC.DataAxis(wavenumber,typestr='wavenumber')
+        
+        
+        #kL = self.systems[i_sys[0]].prop.wavenumber_L(omega) #longitudinal wavenumber
+        #kS = self.systems[i_sys[0]].prop.wavenumber_T(omega) #shear wavenumber
+        #kB = self.systems[i_sys[0]].prop.wavenumber_B(omega) #shear wavenumber
+        #B  = self.systems[i_sys[0]].prop.B
+        #S  = self.systems[i_sys[0]].prop.S
+    
+    
+        for i_in in range(Nsig):
+
+            ii_wave = i_in_wave[i_in]
+            # Get Imag(D_dir) of input system according to 
+            #D_in  = self.systems[i_sys[0]].edge_imaginary_radiation_stiffness_wavenumber(omega,wavenumber,ii_wave)
+            D_in  = self.systems[i_sys[0]].edge_skew_radiation_stiffness_wavenumber(omega,wavenumber,ii_wave)
+
+            
+            Sqqe = D_in.HDH(D_mn_part) # D_mn_part ^(-H).Im(D_in)
+                
+            # Transform to Psi...
+            Sqq_psi = Sqqe.HDH(T_wave_2)
+            #MM = D_in.HDH.(D_mn_tot)
+
+                
+            #print('index {0}'.format(i_out))
+            io_wave = i_out_wave[i_in]
+            
+            
+            if io_wave == 3:
+                io_wave = 4
+                
+            if rad_sw == 'im_dir': # just for presentation purpose works for Bending or SL i_in = 5 for k<= kL but not for kL < k < kS
+                D_out = self.systems[i_sys[1]].edge_skew_radiation_stiffness_wavenumber(omega,wavenumber,io_wave)   
+                    
+                _ydata[i_in,:] = (4*D_out*Sqqe).real().sum() 
+                #_ydata[i_in,:] = (4*D_out*Sqqe).imag().sum() 
+                #_ydata[i_in,:] = (4*D_out.imag()*Sqqe).sum() 
+                #_ydata[i_in,:] = (4*D_out.real()*Sqqe).sum() 
+                #_ydata[i_in,:] = (4*D_out*Sqqe).sum()
+                    
+            else: # rad_sw == 'wave'
+
+                if io_wave == 5: # all
+                    Psi2 = np.abs(Sqq_psi.data[0,0,:])
+                    Psi21 = np.abs(Sqq_psi.data[1,1,:])
+                else:    
+                    Psi2 = np.abs(Sqq_psi.data[io_wave-1,io_wave-1,:])
+
+                if io_wave == 5: # all
+                    # add in-plane waves
+                    WQ0 = self.systems[i_sys[1]].edge_wave_amplitude_radiated_power(1.,omega,wavenumber,1)
+                    WQ1 = self.systems[i_sys[1]].edge_wave_amplitude_radiated_power(1.,omega,wavenumber,2)
+                    _ydata[i_in,:] = 8/omega*(np.abs(WQ0*Psi2)+np.abs(WQ1*Psi21))
+                else:
+                    WQ = self.systems[i_sys[1]].edge_wave_amplitude_radiated_power(1.,omega,wavenumber,io_wave)
+                    _ydata[i_in,:] = 8/omega*WQ*Psi2 # Imag seperately assuming symmetry of D_out
+                #tot_imag = np.sum(np.imag((4*D_out*MM).imag().sum()))
+                #print('Total imaginary values {0:f}'.format(tot_imag))
+        if Signal:
+            return mC.Signal(xdata,_ydata,dof.DOF(i_out_wave,np.zeros((1,Nsig)),_tdof))
+        else:
+            return _ydata
+            
+    def transmission_wavenumber_f(self,omega,wavenumber,i_sys = (0,1),i_in_wave = (3,3),i_out_wave = (5,5),rad_sw = 'wave',Signal = True):
         """
         Calculates the transmission coefficient of line junctions
         
@@ -588,19 +791,24 @@ class LineJunction(Junction) :
         # convert to np.array to become independent from tupels
         i_sys,i_in_wave,i_out_wave = all2array(i_sys,i_in_wave,i_out_wave)
 
-        D_tot = self.total_radiation_stiffness_wavenumber(omega,wavenumber)
+        D_tot = self.total_radiation_stiffness_wavenumber_f(omega,wavenumber)
    
         # Determine transformation matrices for in- and out-systems
-        T_rot_1  = edge_transform(self.thetas[i_sys[0]])
+        T_rot_1  = edge_transform_f(self.thetas[i_sys[0]])
         T_rot_1_T = T_rot_1.transpose()
-        T_rot_2  = edge_transform(self.thetas[i_sys[1]])
-        T_rot_2_T = T_rot_2.transpose()
+        T_rot_2  = edge_transform_f(self.thetas[i_sys[1]])
+        #T_rot_2_T = T_rot_2.transpose()
         
         # Determine wave transformation for output wave amplitude determiniation
-        T_wave_2 = self.systems[i_sys[1]].wave_transformation_matrix(omega,wavenumber)
-        #T_wave_2_inv = self.systems[i_sys[1]].wave_transformation_matrix(omega,wavenumber,inv=True)
+        #T_wave_2 = self.systems[i_sys[1]].wave_transformation_matrix_f(omega,wavenumber)
+        T_wave_2_inv = self.systems[i_sys[1]].wave_transformation_matrix_f(omega,wavenumber,inv=True)
+        T_wave_2_invH = mC.hermitian(T_wave_2_inv)
 
-        D_mn_part = T_rot_1_T.dot(D_tot).dot(T_rot_2)
+
+        D_mn_part = np.matmul(np.matmul(T_rot_1_T,D_tot),T_rot_2)
+        D_mn_part = np.linalg.inv(D_mn_part)
+        D_mn_partH = mC.hermitian(D_mn_part)
+
         
         Nsig = len(i_in_wave)
         _ydata= np.zeros((Nsig,np.size(wavenumber)))
@@ -609,96 +817,24 @@ class LineJunction(Junction) :
         xdata = mC.DataAxis(wavenumber,typestr='wavenumber')
         
         
-        kL = self.systems[i_sys[0]].prop.wavenumber_L(omega) #longitudinal wavenumber
-        kS = self.systems[i_sys[0]].prop.wavenumber_T(omega) #shear wavenumber
-        kB = self.systems[i_sys[0]].prop.wavenumber_B(omega) #shear wavenumber
-        B  = self.systems[i_sys[0]].prop.B
-        S  = self.systems[i_sys[0]].prop.S
+        #kL = self.systems[i_sys[0]].prop.wavenumber_L(omega) #longitudinal wavenumber
+        #kS = self.systems[i_sys[0]].prop.wavenumber_T(omega) #shear wavenumber
+        #kB = self.systems[i_sys[0]].prop.wavenumber_B(omega) #shear wavenumber
+        #B  = self.systems[i_sys[0]].prop.B
+        #S  = self.systems[i_sys[0]].prop.S
     
     
         for i_in in range(Nsig):
 
             ii_wave = i_in_wave[i_in]
-            # I suppose this is not used anymore
-            if ii_wave == 0: # all S,L and B
-                D_in  = self.systems[i_sys[0]].edge_imaginary_radiation_stiffness_wavenumber(omega,wavenumber,0)
-                den_ = three_step(wavenumber,kL,kS)
+            D_in  = self.systems[i_sys[0]].edge_skew_radiation_stiffness_wavenumber_f(omega,wavenumber,ii_wave)
 
-            else:    
-                D_in  = self.systems[i_sys[0]].edge_imaginary_radiation_stiffness_wavenumber(omega,wavenumber,ii_wave)
-                den_ = np.ones(wavenumber.shape)
+            #Sqqe = D_in.HDH_f(D_mn_part)
+            Sqqe = np.matmul(np.matmul(D_mn_part,D_in),D_mn_partH)
 
-            Sqqe = D_in.HDH(D_mn_part)
-
-            # Remove incoming motion if same system
-            # Meaning in principle that we have to rely on the 
-            if i_sys[0]==i_sys[1]: # and io_wave != ii_wave:
-                # Here the single result is required
-                
-                # derive correction factor to reduce from Im Ddir normalisation
-                if ii_wave == 1:
-                    kyL = np.sqrt(kL**2 - wavenumber**2)
-                    cor_fac = (2*np.sqrt(S*kyL)*kS) #np.real
-                elif ii_wave == 2:
-                    kyS = np.sqrt(kS**2 - wavenumber**2)
-                    cor_fac = (2*np.sqrt(S*kyS)*kS)
-                elif ii_wave in (3,4):
-                    kyB = np.sqrt(kB**2 - wavenumber**2)
-                    cor_fac = (2*np.sqrt(2*B*kyB)*kB)
-                elif ii_wave == 5: # I suppose this does not work with a combined correction factor
-                    kyS = np.sqrt(kS**2 - wavenumber**2)
-                    kyL = np.sqrt(kL**2 - wavenumber**2)
-                    cor_facS = (2*np.sqrt(S*kyS)*kS)
-                    cor_facL = (2*np.sqrt(S*kyL)*kS)
-                    cor_fac = cor_facS+cor_facL
-                    
-                    
-                if ii_wave == 5:
-                    # force from incoming waves
-                    f_Sin  = self.systems[i_sys[0]].edge_wave_excitation_force(omega,wavenumber,2,True)/cor_facS
-                    f_Lin  = self.systems[i_sys[0]].edge_wave_excitation_force(omega,wavenumber,1,True)/cor_facL
-                    # global junction displacement due to f_in
-                    qL0 = D_tot.solve(T_rot_1.dot(f_Lin))
-                    qS0 = D_tot.solve(T_rot_1.dot(f_Sin))
-                    # edge junction diplacement due to f_in
-                    qLe = T_rot_2_T.dot(qL0)
-                    qSe = T_rot_2_T.dot(qS0)
-    
-                    # edge displaqcement in local edge 1
-                    qLe_in = self.systems[i_sys[0]].edge_wave_excitation_displacement(omega,wavenumber,1)/cor_facL
-                    qSe_in = self.systems[i_sys[0]].edge_wave_excitation_displacement(omega,wavenumber,2)/cor_facS
-                   
-                    # Matrix version of incoming wave correction
-                    # Correction follows from (qe-qe_in)*(qe-qe_in)^H
-                    SqqeredL = -(qLe_in.dot(qLe.H()))-(qLe.dot(qLe_in.H()))+(qLe_in.dot(qLe_in.H()))
-                    SqqeredS = -(qSe_in.dot(qSe.H()))-(qSe.dot(qSe_in.H()))+(qSe_in.dot(qSe_in.H()))
-                    #Sqqered = -2*(qe_in.dot(qe.H())).real()+(qe_in.dot(qe_in.H()))
-                    #MMred   = Sqq0red.HDH(T_rot_wave_2)
-                    ix = wavenumber > kL
-                    SqqeredL._data[:,ix] = 0. # set single S wave area to 2
-                    Sqqe += SqqeredS
-                    Sqqe += SqqeredL
-                    
-                else:      
-                    # force from incoming wave
-                    f_in  = self.systems[i_sys[0]].edge_wave_excitation_force(omega,wavenumber,ii_wave,True)/cor_fac
-                    # global junction displacement due to f_in
-                    q0 = D_tot.solve(T_rot_1.dot(f_in))
-                    # edge junction diplacement due to f_in
-                    qe = T_rot_2_T.dot(q0)
-    
-                    # edge displaqcement in local edge 1
-                    qe_in = self.systems[i_sys[0]].edge_wave_excitation_displacement(omega,wavenumber,ii_wave)/cor_fac
-                   
-                    # Matrix version of incoming wave correction
-                    # Correction follows from (qe-qe_in)*(qe-qe_in)^H
-                    Sqqered = -(qe_in.dot(qe.H()))-(qe.dot(qe_in.H()))+(qe_in.dot(qe_in.H()))
-                    #Sqqered = -2*(qe_in.dot(qe.H())).real()+(qe_in.dot(qe_in.H()))
-                    #MMred   = Sqq0red.HDH(T_rot_wave_2)
-                    Sqqe += Sqqered
                 
             # Transform to Psi...
-            Sqq_psi = Sqqe.HDH(T_wave_2)
+            Sqq_psi = np.matmul(np.matmul(T_wave_2_inv,Sqqe),T_wave_2_invH)
             #MM = D_in.HDH.(D_mn_tot)
 
                 
@@ -709,50 +845,31 @@ class LineJunction(Junction) :
             if io_wave == 3:
                 io_wave = 4
                 
-            if rad_sw == 'im_dir': # just for presentation purpose works for Bending or SL i_in = 5 for k<= kL but not for kL < k < kS
-                if io_wave == 0: # all not finally tested
-                    D_out = self.systems[i_sys[1]].edge_imaginary_radiation_stiffness_wavenumber(omega,wavenumber,0)
-                else:
-                    # version delivering the imag dircetly
-                    D_out = self.systems[i_sys[1]].edge_imaginary_radiation_stiffness_wavenumber(omega,wavenumber,io_wave)   
-                    # version using the full stiff and perform imag later
-                    D_out = self.systems[i_sys[1]].edge_radiation_stiffness_wavenumber(omega,wavenumber,io_wave)   
-                    #D_out = D_out.imag()
+            if io_wave == 5: # all
+                Psi2 = np.abs(Sqq_psi[:,0,0])
+                Psi21 = np.abs(Sqq_psi[:,1,1])
+            else:    
+                Psi2 = np.abs(Sqq_psi[:,io_wave-1,io_wave-1])
 
-                #_ydata[i_in*Nout+i_out,:] = (4*D_out.imag()*Sqqe).sum()# Imag over all
-                _ydata[i_in,:] = (4*D_out*Sqqe).imag().sum() # Imag seperately assuming symmetry of D_out
-                    
+            if io_wave == 5: # all
+                # add in-plane waves
+                WQ0 = self.systems[i_sys[1]].edge_wave_amplitude_radiated_power(1.,omega,wavenumber,1)
+                WQ1 = self.systems[i_sys[1]].edge_wave_amplitude_radiated_power(1.,omega,wavenumber,2)
+                _ydata[i_in,:] = 8/omega*(np.abs(WQ0*Psi2)+np.abs(WQ1*Psi21))
             else:
-
-                if io_wave == 5: # all
-                    Psi2 = np.abs(Sqq_psi.data[0,0,:])
-                    Psi21 = np.abs(Sqq_psi.data[1,1,:])
-                else:    
-                    Psi2 = np.abs(Sqq_psi.data[io_wave-1,io_wave-1,:])
-
-
-
-                if io_wave == 5: # all
-                    # add in-plane waves
-                    WQ0 = self.systems[i_sys[1]].edge_wave_amplitude_radiated_power(1.,omega,wavenumber,1)
-                    WQ1 = self.systems[i_sys[1]].edge_wave_amplitude_radiated_power(1.,omega,wavenumber,2)
-                    _ydata[i_in,:] = 8/omega*(np.abs(WQ0*Psi2)+np.abs(WQ1*Psi21))
-                else:
-                    WQ = self.systems[i_sys[1]].edge_wave_amplitude_radiated_power(1.,omega,wavenumber,io_wave)
-                    _ydata[i_in,:] = 8/omega*WQ*Psi2 # Imag seperately assuming symmetry of D_out
-                #tot_imag = np.sum(np.imag((4*D_out*MM).imag().sum()))
-                #print('Total imaginary values {0:f}'.format(tot_imag))
+                WQ = self.systems[i_sys[1]].edge_wave_amplitude_radiated_power(1.,omega,wavenumber,io_wave)
+                _ydata[i_in,:] = 8/omega*WQ*Psi2 # Imag seperately assuming symmetry of D_out
+              
         if Signal:
             return mC.Signal(xdata,_ydata,dof.DOF(i_out_wave,np.zeros((1,Nsig)),_tdof))
         else:
             return _ydata
-            
 
 
     def transmission_wavenumber_wave(self,omega,wavenumber,i_sys = (0,1),i_in_wave = (1,)*3+(2,)*3+(3,)*3,i_out_wave = (1,2,3)*3,matrix = False):
         """
         transmission coefficient assuming wave transformations for radiation stiffness 
-        calculations blocked forces from langley are used
+        calculations of blocked forces from langley are used
         
 
         Parameters

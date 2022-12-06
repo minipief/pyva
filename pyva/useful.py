@@ -66,7 +66,7 @@ def set_vascript_graphics(bw = True,cycler_sw = True):
     
     
     
-    #
+
     
             
     #global lst,pst    

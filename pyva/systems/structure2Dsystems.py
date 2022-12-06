@@ -243,7 +243,7 @@ class Structure2DSystem(SEAsys.SEA_system):
         
     def damping_loss(self,omega,wave_DOF):
         """
-        Damping loss of SEA systemns
+        Damping loss of SEA systemns.
         
         Differntiation between wavetype not yet implemented
         
@@ -265,20 +265,19 @@ class Structure2DSystem(SEAsys.SEA_system):
     @property
     def mass(self):
         """
-        Total mass of plate
+        Total mass of plate.
 
         Returns
         -------
         float
             plate mass.
 
-        """
-        
+        """        
         return self.area*self.prop.mass_per_area
     
     def isplate(self):
         """
-        Confirms that SEA system is a plate
+        Confirm that SEA system is a plate.
 
         Returns
         -------
@@ -290,7 +289,7 @@ class Structure2DSystem(SEAsys.SEA_system):
     
     def iscavity(self):
         """
-        Confirms that SEA system is not a cavity
+        Confirm that SEA system is not a cavity.
 
         Returns
         -------
@@ -303,7 +302,7 @@ class Structure2DSystem(SEAsys.SEA_system):
         
     def force_excitation_power(self,omega,force = 1):
         """
-        Power input due to normal force excitation
+        Power input due to normal force excitation.
         
         This method assumes free field bending wave radation in the plate.
         This is a very strict assumption only fulfilled by large plates and
@@ -399,7 +398,7 @@ class Structure2DSystem(SEAsys.SEA_system):
 
         
 
-    def edge_radiation_stiffness_wavenumber(self,omega,wavenumber,wtype=0):
+    def edge_radiation_stiffness_wavenumber(self,omega,wavenumber,wave_DOF=0):
         """
         radiation_stiffness_wavenumber taken from property method
         
@@ -408,29 +407,63 @@ class Structure2DSystem(SEAsys.SEA_system):
         :meth:`pyva.properties.structuralPropertyClasses.PlateProp.edge_radiation_stiffness_wavenumber`
         
         """
-        return self.prop.edge_radiation_stiffness_wavenumber(omega,wavenumber,wtype)
-
-    def edge_imaginary_radiation_stiffness_wavenumber(self,omega,wavenumber,wtype=1):
+        return self.prop.edge_radiation_stiffness_wavenumber(omega,wavenumber,wave_DOF=wave_DOF)
+    
+    def edge_radiation_stiffness_wavenumber_f(self,omega,wavenumber,wave_DOF=0):
         """
-        imaginary_radiation_stiffness_wavenumber taken from property method
+        radiation_stiffness_wavenumber taken from property method.
+        
+        See Also
+        --------
+        :meth:`pyva.properties.structuralPropertyClasses.PlateProp.edge_radiation_stiffness_wavenumber`
+        
+        """
+        return self.prop.edge_radiation_stiffness_wavenumber_f(omega,wavenumber,wave_DOF=wave_DOF)
 
-        See also
+    def edge_imaginary_radiation_stiffness_wavenumber(self,omega,wavenumber,wave_DOF=0):
+        """
+        imaginary_radiation_stiffness_wavenumber taken from property method.
+        
+        Will be deprecated in the new future, because it is equivalent to the skew hermitian matrix.
+
+        See Also
         --------
         :meth:`pyva.properties.structuralPropertyClasses.PlateProp.edge_imaginary_radiation_stiffness_wavenumber`
 
         """
-        return self.prop.edge_imaginary_radiation_stiffness_wavenumber(omega,wavenumber,wtype)
+        return self.prop.edge_imaginary_radiation_stiffness_wavenumber(omega,wavenumber,wave_DOF=wave_DOF)
 
-        
-    def plate_wavenumber(self,omega,i_wave):
+    def edge_skew_radiation_stiffness_wavenumber(self,omega,wavenumber,wave_DOF=0):
         """
-        plate_wavenumber taken from property method
+        skew_radiation_stiffness_wavenumber taken from property method.
 
-        See also
+        See Also
+        --------
+        :meth:`pyva.properties.structuralPropertyClasses.PlateProp.edge_imaginary_radiation_stiffness_wavenumber`
+
+        """
+        return self.prop.edge_skew_radiation_stiffness_wavenumber(omega,wavenumber,wave_DOF=wave_DOF)
+
+    def edge_skew_radiation_stiffness_wavenumber_f(self,omega,wavenumber,wave_DOF=0):
+        """
+        skew_radiation_stiffness_wavenumber taken from property method.
+
+        See Also
+        --------
+        :meth:`pyva.properties.structuralPropertyClasses.PlateProp.edge_imaginary_radiation_stiffness_wavenumber`
+
+        """
+        return self.prop.edge_skew_radiation_stiffness_wavenumber_f(omega,wavenumber,wave_DOF=wave_DOF)
+        
+    def plate_wavenumber(self,omega,wave_DOF):
+        """
+        plate_wavenumber taken from property method.
+
+        See Also
         --------
         :meth:`pyva.properties.structuralPropertyClasses.PlateProp.plate_wavenumber`
         """
-        return self.prop.plate_wavenumber(omega,i_wave)
+        return self.prop.plate_wavenumber(omega,wave_DOF)
 
     def wave_transformation_matrix(self,omega,wavenumber,inv=False):
         """
@@ -441,29 +474,38 @@ class Structure2DSystem(SEAsys.SEA_system):
         :meth:`pyva.properties.structuralPropertyClasses.PlateProp.wave_transformation_matrix`
         """
         return self.prop.wave_transformation_matrix(omega,wavenumber,inv)           
-    
-    def edge_wave_amplitude_radiation_stiffness(self,omega,wavenumber,i_wave):
+
+    def wave_transformation_matrix_f(self,omega,wavenumber,inv=False):
         """
-        edge_wave_amplitude_radiation_stiffness taken from property method
+        wave_transform taken from property method.
+
+        See also
+        --------
+        :meth:`pyva.properties.structuralPropertyClasses.PlateProp.wave_transformation_matrix`
+        """
+        return self.prop.wave_transformation_matrix_f(omega,wavenumber,inv)  
+    
+    def edge_wave_amplitude_radiation_stiffness(self,omega,wavenumber,wave_DOF):
+        """
+        edge_wave_amplitude_radiation_stiffness taken from property method.
 
         See also
         --------
         :meth:`pyva.properties.structuralPropertyClasses.PlateProp.edge_wave_amplitude_radiation_stiffness`
         """
-        
-        return self.prop.edge_wave_amplitude_radiation_stiffness(omega,wavenumber,i_wave)     
+        return self.prop.edge_wave_amplitude_radiation_stiffness_f(omega,wavenumber,wave_DOF)     
 
-    def edge_wave_excitation_force(self,omega,wavenumber,i_wave,matrix):
+    def edge_wave_excitation_force(self,omega,wavenumber,wave_DOF,matrix):
         """
-        wave_excitation_force taken from property method
+        wave_excitation_force taken from property method.
         
         See also
         --------
         :meth:`pyva.properties.structuralPropertyClasses.PlateProp.edge_wave_excitation_force`
         """
-        return self.prop.edge_wave_excitation_force(omega,wavenumber,i_wave,matrix)
+        return self.prop.edge_wave_excitation_force(omega,wavenumber,wave_DOF,matrix)
 
-    def edge_wave_excitation_displacement(self,omega,wavenumber,i_wave):
+    def edge_wave_excitation_displacement(self,omega,wavenumber,wave_DOF):
         """
         wave_excitation_force taken from property method
 
@@ -471,9 +513,9 @@ class Structure2DSystem(SEAsys.SEA_system):
         --------
         :meth:`pyva.properties.structuralPropertyClasses.PlateProp.edge_wave_excitation_displacement`
         """
-        return self.prop.edge_wave_excitation_displacement(omega,wavenumber,i_wave)
+        return self.prop.edge_wave_excitation_displacement(omega,wavenumber,wave_DOF)
     
-    def edge_wave_excitation_force_cross_correlation(self,omega,wavenumber,i_wave,matrix = False):
+    def edge_wave_excitation_force_cross_correlation(self,omega,wavenumber,wave_DOF,matrix = False):
         """
         wave_excitation_force_cross_correlation taken from property method
 
@@ -481,10 +523,10 @@ class Structure2DSystem(SEAsys.SEA_system):
         --------
         :meth:`pyva.properties.structuralPropertyClasses.PlateProp.edge_wave_excitation_force_cross_correlation`
         """
-        return self.prop.edge_wave_excitation_force_cross_correlation(omega,wavenumber,i_wave,matrix)
+        return self.prop.edge_wave_excitation_force_cross_correlation(omega,wavenumber,wave_DOF,matrix)
 
 
-    def edge_wave_amplitude_radiated_power(self,Psi,omega,wavenumber,i_wave):
+    def edge_wave_amplitude_radiated_power(self,Psi,omega,wavenumber,wave_DOF):
         """
         wave_amplitude radiated_power taken from property method
 
@@ -492,7 +534,7 @@ class Structure2DSystem(SEAsys.SEA_system):
         --------
         :meth:`pyva.properties.structuralPropertyClasses.PlateProp.edge_wave_amplitude_radiated_power`
         """
-        return self.prop.edge_wave_amplitude_radiated_power(Psi,omega,wavenumber,i_wave)          
+        return self.prop.edge_wave_amplitude_radiated_power(Psi,omega,wavenumber,wave_DOF)          
 
     def radiation_efficiency(self,omega,fluid = mc.Fluid(),Nstep = 90,simple_muGT1=True):
         """

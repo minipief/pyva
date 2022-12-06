@@ -42,22 +42,23 @@ from matplotlib.ticker import LinearLocator, FormatStrFormatter
 #import scipy.linalg as linalg
 import numpy.linalg as linalg
 import copy
+from cycler import cycler
+
 
 import pyva.data.dof as dof
-import pyva.geometry.meshClasses as meshC
 import pyva.useful as uf
+
+
 
 
 RTOL = 1e-18
 ATOL = 1e-24
 
 
-#import pyva.loads.loadCase as lC
-
 # useful functions
 def isdiagonal(data):
     """
-    Checks if all matrices in 3D data set are diagonal 
+    Check if all matrices in 3D data set are diagonal.
 
     Parameters
     ----------
@@ -119,12 +120,29 @@ def linearIndex(N,irow,icol, btriu = True):
             return irow
         else:
             raise IndexError('Diagonal matrices require irow == icol')
+
+def hermitian(M):
+    """
+    Calculate hermitian of matrix along first dimension.
+
+    Parameters
+    ----------
+    M : np.ndarray of size (N,M,M)
+        complex 3D array.
+
+    Returns
+    -------
+    Series of hermitian mastrices.
+
+    """
+    return np.conj(np.transpose(M,axes=(0,2,1)))
+
         
 # Class definition and methods
 
 class LinearMatrix:
-    """ 
-    Class for handling 3D data matrices in an efficient way
+    """
+    Class for handling 3D data matrices in an efficient way.
     
     Attributes
     ----------
@@ -135,9 +153,10 @@ class LinearMatrix:
     shape: tuple
         shape of the matrix
     """
+    
     def __init__(self, data, **kwargs):
         """
-        Class contructor for LinearMatrix
+        Class contructor for LinearMatrix.
         
         When 3D data is provided the constructor checks if the matrix has any symmetry. When 
         2D data is provided the kwords must specify the detailed shape and symmetry
@@ -172,10 +191,7 @@ class LinearMatrix:
             import matrixClasses as mC
             mat3D    = mC.LinearMatrix(3Ddata)
             mat3Dsym = mc.LinearMatrix(2Dtriudata,sym = 1,shape=(3,3,4) )
-        
-        
         """
-        
         if len(kwargs) == 0: # only D given, check dimension
             self._shape = ()
             self._sym = 0
@@ -222,7 +238,7 @@ class LinearMatrix:
 
     def _check_symmetry(self,data,*shape):
         """
-        Helper method to check the symmetry of the input matrix
+        Checks the symmetry of the input matrix.
         
         Parameter
         ---------
@@ -299,16 +315,13 @@ class LinearMatrix:
 
     @property
     def shape(self):
-        """
-        Shape of LinearMatrix
+        """  Shape of LinearMatrix.
 
         Returns
         -------
         tuple
             (Nrow,Ncol,Ndepth) shape vector of Lineax matrix.
-
         """
-        
         return self._shape
     
         
@@ -512,17 +525,21 @@ class LinearMatrix:
             return self._data[:,:,iz]
         else:
             lBuf = np.zeros(self.shape[0:2], dtype = np.complex128)
-            ix = np.diag_indices(self.shape[0])
             if self._sym == 1:
                 iu = np.triu_indices(self.shape[0])
+                #il = np.tril_indices(self.shape[0],-1)
                 lBuf[iu] = self._data[:,iz]
                 lBuf += lBuf.T - np.diag(np.diag(lBuf))
+                #lBuf[il] += lBuf.T[il]
                 
             elif self._sym == 2:
                 iu = np.triu_indices(self.shape[0])
+                #il = np.tril_indices(self.shape[0],-1)
                 lBuf[iu] = self._data[:,iz]
                 lBuf += lBuf.T.conj() - np.diag(np.diag(lBuf)).real
+                #lBuf[il] += lBuf.T[il].conj()
             elif self._sym == 3:
+                ix = np.diag_indices(self.shape[0])
                 lBuf[ix[0],ix[1]] = self._data[:,iz]
             return lBuf
 
@@ -775,7 +792,7 @@ class LinearMatrix:
             
     def HDH(self,other):
         """
-        HDH performt the left and right matrix multiplication by the inverse of H from
+        HDH performt the left and right matrix multiplication by the inverse of other from
         left and right in a numerical stable way using solve 
         
         Args:
@@ -786,13 +803,44 @@ class LinearMatrix:
 
         """
 
-        out = other.solve(self)
-        return (other.solve(out.H()).H())
+        out = other.solve(self) # Solve D . X = self => out = D^-1 . self 
+        return other.solve(out.H()).H()
+
             
     def sqrt(self):
+        """
+        square root.
+
+        Returns
+        -------
+        LinearMatrix
+            sqrt(self).
+
+        """
         return LinearMatrix(np.sqrt(self.data))
 
     def solve(self,other):
+        """
+        Solve linear matrix equation.
+        
+        With self=A and other=B the method returns the solution of A.X = B
+
+        Parameters
+        ----------
+        other : 
+            dependent variable of matrix equation.
+
+        Raises
+        ------
+        TypeError
+            DESCRIPTION.
+
+        Returns
+        -------
+        LinearMatrix 
+            X, the solution of A.X = B
+
+        """
               
         resT = self._check_dimension(other)
     
@@ -824,6 +872,15 @@ class LinearMatrix:
             return LinearMatrix(matbuf)
 
     def abs(self):
+        """
+        Abxolute value of Linear Matrix.
+
+        Returns
+        -------
+        LinearMatrix
+            with all absolute value of coefficients.
+
+        """
         if self.sym in (1,2):
             # abs makes hermitian matrixes symmetric
             _sym = 1
@@ -2244,11 +2301,10 @@ class Signal:
         
 
         
-    def plot(self,nfig,loc=1,res='mag',xscale='linear',yscale='linear',**kwargs):
+    def plot(self,nfig,loc=1,res='mag',xscale='linear',yscale='linear', **kwargs):
         """
-        plot method for Signals
+        Plot method for Signal obejcts.
         
-
         Parameters
         ----------
         nfig : TYPE
@@ -2261,17 +2317,24 @@ class Signal:
             linear or log. The default is 'linear'.
         yscale : str, optional
             linear or log. The default is 'linear'.
+                    ls : line style 
         **kwargs : 
             Arbitrary argument list.
         ID : IDs to plot
         dof : DOFs to plot e.g. [1,2]
         legstr : additional label added to automatic label 
         fulllegstr : list of labels overwriting the automatic label
-        ls : line stype ':','.'. etc
-        lw : line width
-        cs : colorstyle
-        marker : markerstyle
-
+        DX : int 
+            value for skipping x samples DX=2 skips every second sample
+        lw : list or tuple
+            line width
+        cs : list or tuple
+            colorstyle
+        ms : list or tuple
+            markerstyle
+        ls : list or tuple
+            line_styles
+            
         Raises
         ------
         ValueError
@@ -2282,19 +2345,13 @@ class Signal:
         None.
 
         """
-            
-        
-       
-        
+        #
         iDOF = range(self._Nsig)
         dofs = -1          # default value to ignore dofs in find
         repetition = True
         counter_ID_dof = 0
-        leg_sw = False
-        ls_sw  = False
-        cs_sw = False
-        #marker_sw = False
-        default_marker = [None]*100
+        leg_sw    = False # True when own labels are used
+        style_sw  = False # True when line style is specified
         _lw = 2
         DX = 1
 
@@ -2303,13 +2360,15 @@ class Signal:
 
         leg_auto_sw = True
         label_sw = True      # false if no label should be used
-        default_ls = '-'
-        #line_styles = '-'
-        default_cs = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', '#17becf', '#17becf']
-        
-        LC= len(default_cs)
-        
+        # Default line styles applied in the cycler definition
+        line_styles = ['-', '--', ':', '-.']
+        marker_styles = ['', '.', 'o']
+        color_styles = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', \
+                        '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', \
+                        '#bcbd22', '#17becf', '#17becf', '#17becf']
+                
         plt.figure(nfig)
+        ax = plt.gca()
                 
         for kw in kwargs:
             if kw == 'ID':
@@ -2332,30 +2391,33 @@ class Signal:
                     leg_sw = False
                 else:
                     leg_str = kwargs[kw]
-            elif kw in ('ls','linestyle'):
-                if len(kwargs[kw])==1 or isinstance(kwargs[kw],str): #line style is valid for all lines
-                    line_styles = kwargs[kw]
-                else:
-                    line_styles = kwargs[kw]
-                    ls_sw = True
-            elif kw in ('cs','color'):
-                if len(kwargs[kw])==1: #color style is valid for all lines
-                    default_cs = kwargs[kw]*100
-                else:
-                    default_cs = kwargs[kw]
-                    cs_sw = True
-            elif kw in ('marker'):
-                if len(kwargs[kw])==1: #line style is valid for all lines
-                    default_marker = kwargs[kw]*100
-                else:
-                    default_marker = kwargs[kw]
-                    #ms_sw = True
+            elif kw in ('ls','linestyle'): #second key for compatibility
+                line_styles = kwargs[kw]
+                style_sw = True
+            elif kw in ('cs','color'): #second key for compatibility
+                color_styles = kwargs[kw]
+                style_sw = True
+            elif kw in ('ms','marker'): #second key for compatibility
+                marker_styles = kwargs[kw]
+                style_sw = True
             elif kw =='lw':
                 _lw = kwargs[kw]
             elif kw =='DX':
                 DX = kwargs[kw]
             else:
                  raise ValueError('Unkown keyword {0}'.format(kw))
+                 
+        # create cycler from parameters
+        if style_sw:
+            color_c = cycler('color', color_styles)
+            style_c = cycler('linestyle', line_styles)
+            markr_c = cycler('marker', marker_styles)
+            c_ms = markr_c * style_c
+            min_len = min(len(c_ms),len(color_c))
+            custom_cycler = color_c[:min_len] + c_ms[:min_len]
+            
+            # set ax style cycler
+            ax.set_prop_cycle(custom_cycler)
         
 
 
@@ -2382,22 +2444,8 @@ class Signal:
                 leg_pre_str.append('')
                 leg_str.append('')
                 
-        if not(ls_sw):
-            line_styles = []
-            for ils in range(len(iDOF)):
-                line_styles.append(default_ls)
 
-        if not(cs_sw):
-            color_styles = []
-            #cnt = 0
-            for ics in range(len(iDOF)):
-                color_styles.append(default_cs[ics % 12] )
-                    
-        LS=len(line_styles)
-
-        
-        #ylabel = self._dof.type[0].qlabel()
-#        ylabel = self._dof.type[iDOF[0]].qlabel()        
+        # Manage y-axis scaling and labeling
         ylabel = self.dof[iDOF[0]].type[0].qlabel()        
         if np.iscomplexobj(self._ydata):
             if res == 'mag':
@@ -2429,19 +2477,20 @@ class Signal:
                 ylabel = self.dof[iDOF[0]].type[0].label()
             
         i_leg = 0
+        
+
+        
         for idof in iDOF:
-            if label_sw:
-                if leg_auto_sw:
-                    _label = leg_pre_str[i_leg]+':'+self._dof[idof].label()
-                else:
-                    _label = leg_str[i_leg % LC]
-                plt.plot(self._xdata.data[::DX],pfun(self._ydata[idof,::DX].flatten()),
-                    lw=_lw, ls = line_styles[i_leg % LS],color = default_cs[i_leg % LC],
-                    marker = default_marker[i_leg  % LC], label=_label)
+            if leg_auto_sw:
+                 _label = leg_pre_str[i_leg]+':'+self._dof[idof].label()
             else:
-                plt.plot(self._xdata.data[::DX],pfun(self._ydata[idof,::DX].flatten()),
-                    lw=_lw, ls = line_styles[i_leg  % LS],color = default_cs[i_leg % LC],
-                    marker = default_marker[i_leg % LC] )
+                 _label = leg_str[i_leg]
+                
+            line, = plt.plot(self._xdata.data[::DX],pfun(self._ydata[idof,::DX].flatten()), lw=_lw)
+
+            if label_sw:
+                line.set_label(_label)
+                
             i_leg+= 1
         
         # Zero line

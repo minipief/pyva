@@ -6,7 +6,7 @@ References
    :width: 100%
    :target: https://www.wiley.com/en-us/Vibroacoustic+Simulation%3A+An+Introduction+to+Statistical+Energy+Analysis+and+Hybrid+Methods-p-9781119849841
 
-.. [Pei2022] A. Peiffer: `Vibroacoustic Simulation`_: In Introduction to Statistical Energy Analysis 
+.. [Pei2022] A. Peiffer: `Vibroacoustic Simulation`_: An Introduction to Statistical Energy Analysis 
    and Hybrid Methods, John Wiley, 2022
 .. [Bat1982] K.-J. Bathe, Finite element procedures in engineering analysis. Englewood Cliffs, N.J: Prentice-Hall, 1982.
 .. [All2005] J.-F. Allard, N. Attala: Propagation of Sound in Porous Media : 
