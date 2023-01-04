@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 """
-Module for structural physical properties
+Module for structural physical properties.
 """
 
 import numpy as np
@@ -12,7 +11,7 @@ import scipy.integrate as integrate
 
 class BeamProp:
     """
-    Class for beams
+    Class for beams.
     
     The BeamProp class deals with the bending and longitudinal wave properties 
     of beams. In future implementations all three motions of beams should be 
@@ -21,7 +20,7 @@ class BeamProp:
     
     def __init__(self,cross_section=geoPC.CrossSection,iso_mat=mc.IsoMat):
         """
-        Constructor of BeamProp
+        Constructor of BeamProp.
 
         Parameters
         ----------
@@ -40,7 +39,7 @@ class BeamProp:
 
     def __str__(self):
         """
-        String output of BeamProp
+        String output of BeamProp.
 
         Returns
         -------
@@ -69,7 +68,7 @@ class BeamProp:
     @property
     def Bx(self):
         """
-        Bending stiffness in around x
+        Bending stiffness around x-axis.
 
         Returns
         -------
@@ -283,7 +282,7 @@ class BeamProp:
 
     def stiffness_longitudinal_z(self,omega):
         """
-        Point stiffness of half beam for longitudinal in z
+        Point stiffness of half beam for longitudinal in z.
 
         Parameters
         ----------
@@ -301,7 +300,7 @@ class BeamProp:
         
 class PlateProp:
     """
-    Class for thin plates
+    Class for thin plates.
     
     The plate property class deals with the dynamics of thin plates.
     This comprises all waves and dynamics of isotropic plates.
@@ -366,7 +365,7 @@ class PlateProp:
     @property
     def B_complex(self):
         """
-        complex bending stiffness with consideration of damping loss
+        complex bending stiffness with consideration of damping loss.
         
         Returns
         -------
@@ -546,6 +545,28 @@ class PlateProp:
             BperM = self.B_per_M
                 
         return np.sqrt(omega)/((BperM)**0.25)
+
+    def wavenumber_constants(self,omega):
+        """
+        Bending wavenumber
+
+        Parameters
+        ----------
+        omega : float
+            angular frequency.
+
+        Returns
+        -------
+        tuple
+            (kL,LS,kB).
+
+        """
+
+        BperM = self.B_per_M
+                
+        return (omega/self.c_L(),\
+                omega/self.c_S(),\
+                np.sqrt(omega)/((BperM)**0.25) )
 
     def wavenumber_B_4(self,omega):
         BperM = self.B_per_M
@@ -908,7 +929,7 @@ class PlateProp:
         
         
       
-    def edge_radiation_stiffness_wavenumber(self,omega,wavenumber,wave_DOF = 0):
+    def edge_radiation_stiffness_wavenumber_LM(self,omega,wavenumber,wave_DOF = 0):
         """
         Structural radiation stiffness of straight plate edges
 
@@ -1037,13 +1058,9 @@ class PlateProp:
             #data_[1,1,ix] =  -S2fac[ix]*1j*kyS[ix]*kS**2       
             
             
-            
-
-            
-                                                  
         return mC.LinearMatrix(data_)
 
-    def edge_radiation_stiffness_wavenumber_f(self,omega,wavenumber,wave_DOF = 0):
+    def edge_radiation_stiffness_wavenumber(self,omega,wavenumber,wave_DOF = 0):
         """
         Structural radiation stiffness of straight plate edges
 
@@ -1081,22 +1098,21 @@ class PlateProp:
  
  
         #eta = self.material.eta
-        kB = self.wavenumber_B(omega) #bending wavenumber
-        kL = self.wavenumber_L(omega) #longitudinal wavenumber
-        kS = self.wavenumber_T(omega) #shear wavenumber
+        # kB = self.wavenumber_B(omega) #bending wavenumber
+        # kL = self.wavenumber_L(omega) #longitudinal wavenumber
+        # kS = self.wavenumber_T(omega) #shear wavenumber
         B = self.B # bending stiffness with damping
         S = self.S #shear stiffness with damping
         nu= self.material.nu #poisson
           
+        #use more efficient method that provide all results in one step
+        (kL,kS,kB) = self.wavenumber_constants(omega)
+        
+    
  
         # in-plane motion, roots
-        
-        if wave_DOF ==  5:
-            uL= self.muL(omega,wavenumber)
-            uS= self.muT(omega,wavenumber)
-        else:
-            uL= -np.sqrt(Kx**2-np.complex128(kL)**2)
-            uS= -np.sqrt(Kx**2-np.complex128(kS)**2)
+        uL= -np.sqrt(Kx**2-np.complex128(kL)**2)
+        uS= -np.sqrt(Kx**2-np.complex128(kS)**2)
 
         data_ = np.zeros((Kx.size,4,4),dtype=np.complex128)
 
@@ -1108,7 +1124,21 @@ class PlateProp:
 
         #uB1[np.isreal(uB1)] = 1.E100
 
-        if wave_DOF == 0:
+        if wave_DOF in (3,4):
+            # out-of-plane motion, matrix function elements
+            data_[:,2,2] = -B*(uB1**2*uB2+uB2**2*uB1) 
+            data_[:,2,3] = B*(uB2*uB1+nu*Kx**2)
+            data_[:,3,2] = data_[:,2,3]
+            data_[:,3,3] = -B*(uB2+uB1)
+            
+        elif wave_DOF == 5: #in plane
+            # seperate version for kX > kL
+            # in-plane motion, matrix function elements
+            data_[:,0,0] = -Sfac*(uL*kS**2) 
+            data_[:,0,1] = -Sfac*(1j*Kx*(2*uS*uL+kS**2-2*Kx**2)) 
+            data_[:,1,0] = -data_[:,0,1]#*Sfac*(1j*Kx*(2*uS*uL+kS**2-2*Kx**2))#asym_SL*data_[0,1,:]
+            data_[:,1,1] = -Sfac*(uS*kS**2)
+        elif wave_DOF == 0:
             
             # in-plane motion, matrix function elements langs_SL = -1 gives Langleys convention
             data_[:,0,0] = -Sfac*(uL*kS**2) 
@@ -1136,22 +1166,7 @@ class PlateProp:
             data_[:,1,0] = Sfac*2j*Kx*uS*uL
             data_[:,1,1] = -Sfac*(uS*Kx**2)
             
-        elif wave_DOF in (3,4):
-            # out-of-plane motion, matrix function elements
-            data_[:,2,2] = -B*(uB1**2*uB2+uB2**2*uB1) 
-            data_[:,2,3] = B*(uB2*uB1+nu*Kx**2)
-            data_[:,3,2] = data_[:,2,3]
-            data_[:,3,3] = -B*(uB2+uB1)
 
-
-            
-        elif wave_DOF == 5: #in plane
-            # seperate version for kX > kL
-            # in-plane motion, matrix function elements
-            data_[:,0,0] = -Sfac*(uL*kS**2) 
-            data_[:,0,1] = -Sfac*(1j*Kx*(2*uS*uL+kS**2-2*Kx**2)) 
-            data_[:,1,0] = -data_[:,0,1]#*Sfac*(1j*Kx*(2*uS*uL+kS**2-2*Kx**2))#asym_SL*data_[0,1,:]
-            data_[:,1,1] = -Sfac*(uS*kS**2)
             
         return data_
 
@@ -1279,7 +1294,7 @@ class PlateProp:
                                                                           
         return mC.LinearMatrix(data_)
     
-    def edge_skew_radiation_stiffness_wavenumber(self,omega,wavenumber,wave_DOF=0):
+    def edge_skew_radiation_stiffness_wavenumber_LM(self,omega,wavenumber,wave_DOF=0):
         """
         Structural edge radiation stiffness for specific wave types
         
@@ -1306,12 +1321,11 @@ class PlateProp:
             
         """
 
-        M = self.edge_radiation_stiffness_wavenumber(omega,wavenumber,wave_DOF=wave_DOF)
+        M = self.edge_radiation_stiffness_wavenumber_LM(omega,wavenumber,wave_DOF=wave_DOF)
 
+        return -0.5j*(M-M.H()) 
 
-        return -0.5j*(M-mC.hermitian(M)) 
-
-    def edge_skew_radiation_stiffness_wavenumber_f(self,omega,wavenumber,wave_DOF=0):
+    def edge_skew_radiation_stiffness_wavenumber(self,omega,wavenumber,wave_DOF=0):
         """
         Structural edge radiation stiffness for specific wave types.
         
@@ -1333,19 +1347,20 @@ class PlateProp:
 
         Returns
         -------
-        LinearMatrix
-            matrix [4 x 4] of the stiffness element
+        np.ndarray
+            matrix [Nx x 4 x 4] of the stiffness element
             
         """
-        M = self.edge_radiation_stiffness_wavenumber_f(omega,wavenumber,wave_DOF=wave_DOF)
+        M = self.edge_radiation_stiffness_wavenumber(omega,wavenumber,wave_DOF=wave_DOF)
 
-
-        return -0.5j*(M-np.conj(np.transpose(M,axes=(0,2,1)))) 
+        return -0.5j*(M-mC.hermitian(M)) 
 
     
-    def wave_transformation_matrix(self,omega,wavenumber,inv=False):
+    def wave_transformation_matrix_LM(self,omega,wavenumber,inv=False):
         """
         Transformation matrix from wave amplitude coordinates into edge harmonic displacement.
+    
+        LinearMatrix version
     
         Parameters
         ----------
@@ -1355,7 +1370,7 @@ class PlateProp:
             wavenumber
         inv : bool
             switch for inverse version
-
+            
         Returns
         -------
         LinearMmatrix
@@ -1418,7 +1433,7 @@ class PlateProp:
                 
         return mC.LinearMatrix(data_)
     
-    def wave_transformation_matrix_f(self,omega,wavenumber,inv=False):
+    def wave_transformation_matrix(self,omega,wavenumber,inv=False):
         """
         Transformation matrix from wave amplitude coordinates into edge harmonic displacement.
     
@@ -1612,7 +1627,7 @@ class PlateProp:
             
             # Thus, we need the matrix for the force calulation
             q_ = np.zeros((4,1,len(wavenumber)),dtype=np.complex128)
-            D_edge = self.edge_radiation_stiffness_wavenumber(omega,wavenumber)
+            D_edge = self.edge_radiation_stiffness_wavenumber_LM(omega,wavenumber)
             
             if wave_DOF == 1: # Longitudiunal
                 #uL= -np.sqrt(Kx**2-np.complex128(kL)**2)

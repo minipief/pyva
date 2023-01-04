@@ -134,16 +134,20 @@ class Fluid:
         return _str
     
     @staticmethod
-    def air(temperature, pressure):
+    def air(temperature, pressure,h_rel=0.):
         """
-        Determines precise properties from ambient conditions
+        Determine precise properties from ambient conditions.
+        
+        [1] Saha, Pranab: Acoustical Materials: Solving the Challenge of Vehicle Noise
 
         Parameters
         ----------
         temperature : float
             temperature in Kelvin
         pressure : float
-            atmospheric pressure
+            atmospheric pressure in bar
+        h_rel : float
+            relative humidity. The default is 0 (dry air).
 
         Returns
         -------
@@ -151,14 +155,41 @@ class Fluid:
             air with properties according to environmental conditions.
 
         """
+        T0 = 273.15 # temperature in Kelvin at 0C
+        R_l = 287.05 # gas constant at dry air
+        R_d = 461.   # gas constant of water steam
+        M_d = 29     # molecular weight of dry air
+        M_w = 18     # molecular weight of water
         
-        T0 = 273.15
+        
+        # unit changes
         TC = temperature-T0
-        rho_ = 1.293*T0/temperature*pressure/1.013
+        p_Pa = pressure*100000
+        
+        # speed of sound in dry air
+        c_d = 331-45*np.sqrt(1+TC/T0) # [1] Eq.(10.1)
+        # Vapor pressure of water
+        vP = 1000*0.61121*np.exp((18.678-TC/234.5)*(TC/(257.14+TC))) # Buck Equation
+        # Gas constant of humid air
+        R_f = R_l/(1-(h_rel*vP/p_Pa*(1-R_l/R_d)))
+
+        # density of air
+        #rho_ = 1.293*T0/temperature*pressure/1.013
+        rho_ = p_Pa/R_f/temperature
+        
         eta_ = 1.e-5*(1.723+0.0047*TC)
         lambda_ = (0.02427+7.130e-5*TC)
         c_p_ = 1003.+0.1*TC
-        c0_ = 331.5+0.6*TC
+        
+        # speed of sound
+        h = 0.01*h_rel*vP/p_Pa # [1] Eq.(10.3)
+        # fraction of molecues of water in air
+        gamma_w = (h+7)/(h+5) # [1] Eq.(10.2)
+        # molecular weight of humid air
+        M_ha = M_d-(M_d-M_w)*h
+        
+        #c0_ = 331.5+0.6*TC
+        c0_ = 4.5513*c_d*np.sqrt(gamma_w/M_ha)
         
         return Fluid(c0=c0_,rho0=rho_,eta=0,dynamic_viscosity=eta_,Cp=c_p_, heat_conductivity=lambda_)
         

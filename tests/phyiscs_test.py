@@ -4,8 +4,10 @@ Created on Wed Apr 11 21:34:09 2018
 
 """
 
-from pyva.properties.physics import Q 
+from pint import UnitRegistry
+ureg = UnitRegistry()
 
+#Q_   = ureg.Quantity
 
 nix = 4.
 print(nix)

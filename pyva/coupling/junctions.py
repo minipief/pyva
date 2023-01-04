@@ -37,7 +37,7 @@ import pyva.useful as uf
 debug_sw = 0 # 2 global 3 amplitude 4 force_in 5 Pow_in 6 Pow_out
  
 
-def edge_transform(theta):
+def edge_transform_LM(theta):
     """
     helper function for edge coordinate transformation
     
@@ -67,7 +67,7 @@ def edge_transform(theta):
                                      [0., sn,  cs, 0.],
                                      [0., 0.,  0., 1.]],dtype = np.complex128))
 
-def edge_transform_f(theta):
+def edge_transform(theta):
     """
     helper function for edge coordinate transformation
     
@@ -462,7 +462,7 @@ class LineJunction(Junction) :
     
     def __init__(self,systems,length,thetas):
         """
-        Class contructor for LineJunction
+        Class contructor for LineJunction.
         
         Parameters
         ----------
@@ -473,9 +473,8 @@ class LineJunction(Junction) :
         thetas : list or tuple
             angles of connected plates
                 
-                        
+                       
         """
-        
         # Check if systems are allowed structur2DSystem sytems
         for sys_ in systems:
             if not(isinstance(sys_,(st2Dsys.Structure2DSystem,) )):
@@ -491,7 +490,7 @@ class LineJunction(Junction) :
         
     def __str__(self):
         """
-        Implements __str__ 
+        Implements __str__.
 
         Returns
         -------
@@ -499,7 +498,6 @@ class LineJunction(Junction) :
              Representing the line junction.
 
         """
-        
         _str = 'LineJunction with systems:\n'
         for i_,sys in enumerate(self.systems):
             _str += '{0} angle: {1:.4f}\n'.format(sys,self.thetas[i_])
@@ -520,12 +518,14 @@ class LineJunction(Junction) :
         """
         return self.__str__()
                 
-    def total_radiation_stiffness_wavenumber(self,omega,wavenumber):
+    def total_radiation_stiffness_wavenumber_LM(self,omega,wavenumber):
         """
         Calculate the total radiation stiffness of line junctions.
         
         The result is given in wavenumber domain and global displacement 
-        coordinate system.
+        coordinate system. 
+        
+        _LM identifies the slow LinearMatrix version
         
         In ref [Pei2022_] this is Equation (8.129).
         
@@ -550,16 +550,16 @@ class LineJunction(Junction) :
         #         return self._D_tot[omega]
             
         # start with the first plate
-        D_tot = self.systems[0].edge_radiation_stiffness_wavenumber(omega,wavenumber)
+        D_tot = self.systems[0].edge_radiation_stiffness_wavenumber_LM(omega,wavenumber)
         # Rotation matrix from egde coordinate transformation
-        T_rot = edge_transform(self.thetas[0])
+        T_rot = edge_transform_LM(self.thetas[0])
         # Transform to global system
         D_tot = (T_rot.dot(D_tot)).dot(T_rot.transpose())
         
         for i_sys in range(1,self.N):
-            _D_buf = self.systems[i_sys].prop.edge_radiation_stiffness_wavenumber(omega,wavenumber)
+            _D_buf = self.systems[i_sys].edge_radiation_stiffness_wavenumber_LM(omega,wavenumber)
             # Rotation matrix from egde coordniate transformation
-            T_rot = edge_transform(self.thetas[i_sys])
+            T_rot = edge_transform_LM(self.thetas[i_sys])
             
             _T_buf = (T_rot.dot(_D_buf)).dot(T_rot.transpose())
             
@@ -570,7 +570,7 @@ class LineJunction(Junction) :
         
         return(D_tot)
     
-    def total_radiation_stiffness_wavenumber_f(self,omega,wavenumber):
+    def total_radiation_stiffness_wavenumber(self,omega,wavenumber):
         """
         Calculates the total radiation stiffness of line junctions
         
@@ -593,16 +593,16 @@ class LineJunction(Junction) :
         
 
         # start with the first plate
-        D_tot = self.systems[0].edge_radiation_stiffness_wavenumber_f(omega,wavenumber)
+        D_tot = self.systems[0].prop.edge_radiation_stiffness_wavenumber(omega,wavenumber)
         # Rotation matrix from egde coordinate transformation
-        T_rot = edge_transform_f(self.thetas[0])
+        T_rot = edge_transform(self.thetas[0])
         # Transform to global system
         D_tot = np.matmul(np.matmul(T_rot,D_tot),T_rot.transpose())
         
         for i_sys in range(1,self.N):
-            _D_buf = self.systems[i_sys].edge_radiation_stiffness_wavenumber_f(omega,wavenumber)
+            _D_buf = self.systems[i_sys].prop.edge_radiation_stiffness_wavenumber(omega,wavenumber)
             # Rotation matrix from egde coordniate transformation
-            T_rot = edge_transform_f(self.thetas[i_sys])
+            T_rot = edge_transform(self.thetas[i_sys])
             
             _T_buf = np.matmul(np.matmul(T_rot,_D_buf),T_rot.transpose())
             
@@ -613,16 +613,22 @@ class LineJunction(Junction) :
         
         return(D_tot)
     
-    def transmission_wavenumber(self,omega,wavenumber,i_sys = (0,1),i_in_wave = (1,2,3),i_out_wave = (1,2,3),rad_sw = 'wave',\
-                                Signal = True):
+    def transmission_wavenumber_LM(self,omega,wavenumber,i_sys = (0,1),i_in_wave = (1,2,3),\
+                                                i_out_wave = (1,2,3),rad_sw = 'wave',\
+                                                Signal = True):
         """
         Calculate the transmission coefficient of line junctions.
         
         This methods applies the hybrid CLF formulation from [1] but
         using the radiated power calculated from the wave amplitude as 
-        disscussed in the reference.
+        disscussed in the reference. 
         
-        The rad_sw argument is used for validation. For simulation always use 'wave'
+        The method is the version that is used for validation purpose, thus the
+        radiated power can be calculated using the radiation stiffness. As shown in [Pei2022_] this 
+        is not correct in the wavenumber range [k_L < kx < k_S]
+        
+        The rad_sw argument is used for exactly this validation. 
+        For simulation always use 'wave'
 
         Parameters
         ----------
@@ -651,6 +657,8 @@ class LineJunction(Junction) :
         ndarray or Signal
             transmission coefficient for one frequency over wavenumber.
         """
+        #print('LinearMatrixVersion used')
+        
         i_sys,i_in_wave,i_out_wave = all2array(i_sys,i_in_wave,i_out_wave)
 
         if i_out_wave.size != i_in_wave.size:
@@ -661,16 +669,16 @@ class LineJunction(Junction) :
         # convert to np.array to become independent from tupels
         i_sys,i_in_wave,i_out_wave = all2array(i_sys,i_in_wave,i_out_wave)
         # Total radiation stiffness in global coordinates
-        D_tot = self.total_radiation_stiffness_wavenumber(omega,wavenumber)
+        D_tot = self.total_radiation_stiffness_wavenumber_LM(omega,wavenumber)
    
         # Determine transformation matrices for in-(1)  and out-(2) systems
-        T_rot_1  = edge_transform(self.thetas[i_sys[0]])
+        T_rot_1  = edge_transform_LM(self.thetas[i_sys[0]])
         T_rot_1_T = T_rot_1.transpose()
-        T_rot_2  = edge_transform(self.thetas[i_sys[1]])
+        T_rot_2  = edge_transform_LM(self.thetas[i_sys[1]])
         #T_rot_2_T = T_rot_2.transpose()
         
         # Determine wave transformation for output wave amplitude determiniation
-        T_wave_2 = self.systems[i_sys[1]].wave_transformation_matrix(omega,wavenumber)
+        T_wave_2 = self.systems[i_sys[1]].wave_transformation_matrix_LM(omega,wavenumber)
 
         D_mn_part = T_rot_1_T.dot(D_tot).dot(T_rot_2) # Eq. (8.144))
         
@@ -693,7 +701,7 @@ class LineJunction(Junction) :
             ii_wave = i_in_wave[i_in]
             # Get Imag(D_dir) of input system according to 
             #D_in  = self.systems[i_sys[0]].edge_imaginary_radiation_stiffness_wavenumber(omega,wavenumber,ii_wave)
-            D_in  = self.systems[i_sys[0]].edge_skew_radiation_stiffness_wavenumber(omega,wavenumber,ii_wave)
+            D_in  = self.systems[i_sys[0]].edge_skew_radiation_stiffness_wavenumber_LM(omega,wavenumber,ii_wave)
 
             
             Sqqe = D_in.HDH(D_mn_part) # D_mn_part ^(-H).Im(D_in)
@@ -711,7 +719,7 @@ class LineJunction(Junction) :
                 io_wave = 4
                 
             if rad_sw == 'im_dir': # just for presentation purpose works for Bending or SL i_in = 5 for k<= kL but not for kL < k < kS
-                D_out = self.systems[i_sys[1]].edge_skew_radiation_stiffness_wavenumber(omega,wavenumber,io_wave)   
+                D_out = self.systems[i_sys[1]].edge_skew_radiation_stiffness_wavenumber_LM(omega,wavenumber,io_wave)   
                     
                 _ydata[i_in,:] = (4*D_out*Sqqe).real().sum() 
                 #_ydata[i_in,:] = (4*D_out*Sqqe).imag().sum() 
@@ -742,7 +750,7 @@ class LineJunction(Junction) :
         else:
             return _ydata
             
-    def transmission_wavenumber_f(self,omega,wavenumber,i_sys = (0,1),i_in_wave = (3,3),i_out_wave = (5,5),rad_sw = 'wave',Signal = True):
+    def transmission_wavenumber(self,omega,wavenumber,i_sys = (0,1),i_in_wave = (3,3),i_out_wave = (5,5),Signal = True):
         """
         Calculates the transmission coefficient of line junctions
         
@@ -764,8 +772,6 @@ class LineJunction(Junction) :
             incident wave type. The default is (1,2,3).
         i_out_wave : tuple or list, optional
             radiating wave type. The default is (1,2,3).
-        rad_sw : str, 'wave' or 'im_dir', optional
-            identifier for radiated power method. The default is 'wave'.
         Signal : bool, optional
             switch for Signal output. The default is True.
 
@@ -791,17 +797,17 @@ class LineJunction(Junction) :
         # convert to np.array to become independent from tupels
         i_sys,i_in_wave,i_out_wave = all2array(i_sys,i_in_wave,i_out_wave)
 
-        D_tot = self.total_radiation_stiffness_wavenumber_f(omega,wavenumber)
+        D_tot = self.total_radiation_stiffness_wavenumber(omega,wavenumber)
    
         # Determine transformation matrices for in- and out-systems
-        T_rot_1  = edge_transform_f(self.thetas[i_sys[0]])
+        T_rot_1  = edge_transform(self.thetas[i_sys[0]])
         T_rot_1_T = T_rot_1.transpose()
-        T_rot_2  = edge_transform_f(self.thetas[i_sys[1]])
+        T_rot_2  = edge_transform(self.thetas[i_sys[1]])
         #T_rot_2_T = T_rot_2.transpose()
         
         # Determine wave transformation for output wave amplitude determiniation
         #T_wave_2 = self.systems[i_sys[1]].wave_transformation_matrix_f(omega,wavenumber)
-        T_wave_2_inv = self.systems[i_sys[1]].wave_transformation_matrix_f(omega,wavenumber,inv=True)
+        T_wave_2_inv = self.systems[i_sys[1]].prop.wave_transformation_matrix(omega,wavenumber,inv=True)
         T_wave_2_invH = mC.hermitian(T_wave_2_inv)
 
 
@@ -813,10 +819,7 @@ class LineJunction(Junction) :
         Nsig = len(i_in_wave)
         _ydata= np.zeros((Nsig,np.size(wavenumber)))
         
-        _tdof = dof.DOFtype(typestr='transmission')
-        xdata = mC.DataAxis(wavenumber,typestr='wavenumber')
-        
-        
+
         #kL = self.systems[i_sys[0]].prop.wavenumber_L(omega) #longitudinal wavenumber
         #kS = self.systems[i_sys[0]].prop.wavenumber_T(omega) #shear wavenumber
         #kB = self.systems[i_sys[0]].prop.wavenumber_B(omega) #shear wavenumber
@@ -827,7 +830,7 @@ class LineJunction(Junction) :
         for i_in in range(Nsig):
 
             ii_wave = i_in_wave[i_in]
-            D_in  = self.systems[i_sys[0]].edge_skew_radiation_stiffness_wavenumber_f(omega,wavenumber,ii_wave)
+            D_in  = self.systems[i_sys[0]].prop.edge_skew_radiation_stiffness_wavenumber(omega,wavenumber,ii_wave)
 
             #Sqqe = D_in.HDH_f(D_mn_part)
             Sqqe = np.matmul(np.matmul(D_mn_part,D_in),D_mn_partH)
@@ -853,14 +856,16 @@ class LineJunction(Junction) :
 
             if io_wave == 5: # all
                 # add in-plane waves
-                WQ0 = self.systems[i_sys[1]].edge_wave_amplitude_radiated_power(1.,omega,wavenumber,1)
-                WQ1 = self.systems[i_sys[1]].edge_wave_amplitude_radiated_power(1.,omega,wavenumber,2)
+                WQ0 = self.systems[i_sys[1]].prop.edge_wave_amplitude_radiated_power(1.,omega,wavenumber,1)
+                WQ1 = self.systems[i_sys[1]].prop.edge_wave_amplitude_radiated_power(1.,omega,wavenumber,2)
                 _ydata[i_in,:] = 8/omega*(np.abs(WQ0*Psi2)+np.abs(WQ1*Psi21))
             else:
-                WQ = self.systems[i_sys[1]].edge_wave_amplitude_radiated_power(1.,omega,wavenumber,io_wave)
+                WQ = self.systems[i_sys[1]].prop.edge_wave_amplitude_radiated_power(1.,omega,wavenumber,io_wave)
                 _ydata[i_in,:] = 8/omega*WQ*Psi2 # Imag seperately assuming symmetry of D_out
               
         if Signal:
+            _tdof = dof.DOFtype(typestr='transmission')
+            xdata = mC.DataAxis(wavenumber,typestr='wavenumber')
             return mC.Signal(xdata,_ydata,dof.DOF(i_out_wave,np.zeros((1,Nsig)),_tdof))
         else:
             return _ydata
@@ -1075,18 +1080,18 @@ class LineJunction(Junction) :
         i_sys,i_in_wave,i_out_wave = all2array(i_sys,i_in_wave,i_out_wave)
 
         
-        D_tot = self.total_radiation_stiffness_wavenumber(omega,wavenumber)
+        D_tot = self.total_radiation_stiffness_wavenumber_LM(omega,wavenumber)
         D_tot_inv = D_tot.inv()        
         
         #T_wave_1 = self.systems[i_sys[0]].wave_transform(omega,wavenumber)
         #T_wave_2 = self.systems[i_sys[1]].wave_transform(omega,wavenumber)
         #T_wave_1_inv = T_wave_1.inv()
-        T_wave_2_inv = self.systems[i_sys[1]].wave_transformation_matrix(omega,wavenumber,inv=True)
+        T_wave_2_inv = self.systems[i_sys[1]].wave_transformation_matrix_LM(omega,wavenumber,inv=True)
         
                     
-        T_rot_1  = edge_transform(self.thetas[i_sys[0]])
+        T_rot_1  = edge_transform_LM(self.thetas[i_sys[0]])
         #T_rot_1_T = T_rot_1.transpose()
-        T_rot_2  = edge_transform(self.thetas[i_sys[1]])
+        T_rot_2  = edge_transform_LM(self.thetas[i_sys[1]])
         T_rot_2_T = T_rot_2.transpose()
         
         
@@ -1366,7 +1371,7 @@ class LineJunction(Junction) :
             kx   = self.kx(om,i_sys,i_in_wave[0],i_out_wave,N_step,method = 'in-plane')
             
             if method == 'diffuse':
-                taus = self.transmission_wavenumber(om,kx,i_sys,i_in_wave,i_out_wave,Signal=False) # check late with Signal option
+                taus = self.transmission_wavenumber_LM(om,kx,i_sys,i_in_wave,i_out_wave,Signal=False) # check late with Signal option
             elif method == 'langley':
                 taus = self.transmission_wavenumber_langley(om,kx,i_sys,i_in_wave,i_out_wave,Signal=False)
                         

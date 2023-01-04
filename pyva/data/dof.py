@@ -18,7 +18,11 @@ For example a pressure multiplied by an area leads into a force.
 """
 import numpy as np
 import copy
-from pyva import ureg
+#from pyva import ureg
+from pint import UnitRegistry
+
+ureg = UnitRegistry()
+Q_   = ureg.Quantity
 
 
 # useful methods

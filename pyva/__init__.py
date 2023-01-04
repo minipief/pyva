@@ -13,8 +13,8 @@ This includes classes ...
 
 """
 
-from pint import UnitRegistry
-ureg = UnitRegistry()
-Q_   = ureg.Quantity
+# from pint import UnitRegistry
+# ureg = UnitRegistry()
+# Q_   = ureg.Quantity
 
 __all__ = ['models.py','useful.py']
