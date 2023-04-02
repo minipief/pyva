@@ -82,7 +82,7 @@ class DOF:
             ID for nodes, elements, etc. 
         dof : ndarray, list, tuple of integer or integer   (of same dimension as ID)
             degree of freedom e.g. 0 for sclaer 1,2,3 for x,y,z and 4,5,6 for RX,RY,RZ
-        doftype : list of DOFtype or string or DOFtype
+        doftype : list of DOFtype, string or typeID
             type for DOF, e.g. pressure, displacent delivers unit information
         repetition : bool, optional
             switch for repetition, when True doftype is used as pattern, every dof is repeted for every ID
@@ -264,6 +264,51 @@ class DOF:
         """
         return not(self == other)
     
+    def __add__(self,other):
+        
+        if self.isuniform() and other.isuniform() and \
+            self.type[0] == other.type[0]:
+            return DOF(np.append(self.ID,other.ID),\
+                   np.append(self.dof,other.dof), \
+                   self._type)
+        else:
+            return DOF(np.append(self.ID,other.ID),\
+                   np.append(self.dof,other.dof), \
+                   self.type + other.type)
+            
+                
+                
+    
+    def __getitem__(self, position):
+        """
+        Overlaoded __getitem__ method for indexing
+
+        Parameters
+        ----------
+        position : index type
+            index of DOF.
+
+        Returns
+        -------
+        DOFtype
+            of index.
+
+        """
+        if self._uniquetype_sw:
+            return DOF(self.ID[position].flatten(), \
+                       self.dof[position].flatten(),self._type[0])
+        else:
+            # extra indexing of lists
+            if isinstance(position,(int,slice,np.integer)):
+                type_buf = self.type[position]
+            elif isinstance(position,(np.ndarray,list,tuple)):
+                type_buf = []
+                for i in range(len(position)):
+                    type_buf.append(self.type[position[i]])
+                    
+            return DOF(self.ID[position].flatten(),
+                       self.dof[position].flatten(),
+                       type_buf) # self.type[position]) #.flatten()    
     def label(self):
         """
         Creates label
@@ -503,8 +548,26 @@ class DOF:
             of DOFtypes.
 
         """
+        # if self.isuniform():
+        #     return self._type*self.size
+        # else:
+        #     return self._type
+    
         return self._type
+    
+    @property
+    def typeID(self):
+        
+        tID = np.zeros((self.size,),dtype = np.int32 )
 
+        if self._repetition:
+            tID[:] = self.type[0].type
+        else:
+            for ix,dt in enumerate(self.type):
+                tID[ix] = dt.type
+
+        return tID
+    
     @property
     def unique_type(self):
         """
@@ -530,37 +593,6 @@ class DOF:
             else:
                 raise ValueError('dof is not unique')
 
-
-    def __getitem__(self, position):
-        """
-        Overlaoded __getitem__ method for indexing
-
-        Parameters
-        ----------
-        position : index type
-            index of DOF.
-
-        Returns
-        -------
-        DOFtype
-            of index.
-
-        """
-        if self._uniquetype_sw:
-            return DOF(self.ID[position].flatten(), \
-                       self.dof[position].flatten(),self._type[0])
-        else:
-            # extra indexing of lists
-            if isinstance(position,(int,slice,np.integer)):
-                type_buf = self.type[position]
-            elif isinstance(position,(np.ndarray,list,tuple)):
-                type_buf = []
-                for i in range(len(position)):
-                    type_buf.append(self.type[position[i]])
-                    
-            return DOF(self.ID[position].flatten(),
-                       self.dof[position].flatten(),
-                       type_buf) # self.type[position]) #.flatten()
             
     def intersect(self,other,**kwargs):
         """
@@ -696,7 +728,7 @@ def gettypeID(IDstr):
             if TYPEDICT[key]==IDstr:
                 return key
     else:
-        raise ValueError('IDstr {0} not in DOF list'.format(IDstr))
+        raise ValueError('IDstr {0} not in DOF list \n {1}'.format(IDstr))
                 
 
 # Module constants used in DOF class 

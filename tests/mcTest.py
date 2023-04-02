@@ -184,5 +184,10 @@ time = matC.DataAxis(np.arange(0,1,0.01),typestr='time')
 print(time)
 part_time = time[1:40]
 
+# check non symmetric matrices multication when inner dimension agrees
+A34 = matC.LinearMatrix(Adata[0:3,:,:])
+
+A34_A = A34.dot(A)
+
 
 

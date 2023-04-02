@@ -740,6 +740,52 @@ class IsoMat:
         """
         return self.E*(1+1j*self.eta)
     
+    def lambda_lame(self):
+        """
+        1st Laméconstant lambda.
+
+        Returns
+        -------
+        float
+            1st Lame constant.
+
+        """
+        G = self.G
+        nu = self.nu
+        return 2*G*nu/(1-2*nu)
+    
+    def wavenumber_L(self,omega):
+        """
+        Calculate longitudinal wavenumber in bulk material.
+
+        Parameters
+        ----------
+        omega : float
+            angular frequency.
+
+        Returns
+        -------
+        longitudinal wavenmuber.
+
+        """
+        return omega/self.c_L
+    
+    def wavenumber_S(self,omega):
+        """
+        Calculate shear wavenumber in bulk material.
+
+        Parameters
+        ----------
+        omega : float
+            angular frequency.
+
+        Returns
+        -------
+        shear wavenmuber.
+
+        """
+        return omega/self.c_S
+    
 class EquivalentFluid(Fluid):
     """
     The EquivalentFluid class deals fibre models based on Champoux Allard with 

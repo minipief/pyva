@@ -39,7 +39,7 @@ debug_sw = 0 # 2 global 3 amplitude 4 force_in 5 Pow_in 6 Pow_out
 
 def edge_transform_LM(theta):
     """
-    helper function for edge coordinate transformation
+    Helper function for edge coordinate transformation (LinearMatrix Version).
     
     Calculates the coordinate transfer matrix for local edge coordinates 
     to global edge coordinates
@@ -617,7 +617,7 @@ class LineJunction(Junction) :
                                                 i_out_wave = (1,2,3),rad_sw = 'wave',\
                                                 Signal = True):
         """
-        Calculate the transmission coefficient of line junctions.
+        Calculate the transmission coefficient of line junctions (LinearMatrix Version).
         
         This methods applies the hybrid CLF formulation from [1] but
         using the radiated power calculated from the wave amplitude as 
@@ -1249,7 +1249,7 @@ class LineJunction(Junction) :
 
     def kx(self,omega,i_sys,i_in_wave,i_out_wave,Nstep,method = 'angle'):
         """
-        wavenumber sampling for diffuse field intgegration
+        wavenumber sampling for diffuse field intgegration.
         
         The different wave number regimes require a well balanced sampling of the 
         wavnumber. High sampling in-plane waves and low sampling for bending waves

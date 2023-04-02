@@ -15,6 +15,229 @@ import scipy.special as spl
 import pyva.useful as uf
 import copy
 
+# contants
+PRESSURE = dof.DOFtype(typestr='pressure')
+VELOCITY = dof.DOFtype(typestr='velocity')
+STRESS   = dof.DOFtype(typestr='stress')
+
+
+def I_solid_fluid(xdata,left_ID,right_ID):
+    """
+    Provide contact matrix I of solid - fluid intefaces.
+    
+    The matrix corresponds to Eq. (11.71) in [All2008_]
+    
+    When solid and fluid are exchanged J and I are interchanged. 
+    The response DOFs stay the same, because they defined the row index in the
+    global allard matrix.
+
+    Parameters
+    ----------
+    xdata : DataAxis
+        xdata for contact matrix definition, wavenumber or frequency.
+    left_ID : integer
+        left ID of connection.
+    right_ID : integer
+        right ID of connection.
+
+    Returns
+    -------
+    DynamicMatrix
+        I matrix of solid fluid connection.
+
+    """
+    #
+    res_dof = solid_fluid_res_dof(left_ID)
+    exc_dof = solid_exc_dof(right_ID)
+    
+    #data = np.zeros((3,4,xdata.Nxdata))
+    data = np.array([[0,1,0,0],
+                     [0,0,1,0],
+                     [0,0,0,1]])
+    # stack data along depth dimension
+    data = np.dstack([data for _ in range(len(xdata))]) 
+    
+    return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)
+
+def J_solid_fluid(xdata,left_ID,right_ID):
+    """
+    Provide contact matrix JU of solid - fluid intefaces.
+    
+    The matrix corresponds to Eq. (11.71) in [All2008_]
+    When solid and fluid are exchanged J and I are interchanged. 
+    The response DOFs stay the same, because they defined the row index in the
+    global allard matrix.
+
+    Parameters
+    ----------
+    xdata : DataAxis
+        xdata for contact matrix definition, wavenumber or frequency.
+    left_ID : integer
+        left ID of connection.
+    right_ID : integer
+        right ID of connection.
+
+    Returns
+    -------
+    DynamicMatrix
+        J matrix of solid fluid connection.
+
+    """
+    #
+    res_dof = solid_fluid_res_dof(left_ID)
+    exc_dof = fluid_exc_dof(right_ID)
+    
+    #data = np.zeros((3,4,xdata.Nxdata))
+    data = np.array([[0,-1],
+                     [1, 0],
+                     [0, 0]])
+    # stack data along depth dimension
+    data = np.dstack([data for _ in range(len(xdata)) ] ) 
+    
+    return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)
+
+def Y_fluid_fixed(xdata,left_ID):
+    
+    #
+    res_dof = dof.DOF([left_ID+1],[3],[VELOCITY])
+    exc_dof = fluid_exc_dof(left_ID)
+    
+    #data = np.zeros((3,4,xdata.Nxdata))
+    data = np.array([[0,1]])
+    # stack data along depth dimension
+    data = np.dstack([data for _ in range(len(xdata)) ] ) 
+    
+    return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)
+
+def Y_solid_fixed(xdata,left_ID):
+    
+    #
+    res_dof = dof.DOF([left_ID+1,left_ID+1],[1,3],[VELOCITY,VELOCITY])
+    exc_dof = solid_exc_dof(left_ID)
+    
+    #data = np.zeros((3,4,xdata.Nxdata))
+    data = np.array([[1,0,0,0],
+                     [0,1,0,0]])
+    # stack data along depth dimension
+    data = np.dstack([data for _ in range(len(xdata)) ] ) 
+    
+    return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)
+
+def I_fluid_fluid(xdata,left_ID):
+    """
+    Provide contact matrix I of fluid - fluid intefaces.
+    
+    Parameters
+    ----------
+    xdata : DataAxis
+        xdata for contact matrix definition, wavenumber or frequency.
+    left_ID : integer
+        left ID of connection.
+    right_ID : integer
+        right ID of connection.
+
+    Returns
+    -------
+    DynamicMatrix
+        I matrix of solid fluid connection.
+
+    """
+    #
+    res_dof = fluid_fluid_res_dof(left_ID)
+    exc_dof = fluid_fluid_res_dof(left_ID)
+    
+    #data = np.zeros((3,4,xdata.Nxdata))
+    data = np.eye(2)
+    # stack data along depth dimension
+    data = np.dstack([data for _ in range(len(xdata))]) 
+    
+    return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)
+
+def J_fluid_fluid(xdata,left_ID,right_ID):
+    """
+    Provide contact matrix J of fluid - fluid intefaces.
+    
+    Parameters
+    ----------
+    xdata : DataAxis
+        xdata for contact matrix definition, wavenumber or frequency.
+    left_ID : integer
+        left ID of connection.
+    right_ID : integer
+        right ID of connection.
+
+    Returns
+    -------
+    DynamicMatrix
+        I matrix of solid fluid connection.
+
+    """
+    #
+    res_dof = fluid_fluid_res_dof(left_ID)
+    exc_dof = fluid_fluid_res_dof(right_ID)
+    
+    #data = np.zeros((3,4,xdata.Nxdata))
+    data = -np.eye(2)
+    # stack data along depth dimension
+    data = np.dstack([data for _ in range(len(xdata))]) 
+    
+    return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)
+
+def I_porous_fluid(xdata,porosity,ID):
+    
+    #res_dof = dof()
+    phi = porosity
+    return np.array([[0,1-phi,phi,0,0,0],
+                     [0,  0  , 0 ,1,0,0],
+                     [0,  0  , 0 ,0,1,0],
+                     [0,  0  , 0 ,0,0,1]])
+
+def J_porous_fluid(porosity):
+    
+    phi = porosity
+    return np.array([[0    ,-1],
+                     [1-phi, 0],
+                     [0    , 0],
+                     [0    , 0]])
+
+# functions for DOF generation
+
+def solid_fluid_res_dof(left_ID):
+    
+    ID_   = [left_ID]*3
+    dof_  = [3,3,1]
+    type_ = [ VELOCITY , STRESS, STRESS ] 
+    return dof.DOF(ID_,dof_,type_)
+
+def solid_exc_dof(left_ID):
+    
+    ID_   = [left_ID]*4 
+    dof_  = [1,3,3,1]
+    type_ = [VELOCITY, VELOCITY , STRESS, STRESS] 
+        
+    return dof.DOF(ID_,dof_,type_)
+
+# def fluid_solid_dof(left_ID):
+    
+#     ID_   = [left_ID]*2
+#     dof_  = [0,3]
+#     type_ = [ PRESSURE, VELOCITY ] 
+#     return dof.DOF(ID_,dof_,type_)
+
+def fluid_exc_dof(left_ID):
+    
+    ID_   = [left_ID]*2
+    dof_  = [0,3]
+    type_ = [ PRESSURE, VELOCITY] 
+    return dof.DOF(ID_,dof_,type_)
+
+def fluid_fluid_res_dof(left_ID):
+
+    ID_   = [left_ID]*2
+    dof_  = [0,3]
+    type_ = [ PRESSURE, VELOCITY] 
+    return dof.DOF(ID_,dof_,type_)
+
 class AcousticLayer:
     """
     Base class for all acoustic infinite layer
@@ -51,8 +274,6 @@ class AcousticLayer:
         -------
         None.
         """        
-
-
         
         if isinstance(left_dof,dof.DOF):
             self.left_dof = left_dof
@@ -65,8 +286,10 @@ class AcousticLayer:
             raise(ValueError,"rightdof argument must be an instance of the dof class")
             
         self.thickness = thickness
-        
-    def get_xdata(self,omega,kx):
+        self.type      = 'equivalent_fluid' 
+     
+    @staticmethod   
+    def get_xdata(omega,kx):
         """
         Determines the appropriate xdata from omega and kx.
         
@@ -103,6 +326,22 @@ class AcousticLayer:
             
         return xdata
 
+    @property
+    def isequivalentfluid(self):
+        """
+        Determine if layer is of type equivalent fluid
+
+        Defauls parameter is True
+
+        Returns
+        -------
+        bool
+            True.
+
+        """
+        return True
+    
+
 
 class FluidLayer(AcousticLayer):
     """
@@ -118,7 +357,7 @@ class FluidLayer(AcousticLayer):
         [left ID, right ID] of fluid layer
     """
     
-    def __init__(self,thickness,fluid=mc.Fluid,ID = [1,2]):
+    def __init__(self,thickness,fluid=mc.Fluid):
         """
         Constructor of FluidLayer
 
@@ -140,8 +379,9 @@ class FluidLayer(AcousticLayer):
         
         # set DOF according to ID and natural DOF of the layer
         Tdof = ('pressure','velocity')
-        _left_dof = dof.DOF([ID[0], ID[0]],[0,3],Tdof)
-        _right_dof = dof.DOF([ID[1], ID[1]],[0,3],Tdof)
+        # The ID is used only generically as this is set by layer position
+        _left_dof = dof.DOF([0,0],[0,3],Tdof)
+        _right_dof = dof.DOF([1,1],[0,3],Tdof)
                        
         super().__init__(thickness,_left_dof,_right_dof)
         self.fluid = fluid       # fluid in the layer
@@ -151,7 +391,7 @@ class FluidLayer(AcousticLayer):
         str_ = 'fluid layer of thickness {0}'.format(self.thickness)
         return str_
         
-    def transfer_impedance(self,omega,kx=0, ID = None):
+    def transfer_impedance(self,omega,kx=0,ID=[1,2]):
         """
         Transferimpedance of fluid layer
 
@@ -171,9 +411,6 @@ class FluidLayer(AcousticLayer):
         
         """
         
-        if ID is None:
-            ID = self.ID
-
         kz = lambda omega_,kx_: np.sqrt(self.fluid.wavenumber(omega_)**2-kx_**2)
         rho_om  = lambda omega_: self.fluid.rho_freq(omega_)*omega_
         h  = self.thickness
@@ -202,6 +439,7 @@ class FluidLayer(AcousticLayer):
         
         return mC.DynamicMatrix(data,xdata,rdof,ldof)
 
+
 class FluidLayerHoneyComb(FluidLayer):
     """
     The FluidLayer class deals with the infinite honcomb core layers in the absorber context
@@ -219,7 +457,7 @@ class FluidLayerHoneyComb(FluidLayer):
     
     """
     
-    def __init__(self,thickness,fluid=mc.Fluid,ID=[1,2]):
+    def __init__(self,thickness,fluid=mc.Fluid):
         """
         Class contructor for acoustic tube
         
@@ -245,7 +483,7 @@ class FluidLayerHoneyComb(FluidLayer):
         str_ = 'fluid layer Honeycomb of thickness {0}'.format(self.thickness)
         return str_
         
-    def transfer_impedance(self,omega,kx = 0, ID = None):
+    def transfer_impedance(self,omega,kx = 0, ID = [1,2]):
         """
         Transferimpedance of honey comb layers
         
@@ -268,9 +506,6 @@ class FluidLayerHoneyComb(FluidLayer):
         
         """
         
-        if ID is None:
-            ID = self.ID
-
         kz = lambda omega_: np.sqrt(self.fluid.wavenumber(omega_)**2)
         rho_om  = lambda omega_: self.fluid.rho_freq(omega_)*omega_
         h  = self.thickness
@@ -317,7 +552,7 @@ class MassLayer(AcousticLayer):
         [left ID, right ID] of MassLayer
     """
     
-    def __init__(self,thickness,rho,ID=[1,2]):
+    def __init__(self,thickness,rho):
         """
         Constructror of mass layer
 
@@ -338,8 +573,8 @@ class MassLayer(AcousticLayer):
                 
         # set DOF according to ID and natural DOF of the layer
         Tdof = ('pressure','velocity')
-        _left_dof = dof.DOF([ID[0], ID[0]],[0,3],Tdof)
-        _right_dof = dof.DOF([ID[1], ID[1]],[0,3],Tdof)
+        _left_dof = dof.DOF([0,0],[0,3],Tdof)
+        _right_dof = dof.DOF([1,1],[0,3],Tdof)
                        
         super().__init__(thickness,_left_dof,_right_dof)
         
@@ -352,7 +587,7 @@ class MassLayer(AcousticLayer):
         str_ = 'mass layer of thickness  {0}'.format(self.thickness)
         return str_
 
-    def transfer_impedance(self,omega,kx = 0,ID=None):
+    def transfer_impedance(self,omega,kx = 0,ID=[1,2]):
         """
         Transferimpedance of honey mass layer
         
@@ -374,9 +609,6 @@ class MassLayer(AcousticLayer):
             [2 x 2] array of transferimpedance    |
         
         """
-
-        if ID is None:
-            ID = self.ID
 
 
         # Update ID in DOF attribute
@@ -435,30 +667,31 @@ class MassLayer(AcousticLayer):
                      
         return 1/(1+(self.mass_per_area*omega/2/fluid.z0*np.cos(theta))**2)
         
-                      
-
+                 
 class PlateLayer(AcousticLayer):
+    
     """
     The PlateLayer class represents the infinite plate layer 
     
     Attributes:
-      plate_prop: of plate
+        plate_prop: of plate
     """
     
-    def __init__(self,plate_prop,ID=[1,2]):
+    def __init__(self,plate_prop):
         """
-        Class contructor for PlateLayer objects
+        Class constructor for PlateLayer objects
         
-        Args:
-             impedance: transfer impedance as complex function of omega @type function
-                  area: cross sectio of the element   
-                        
-        """
-                
+        Parameters
+        ----------
+        plate_prop : PlateProp
+            plate property of layer
+        ID : list or tuple
+            node IDs of left and right side
+        """                
         # set DOF according to ID and natural DOF of the layer
         Tdof = ('pressure','velocity')
-        _left_dof = dof.DOF([ID[0], ID[1]],[0,3],Tdof)
-        _right_dof = dof.DOF([ID[1], ID[1]],[0,3],Tdof)
+        _left_dof = dof.DOF([0,0],[0,3],Tdof)
+        _right_dof = dof.DOF([1,1],[0,3],Tdof)
                        
         super().__init__(plate_prop.thickness,_left_dof,_right_dof)
         
@@ -482,7 +715,7 @@ class PlateLayer(AcousticLayer):
         
         return self.prop.mass_per_area
 
-    def transfer_impedance(self,omega,kx=0,ID = None):
+    def transfer_impedance(self,omega,kx=0,ID = [1,2]):
         """
         Transferimpedance of plates
         
@@ -494,8 +727,8 @@ class PlateLayer(AcousticLayer):
             scalar angular frequency
         kx : float or ndarray, optional
             In-plane wavenumber. The default is 0.
-        ID : list of int, optional
-            Left and right when overwritten, None takes object ID. The default is None.
+        ID : list of int,
+            Left and right ID. The default is [1,2].
                       
         Returns
         -------
@@ -503,9 +736,6 @@ class PlateLayer(AcousticLayer):
             [2 x 2] array of transferimpedance
         
         """
-
-        if ID is None:
-            ID = self.ID
                 
         xdata = self.get_xdata(omega, kx)
                        
@@ -574,7 +804,7 @@ class PerforatedLayer(AcousticLayer):
     # Model is based on fluid viscosity
     visc_air = mc.Fluid(damping_model='viscous')
         
-    def __init__(self,thickness,hole_radius,fluid=visc_air,ID=[1,2],pattern='square',alpha=2.,**kwargs):
+    def __init__(self,thickness,hole_radius,fluid=visc_air,pattern='square',alpha=2.,**kwargs):
         """
         Class contructor for PerforatedLayer
         
@@ -609,15 +839,15 @@ class PerforatedLayer(AcousticLayer):
  
         # set DOF according to ID and natural DOF of the layer
         Tdof = ('pressure','velocity')
-        _left_dof = dof.DOF([ID[0], ID[1]],[0,3],Tdof)
-        _right_dof = dof.DOF([ID[1], ID[1]],[0,3],Tdof)
+        _left_dof = dof.DOF([0,0],[0,3],Tdof)
+        _right_dof = dof.DOF([1,1],[0,3],Tdof)
          
         # assign attributes of mother classes
         super().__init__(thickness,_left_dof,_right_dof)
         self._lumped = ac1D.PerforatedLayer(thickness,hole_radius,1.,fluid=fluid, \
                                             pattern = pattern,alpha = alpha,**kwargs)
         
-    def transfer_impedance(self,omega,kx = 0,ID=[None]):
+    def transfer_impedance(self,omega,kx = 0,ID=[1,2]):
         """
         Transferimpedance of perforateLayer
         
@@ -641,10 +871,7 @@ class PerforatedLayer(AcousticLayer):
 
         # Update ID in DOF attribute
         
-        if ID[0] is None:
-            _ID = [self.left_dof.ID[0],self.right_dof.ID[1]]
-        else:
-            _ID = ID
+        _ID = ID
             
         ldof = dof.DOF([_ID[0],_ID[0]], self.left_dof.dof,self.left_dof.type)
         rdof = dof.DOF([_ID[1],_ID[1]], self.right_dof.dof,self.right_dof.type)
@@ -701,3 +928,167 @@ class PerforatedLayer(AcousticLayer):
         return self._lumped.porosity
         
                     
+class SolidLayer(AcousticLayer):
+    """
+    Class for Modelling elastic solid material as InfiniteLayer.
+    
+    Attributes
+    ----------
+    thickness: float
+        thickness of the perforted layer
+    prop: PlateProp
+        property of plate modelled as 3D layer
+    """
+    
+    def __init__(self,plate_prop):
+        """
+        Class contructor for SolidLayer objects.
+
+        Parameters
+        ----------
+        plate_prop : PlateProp
+            plate property of layer
+        ID : list or tuple
+            node IDs of left and right side
+        """
+                
+        # set DOF according to ID and natural DOF of the layer
+        Tdof = ('velocity','velocity','stress','stress')
+        _left_dof = dof.DOF([0,0,0,0],[1,3,3,1],Tdof)
+        _right_dof = dof.DOF([1,1,1,1],[1,3,3,1],Tdof)
+                       
+        super().__init__(plate_prop.thickness,_left_dof,_right_dof)
+        
+        self.prop = plate_prop
+        self.type = 'solid'
+    
+    def __repr__(self):
+        """
+        repr for SolidLayer
+
+        Returns
+        -------
+        str_ : TYPE
+            DESCRIPTION.
+
+        """
+        
+        str_ = 'solid layer of thickness {0}'.format(self.thickness)
+        return str_
+
+    @property
+    def isequivalentfluid(self):
+        """
+        Determine if layer is of type equivalent fluid
+
+        Defauls parameter is True
+
+        Returns
+        -------
+        bool
+            False.
+
+        """
+        return True
+
+    @property
+    def mass_per_area(self):
+        """
+        Mass per area of SolidLayer.
+        
+        Returns
+        -------
+        float
+            mass per area.
+
+        """        
+        return self.prop.mass_per_area
+    
+    def transfer_impedance(self,omega,kx=0, ID = [1,2]):
+        """
+        Transferimpedance of Solidlayer
+
+        Parameters
+        ----------
+        omega : float or ndarray
+            scalar angular frequency
+        kx : float or ndarray, optional
+            In-plane wavenumber. The default is 0.
+        ID : list of int
+            Left and right ID. The default is [1,2].
+                      
+        Returns
+        -------
+        DynamicMatrix
+            [2 x 2] array of transferimpedance         
+        
+        """
+                    
+        xdata = self.get_xdata(omega, kx)
+                       
+        # Bulk wavenmumber L(ongitudinal) and S(hear)
+        k_L = self.prop.material.wavenumber_L(omega)
+        k_S = self.prop.material.wavenumber_S(omega)
+                
+        # wavenumber in z for L and S
+        kLz = np.sqrt(k_L**2-kx**2) #k_13
+        kSz = np.sqrt(k_S**2-kx**2) #k_33
+
+        #rho_om  = lambda omega_: self.prop.fluid.rho_freq(omega_)*omega_
+        h  = self.thickness
+        
+        #lame1 = self.prop.material.lambda_lame
+        mu    = self.prop.material.G
+        D1  = mu*(k_L**2-kx**2)
+        D2  = 2*mu*kx
+
+
+
+
+        Gamma = np.zeros((len(xdata),4,4),dtype = np.complex128) 
+        # 1st row
+        Gamma[:,0,0] = omega*kx*np.cos(kLz*h)
+        Gamma[:,0,1] = -omega*kx*np.sin(kLz*h)
+        Gamma[:,0,2] = 1j*omega*kSz*np.sin(kSz*h)
+        Gamma[:,0,3] = -omega*kSz*np.cos(kSz*h)
+        # 2nd row
+        Gamma[:,1,0] = -1j*omega*kLz*np.sin(kLz*h)
+        Gamma[:,1,1] = omega*kLz*np.cos(kLz*h)
+        Gamma[:,1,2] = omega*kx*np.cos(kSz*h)
+        Gamma[:,1,3] = -1j*omega*kx*np.sin(kSz*h)
+        # 3rd row
+        Gamma[:,2,0] = -D1*np.cos(kLz*h)
+        Gamma[:,2,1] = 1j*D1*np.sin(kLz*h)
+        Gamma[:,2,2] = 1j*D2*kSz*np.sin(kSz*h)
+        Gamma[:,2,3] = -D2*kSz*np.cos(kSz*h)
+        # 4th row
+        Gamma[:,3,0] = 1j*D2*kLz*np.sin(kLz*h)
+        Gamma[:,3,1] = -D2*kLz*np.cos(kLz*h)
+        Gamma[:,3,2] = D1*np.cos(kSz*h)
+        Gamma[:,3,3] = -1j*D1*np.sin(kSz*h)
+
+       
+        Gamma0_inv = np.zeros((len(xdata),4,4),dtype = np.complex128) 
+
+
+        Gamma0_inv[:,0,0] = 2*kx/omega/k_S**2
+        Gamma0_inv[:,0,2] = -1/mu/k_S**2
+        Gamma0_inv[:,1,1] = (kSz**2-kx**2)/omega/kLz/k_S**2
+        Gamma0_inv[:,1,3] = -kx/mu/kLz/k_S**2
+        Gamma0_inv[:,2,1] = kx/omega/k_S**2
+        Gamma0_inv[:,2,3] = 1/mu/k_S**2
+        Gamma0_inv[:,3,0] = (kSz**2-kx**2)/omega/kSz/k_S**2
+        Gamma0_inv[:,3,2] = -kx/mu/kSz/k_S**2
+        
+        Gamma = np.matmul(Gamma,Gamma0_inv)
+        Gamma = np.moveaxis(Gamma,0,-1) # put xaxis last
+
+
+        xdata = self.get_xdata(omega, kx )   
+                       
+        
+        # Update ID in DOF attribute
+        ldof = dof.DOF([ID[0],ID[0],ID[0],ID[0]], self.left_dof.dof,self.left_dof.type)
+        rdof = dof.DOF([ID[1],ID[1],ID[1],ID[1]], self.right_dof.dof,self.right_dof.type)
+        
+        return mC.DynamicMatrix(Gamma,xdata,rdof,ldof)

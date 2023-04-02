@@ -136,7 +136,7 @@ def fibre_fit(tor,Lam_visc,Lam_term):
         
 def layer_fit(tor,Lam_visc,Lam_term):
     """
-    Function of fibre material layer with 3 parameters for optimisation
+    Function of fibre material layer with 3 parameters for optimisation.
 
     Parameters
     ----------
@@ -152,7 +152,6 @@ def layer_fit(tor,Lam_visc,Lam_term):
     TMmodel object with 3 paramters
 
     """
-        
     return mds.TMmodel((iL.FluidLayer(h,fibre_fit(tor,Lam_visc,Lam_term)),))
 
 

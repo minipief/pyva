@@ -2,20 +2,19 @@
 """
 Module for deterministic, random and hybrid models
 """
+import scipy.linalg as linalg
+import scipy.integrate as integrate
+import scipy.special as scl
+import numpy as np
 
 import pyva.data.matrixClasses as mC
 import pyva.properties.materialClasses as matC
 import pyva.loads.loadCase as lC
 import pyva.data.dof as dof
-import scipy.linalg as linalg
-import scipy.integrate as integrate
-import scipy.special as scl
-
-import numpy as np
-
-
+import pyva.systems.infiniteLayers as iL
 import pyva.systems.acousticRadiators as aR
 import pyva.useful as uf
+
 import copy
 
 
@@ -442,7 +441,10 @@ class TMmodel:
             self.layers = list(layers)
         else:
             raise(ValueError,'layers must be a list or tuple of layers')
-                
+    
+    @property            
+    def N(self):
+        return len(self.layers)
 
     def __repr__(self):
         """
@@ -537,11 +539,88 @@ class TMmodel:
 
         """
         return self._boundary_conditions
-
     
-    def connect(self,omega,kx=0.,**kwargs):
+    def V0(self,boundary_condition = 'equivalent_fluid'):
         """
-        Calculate TM of all layers
+        Multilayer state variable V_0 of Allards D0 matrix.
+        
+        The state variable is determined by the DOF left of the connection
+        and the right side of the each layer.
+        
+        Layers of same nature are considered as one layer because they can be 
+        calculated by simple transfermatrix multiplication.
+        
+        So, every change in layer nature require new DOFs.
+
+        Returns
+        -------
+        v0 : mC.DOF
+            State variable of multilayer.
+
+        """
+        ID_  = [0]*2 # we start with 0 for the entry fluid ID
+        dof_ = [0,3]
+        doftype_ = ('pressure','velocity')
+ 
+        v0 = dof.DOF(ID_,dof_,doftype_)
+        # first resdof is always 
+        
+        # Set current type from first layer  
+        current_type = self.layers[0].type
+        #ix_current = 0  
+        # and set response dofs depending on the first layer nature
+        if current_type == 'equivalent_fluid':
+            v1 = iL.fluid_fluid_res_dof(0)
+        elif current_type =='solid':
+            v1 = iL.solid_fluid_res_dof(1) # for response, always 
+        
+        
+        for ix in range(1,self.N):
+            # check if the next layer is of different type
+            if current_type != self.layers[ix].type: #New DOFs are required
+                if current_type == 'equivalent_fluid':
+                    if self.layers[ix].type == 'solid':
+                        v0 = v0 + iL.fluid_exc_dof(ix*2)
+                        v1 = v1 + iL.solid_fluid_res_dof(ix*2+1) # fluid-solid takes right ID
+                elif current_type == 'solid':
+                    if self.layers[ix].type == 'equivalent_fluid':
+                        v0 = v0 + iL.solid_exc_dof(ix*2)
+                        v1 = v1 + iL.solid_fluid_res_dof(ix*2)
+                #ix_current = ix      
+                current_type = self.layers[ix].type
+        
+        # Deal with the last layer 
+        if current_type == 'equivalent_fluid':
+            v0 = v0 + iL.fluid_exc_dof(self.N*2)
+            #v1 = v1 + iL.fluid_fluid_res_dof(self.N*2)
+        elif current_type == 'solid':
+            v0 = v0 + iL.solid_exc_dof(self.N*2)
+            #v1 = v1 + iL.solid_fluid_res_dof(self.N*2)
+
+        # Add row depending on boundary condition
+        if boundary_condition == 'fixed':
+            if current_type == 'equivalent_fluid':
+                v1 = v1 + dof.DOF([self.N*2+1],[3],['velocity'])
+            elif current_type == 'solid':
+                v1 = v1 + dof.DOF([self.N*2+1,self.N*2+1],[1,3],['velocity','velocity'])
+        elif boundary_condition == 'equivalent_fluid':
+            # Deal with condition of eq. (11.83)
+            v0 = v0 + iL.fluid_exc_dof(self.N*2+1)
+            # set response dof regarding 
+            if current_type == 'equivalent_fluid':
+                v1 = v1 + iL.fluid_fluid_res_dof(self.N*2)
+            elif current_type == 'solid':
+                v1 = v1 + iL.solid_fluid_res_dof(self.N*2)
+            # finally implement (11.84)
+            v1 = v1 + dof.DOF([self.N*2+1],[0],['pressure'])
+
+        return v0,v1
+    
+    def allard_matrix(self,omega,kx=0.,boundary_condition = 'equivalent_fluid',end_fluid=matC.Fluid(),reduced = False):
+        """
+        Calculate Allard matrix of all layers.
+
+        Namely the matrix given by equation (11.79) and the terminiation given by (11.82) or (11.85)
 
         Parameters
         ----------
@@ -555,20 +634,148 @@ class TMmodel:
         Returns
         -------
         TM_ : DynamicMatrix
-            overall transfer matrix.
+            overall Allard Matrix D0 matrix.
 
+        """
+
+        
+        # Determine the xdata depending on the combination of kx and omega 
+        xdata = iL.AcousticLayer.get_xdata(omega, kx)
+        
+        # Create empty dynamic matrix
+        
+        # The current DOF 1 is the DOF just left of the next interface
+        current_left_ID = 0
+        
+        #SIF_in  = aR.HalfSpace(fluid)
+        SIF_out = aR.HalfSpace(end_fluid)
+        
+        #Z_in  = SIF_in.radiation_impedance_wavenumber(omega,kx)
+        Z_out = SIF_out.radiation_impedance_wavenumber(omega,kx)
+        
+        
+        # Set current type from first layer  
+        current_type = 'equivalent_fluid'
+        layer_set_started = False # no element creation of multiple similar layers started
+        
+        V0,V1 = self.V0(boundary_condition=boundary_condition)
+        D0 = mC.DynamicMatrix.zeros(xdata,V0,V1,0,dtype = np.complex)
+        
+        for ix in range(self.N):
+            # check if the next layer is of different type
+            if current_type != self.layers[ix].type or ix==0: #New DOFs are required
+                if layer_set_started:
+                    # finish layer before continuing
+                    D0 += I12
+                    D0 += J12
+                    layer_set_started = True                    
+                if current_type == 'equivalent_fluid':
+                    # fluid - fluid connection, only possible at first layer
+                    if self.layers[ix].type == 'equivalent_fluid':
+                        I12 = iL.I_fluid_fluid(xdata,2*ix)        # both M2
+                        J12 = iL.J_fluid_fluid(xdata,2*ix,2*ix+1) # e.g. M2 and M3 
+                                                                            
+                    # fluid - solid connection
+                    if self.layers[ix].type == 'solid':
+                        I12 = iL.J_solid_fluid(xdata,2*ix+1,2*ix)
+                        J12 = iL.I_solid_fluid(xdata,2*ix+1,2*ix+1) # e.g. M2 and M3 
+                        
+                elif current_type == 'solid':
+                    # solid - fluid connection
+                    if self.layers[ix].type == 'equivalent_fluid':
+                        I12 = iL.I_solid_fluid(xdata,2*ix,2*ix)
+                        J12 = iL.J_solid_fluid(xdata,2*ix,2*ix+1) # e.g. M2 and M3 
+                        
+                # set current type accordinmg to the new layer
+                current_type = self.layers[ix].type
+                # and multiply with tansfermatrix to reach the right side of the layer
+                T0 = self.layers[ix].transfer_impedance(omega,kx,ID=[2*ix+1,2*ix+2])
+                J12 = J12.dot(T0)                
+                
+            else: # go to next layer and use transfermatrix
+                # In a first step the transfermatrices are multiplied without I because
+                # there is currently no porosity involved
+                J12 = J12.dot(self.layers[ix].transfer_impedance(omega,kx,ID = [2*ix,2*ix+2])) # 1st ID is set to left 
+          
+            # consider last layer
+            D0 += I12
+            D0 += J12
+            
+            # Deal with boundary condition
+            if boundary_condition == 'fixed':
+                if current_type == 'equivalent_fluid':
+                    D0 += iL.Y_fluid_fixed(xdata,2*self.N)
+                elif current_type == 'solid':
+                    D0 += iL.Y_solid_fixed(xdata,2*self.N)
+            elif boundary_condition == 'equivalent_fluid': # (11.83)
+                if current_type == 'equivalent_fluid': 
+                    D0 += iL.I_fluid_fluid(xdata,2*self.N)        # both M2
+                    D0 += iL.J_fluid_fluid(xdata,2*self.N,2*self.N+1) # e.g. M2 and M3 
+                elif current_type == 'solid': 
+                    D0 += iL.I_solid_fluid(xdata,2*self.N,2*self.N)
+                    D0 += iL.J_solid_fluid(xdata,2*self.N,2*self.N+1) # e.g. M2 and M3 
+                # Use SIF radiation impedanz to get the radiation condition
+                data_ = np.zeros((1,2,len(xdata) ),dtype=np.complex128)
+                data_[0,0,:] = -1
+                data_[0,1,:] = Z_out
+                                
+                D0 += mC.DynamicMatrix(data_, xdata, iL.fluid_exc_dof(2*self.N), dof.DOF([self.N*2+1],[0],['pressure']))
+            
+            # Consider First Layer
+            
+        if reduced:
+            # set the pressure in V to 0 and create an excitation vector from the first matrix column
+            D1 = D0[:,1:,:]
+            # Create force from first column
+            F = -D0.signal(slice(0,None),0)
+            return D1,F
+        else:
+            return D0
+
+    #def local_allard_matrix(self,omega,kx=0.,**kwargs):
+        
+    def connect(self,omega,kx=0.,**kwargs):
+        """
+        Calculate TM of all layers by simple transfermatrix multiplication.
+        
+        Multiplication makes sense only for layers of same nature. If porous 
+        layers are involved (and they are not modelled as equivalent fluid) the
+        multiplication involves a connection matrix [I] that consideres the porosity.
+    
+        Parameters
+        ----------
+        omega : float
+            angular frequency.
+        kx : ndarray of float, optional
+            wavenumber in x-direction. The default is 0..
+        **kwargs : TYPE
+            DESCRIPTION.
+    
+        Returns
+        -------
+        TM_ : DynamicMatrix
+            overall transfer matrix.
+    
         """
         # collects the TMM        
         
-        TM_ = self.layers[0].transfer_impedance(omega,kx,ID = [1,2])
-        
-        for ix,TM in enumerate(self.layers[1:]):
+        if self.layers[0].isequivalentfluid:
+            TM_ = self.layers[0].transfer_impedance(omega,kx,ID = [1,2])
+        else:
+            raise(ValueError,'Only equivalent fluid layer can be connected via transfermatrix muliplication')
             
-            TM_ = TM_.dot(TM.transfer_impedance(omega,kx,ID = [ix+2,ix+3]))
+        for ix,TM in enumerate(self.layers[1:]):
+            # check is each layer is of type equivalent fluid
+            if TM.isequivalentfluid:
+                TM_ = TM_.dot(TM.transfer_impedance(omega,kx,ID = [ix+2,ix+3]))
+            else:
+                raise(ValueError,'Only equivalent fluid layer can be connected via transfermatrix muliplication')
+    
                 
         return TM_
+        
             
-    def impedance(self,omega,kx=0.,ID=1, boundary_condition = 'fixed'):
+    def impedance(self,omega,kx=0.,ID=1, boundary_condition = 'fixed',signal = True):
         """
         impedance provides the surface impedance of a TMmodel with specified end condition
         
@@ -597,11 +804,50 @@ class TMmodel:
             _doftype = TM_.resdof.type[0]/TM_.resdof.type[1]
             
         # @todo pick our any ID even in the middle, default 1
+        # @todo 
         # @todo create impedance or admittance BC
         
         # xdata predifined by non-scalar element kx or omega
-        xdata_ = TM_.xdata # turn single values into arrays
-        return mC.Signal(xdata_,_z,dof.DOF(ID,3,_doftype))
+        if signal:
+            xdata_ = TM_.xdata # turn single values into arrays
+            return mC.Signal(xdata_,_z,dof.DOF(ID,3,_doftype))
+        else:
+            _z
+
+    def impedance_allard(self,omega,kx=0.,ID=1, boundary_condition = 'fixed', signal = True):
+        """
+        impedance provides the surface impedance of a TMmodel with specified end condition
+        
+        Parameters
+        ----------
+        ID : int
+            ID for surface condition (can be an inner ID)
+        boundary_condition : str
+            at end of layers
+                
+                
+        Returns
+        -------
+        Signal 
+            impedance at port one   
+        """
+        
+        
+        # Create reduces Allard matrix
+        D1,F = self.allard_matrix(omega, kx = kx, reduced=True, boundary_condition = boundary_condition)
+        V    = D1.solve(F) 
+                    
+        Z_s = 1./V.ydata[0,:]
+        
+        # xdata predifined by non-scalar element kx or omega
+        if signal:
+            _doftype = dof.DOFtype(typestr = 'pressure')/F.dof.type[0]
+            xdata_ = D1.xdata # turn single values into arrays
+            return mC.Signal(xdata_,Z_s,_doftype)
+        else:
+            # ix 0 is the index of the velcoity at the surface
+            return Z_s
+    
 
     def stiffness_matrix(self,omega,distances,ks,dA,Nstep = 10):
         """
@@ -803,7 +1049,7 @@ class TMmodel:
         return tau_trim/tau_plate
                
     
-    def absorption(self,omega,kx,in_fluid = matC.Fluid(),ID=1, boundary_condition = 'fixed'):
+    def absorption(self,omega,kx,in_fluid = matC.Fluid(),ID=1, boundary_condition = 'fixed', allard = False):
         """
         Calculates the surface absorption with specified end condition and input fluid
 
@@ -831,16 +1077,22 @@ class TMmodel:
         
         Zin = SIF.radiation_impedance_wavenumber(omega,kx)
 
-        Zsurf  = self.impedance(omega,kx,ID,boundary_condition)
+        if allard:
+            Zsurf  = self.impedance_allard(omega,kx,ID,boundary_condition)
+        else:
+            Zsurf  = self.impedance(omega,kx,ID,boundary_condition)
+        
         xdata_ = Zsurf.xdata # turn single values into arrays
         
         refl_ = (Zsurf.ydata-Zin)/(Zsurf.ydata+Zin)
         abs_  = 1-np.abs(refl_)**2
         
         return mC.Signal(xdata_,abs_,dof.DOF(ID,0,dof.DOFtype(typestr='general')))
-        
+    
+   
+    
     def absorption_diffuse(self,omega,theta_max = 78/180*np.pi,theta_step = np.pi/180,\
-                           in_fluid = matC.Fluid(),ID=1,boundary_condition= 'fixed',
+                           in_fluid = matC.Fluid(),ID=1,boundary_condition= 'fixed', allard = False, \
                            signal = True):
         """
         diffuse surface absorption with specified end condition and input fluid
@@ -861,10 +1113,12 @@ class TMmodel:
             End condtion. The default is 'fixed'.
         signal : bool
             Switch for Signal output,  The default is True.
+        allard : bool
+            Switch for calculatoin method, The default is False
 
         Returns
         -------
-        Signal
+        Signal, ndarray
             Absorption coefficient   
     
         """
@@ -880,7 +1134,7 @@ class TMmodel:
 
             k  = np.real(in_fluid.wavenumber(om))
             kx_    = np.sin(theta_)*k
-            abs_kx = self.absorption(om,kx_,in_fluid,ID,boundary_condition).ydata
+            abs_kx = self.absorption(om,kx_,in_fluid,ID,boundary_condition,allard = allard).ydata
             #remove nans
             abs_kx[np.isnan(abs_kx)] = 0.
             denom = np.sin(theta_max)**2

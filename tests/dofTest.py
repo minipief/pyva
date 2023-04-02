@@ -32,9 +32,12 @@ print(psd)
 print(pressuredensity)
 
 griddof  = dof.DOF(np.array([1,2,3,4]),np.array([1,2,3]),dof.DOFtype(typestr='displacement'),repetition=True)
+vdof  = dof.DOF(np.array([1,2,3,4]),np.array([1,2,3]),dof.DOFtype(typestr='velocity'),repetition=True)
 ogriddof = dof.DOF(np.array([2,3,5]),np.array([3,1]),dof.DOFtype(typestr='displacement'),repetition=True)
 
 ogriddof.unique_type
+
+print(griddof.typeID)
 
 
 #sdof     = dof.DOF(1,3,dof.DOFtype(typestr='displacement'))

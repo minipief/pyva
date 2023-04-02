@@ -643,7 +643,7 @@ class LinearMatrix:
         else:
             pass
         
-    def _check_dimension(self, other, crossIndex=(0,1,2)):
+    def _check_dimension(self, other, cross_index=((0,0),(1,1),(2,2)) ):
         """
         This method determines type and dimension for several algebraic operation
         It returns a tuple for each dimension with         
@@ -659,7 +659,7 @@ class LinearMatrix:
         exended to the shape of the other argument.
         
         Some operations, e.g. the dot-product require that the number of columns of the first 
-        matrix are equal to the rows of the second. 
+        matrix are equal to the rows of the second. (Inner dimensions) 
         This is considered  by the crossIndex argument that
         changes the index of the second argument to be compared.
         For example (1,0,2) would suit for the dot operation.
@@ -667,7 +667,7 @@ class LinearMatrix:
         
         Args:
             other:      2nd argument
-            crossIndex: definition of index of other that shall be compared
+            cross_index: definition of index of other that shall be compared
                                
         Returns:
             signature tupel (sigrow,sigcol,sigdepth)          
@@ -681,14 +681,14 @@ class LinearMatrix:
         else:
             other_shape = other.shape            
         
-        for ishape in range(len(self.shape)):
-            if self.shape[ishape] != other_shape[crossIndex[ishape]]:
-                if self.shape[ishape] == 1:
-                    res[ishape] = 1
-                elif other_shape[crossIndex[ishape]] == 1:
-                    res[ishape] = 2
+        for ishape,ci in enumerate(cross_index):
+            if self.shape[ci[0]] != other_shape[ci[1]]:
+                if self.shape[ci[0]] == 1:
+                    res[ci[0]] = 1
+                elif other_shape[ci[1]] == 1:
+                    res[ci[0]] = 2
                 else:
-                    res[ishape] = -1
+                    res[ci[0]] = -1
                     
         return res
         
@@ -765,7 +765,7 @@ class LinearMatrix:
             print('I should not be in the dot produkt')
             return LinearMatrix(self._data * other, sym=self._sym, shape=self._shape)
         else:
-            resT = self._check_dimension(other)
+            resT = self._check_dimension(other,cross_index=((1,0),(2,2)) )
         
             if np.any(resT < 0):
                 raise TypeError("Inner matrix dimensions must agree")
@@ -1129,7 +1129,7 @@ class DynamicMatrix(LinearMatrix):
             if len(excdof) == Nexc:
                 self._excdof = excdof
             else:
-                raise ValueError('excdof must be equal to rows of LinearMatrix')
+                raise ValueError('excdof must be equal to columns of LinearMatrix')
         else:
             raise ValueError('excdof must be an instance of DOF')
             
@@ -1137,7 +1137,7 @@ class DynamicMatrix(LinearMatrix):
             if len(resdof) == Nres:
                 self._resdof = resdof
             else:
-                raise ValueError('resdof must be equal to columns of LinaerMatrix')
+                raise ValueError('resdof must be equal to rows of LinaerMatrix')
         else:
             raise ValueError('resdof must be an instance of DOF')
             
@@ -1180,6 +1180,20 @@ class DynamicMatrix(LinearMatrix):
 
         """
         return self._excdof
+
+    def __getitem__(self, position):
+        """
+        Overloaded method getitem for DynamicMatrix
+        
+        Deals with specific indexing issues espacially when 1D data is accessed
+        """
+        
+        l_data= super().__getitem__(position)
+        resdof_ = self.resdof[position[0]]
+        excdof_ = self.excdof[position[1]]
+        xdata_  = self.xdata[position[2]]
+
+        return DynamicMatrix(l_data,xdata_,excdof_,resdof_)
 
             
     def __str__(self):
@@ -1412,19 +1426,19 @@ class DynamicMatrix(LinearMatrix):
                 raise ValueError('The matrix multiplication of DynamicMatrix instances require self.excdof == self.resdof')
                                         
         elif other.isa('Signal'): # required for excitation 
-                  
-                comdof,indexF,ix2 = self._excdof.intersect(other.dof)
-                _F                = np.zeros(self.Nrow, dtype = np.complex128)
-                _R     = np.zeros((self.Nrow,other.Nxdata),dtype = np.complex128 )
+            # todo check xdata!    
+            comdof,indexF,ix2 = self._excdof.intersect(other.dof)
+            _F                = np.zeros(self.Nrow, dtype = np.complex128)
+            _R     = np.zeros((self.Nrow,other.Nxdata),dtype = np.complex128 )
 
+            
+             #loop over frequency
+            for ifreq in range(len(other.xdata)):
+                _M          = self.Dindex(ifreq)
+                _F[indexF]  = other.ydata[:,ifreq]
+                _R[:,ifreq] = _M.dot(_F) # works also for scalars
                 
-                 #loop over frequency
-                for ifreq in range(len(other.xdata)):
-                    _M          = self.Dindex(ifreq)
-                    _F[indexF]  = other.ydata[:,ifreq]
-                    _R[:,ifreq] = _M.dot(_F) # works also for scalars
-                    
-                return Signal(self._xdata, _R, dof = self._resdof)
+            return Signal(self._xdata, _R, dof = self._resdof)
         else:
             raise ValueError('DynamicMatrix require Signal or DynamicMatrix instances')
             
@@ -1499,10 +1513,32 @@ class DynamicMatrix(LinearMatrix):
         
         shape  = (Nrow,Ncol,Ndepth)
         
-        data = LinearMatrix.zeros(sym, shape)
+        data = LinearMatrix.zeros(sym, shape, **kwargs)
         
-        return DynamicMatrix(data, xdata, excdof, resdof, **kwargs)
-                
+        return DynamicMatrix(data, xdata, excdof, resdof)
+    
+    def signal(self,irow,icol,exc_val = 1.):
+        """
+        create a Signal object from 1-dim parts of the DynamicMatrix
+
+        Parameters
+        ----------
+        icol : TYPE
+            DESCRIPTION.
+        irow : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
+        
+        sig_data = self.data[irow,icol,:]*exc_val
+        sig_DOFs = self.resdof[irow] 
+        
+        return Signal(self.xdata,sig_data,sig_DOFs)
+            
     def inv(self):
         """
         Inverts dynamic matrix
@@ -1519,6 +1555,52 @@ class DynamicMatrix(LinearMatrix):
         super().inv()
         self._resdof,self._excdof = self._excdof,self._resdof
         return self
+
+    def solve(self,other):
+        """
+        Solve dynamic matrix
+        
+        Returns the solutoin of A.x = B with A=self and B=other
+        
+        Excitation dofs are dofs of the solution. All DOFs of B must be a subset 
+        of res_dof of the Dynamic Matrix
+
+
+        Parameters
+        ----------
+        other : Signal
+            vector B.
+
+        Raises
+        ------
+        ValueError
+            DESCRIPTION.
+
+        Returns
+        -------
+        Signal
+            res.
+
+        """
+        
+        
+        # Code snipped from dot taking signal part only
+        if self.xdata == other.xdata:
+              
+            comdof,indexF,ix2 = self._resdof.intersect(other.dof)
+            _F  = np.zeros(self.Nrow, dtype = np.complex128)
+            _R  = np.zeros((self.Nrow,other.Nxdata),dtype = np.complex128 )
+        
+            #loop over third dimension
+            for ifreq in range(len(other.xdata)):
+                _M          = self.Dindex(ifreq)
+                _F[indexF]  = other.ydata[:,ifreq]
+                _R[:,ifreq] = np.linalg.solve(_M,_F)
+                
+            return Signal(self._xdata, _R, dof = self._excdof)
+        else:
+            raise ValueError('xdata of self and other must be the same')
+
 
 
 # Class definition and methods
@@ -2108,6 +2190,9 @@ class Signal:
             _sig._ydata = _sig._ydata * other
 
         return _sig
+    
+    def __neg__(self):
+        return self*(-1)
     
     def __mul__(self,other):
         

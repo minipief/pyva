@@ -8,7 +8,7 @@ A. Peiffer: Vibroacoustic Simulation: In Introduction to Statistical Energy Anal
 
 [Order book](http://www.wiley.com/buy/9781119849841)
 
-This toolbox allows the reader to follow the examples in the book and people that are interested in vibroacoustic simulation with a focus on 
+This toolbox allows the reader to follow the examples in the book. People that are interested in vibroacoustic simulation with a focus on 
 statistical energy analysis (SEA) and hybrid methods (hybrid FEM/SE), to perform SEA simulation without heavy licence costs.
 
 # Documentation
@@ -17,12 +17,13 @@ Direct link to the documentation can be found on [pyva.eu](https://pyva.eu)
 
 # Contributing to pyva
 
-The current version is the baseline for further extensions. It was mainly driven by providing examples and test cases for the bool
+The current version is the baseline for further extensions. It was mainly driven by providing examples and test cases for the book
 on [Vibroacoustic Simulation](http://www.wiley.com/buy/9781119849841). Contributions are highly welcome.
 The following extensions shall be included mid-term
 
 A major step is a GUI development! Here, suggestions would be very helpful. I am currently thinking about a combination of pyqt 
-and vtk, eventually integrating cadquery. However, I am still scanning the options. 
+and vtk, eventually integrating cadquery, opencascade, gmesh or any other option to handle geometry and meshes. 
+However, I am still scanning the options. 
 
 ## Main Module
 
