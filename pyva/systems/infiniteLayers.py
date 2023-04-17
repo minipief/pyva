@@ -981,7 +981,7 @@ class SolidLayer(AcousticLayer):
         """
         Determine if layer is of type equivalent fluid
 
-        Defauls parameter is True
+        Defauls parameter is False
 
         Returns
         -------
@@ -989,7 +989,7 @@ class SolidLayer(AcousticLayer):
             False.
 
         """
-        return True
+        return False
 
     @property
     def mass_per_area(self):
@@ -1004,9 +1004,13 @@ class SolidLayer(AcousticLayer):
         """        
         return self.prop.mass_per_area
     
-    def transfer_impedance(self,omega,kx=0, ID = [1,2]):
+    def transfer_impedance(self,omega,kx=0, ID = [1,2], allard = False):
         """
         Transferimpedance of Solidlayer
+        
+        Implementation according to [1] except the not used denominator D1+D2*kx.
+        [1] A. Uthayasuriyan, Advanced vibro-acoustic condensed models for multi-layer structures,
+        PhD Thesis, University de Lyon, Lyon, France, 2021.
 
         Parameters
         ----------
@@ -1027,63 +1031,103 @@ class SolidLayer(AcousticLayer):
         xdata = self.get_xdata(omega, kx)
                        
         # Bulk wavenmumber L(ongitudinal) and S(hear)
-        k_L = self.prop.material.wavenumber_L(omega)
-        k_S = self.prop.material.wavenumber_S(omega)
-                
+        k_L = self.prop.material.wavenumber_L(omega) # \delta_1^2 Allard
+        k_S = self.prop.material.wavenumber_S(omega) # \delta_3^2 Allard
+        k_L2 = k_L*k_L   
+        k_S2 = k_S*k_S       
+        
         # wavenumber in z for L and S
-        kLz = np.sqrt(k_L**2-kx**2) #k_13
-        kSz = np.sqrt(k_S**2-kx**2) #k_33
+        kLz2 = k_L2-kx**2
+        kSz2 = k_S2-kx**2
+        kLz = np.sqrt(kLz2) #k_13
+        kSz = np.sqrt(kSz2) #k_33
 
         #rho_om  = lambda omega_: self.prop.fluid.rho_freq(omega_)*omega_
         h  = self.thickness
         
         #lame1 = self.prop.material.lambda_lame
-        mu    = self.prop.material.G
-        D1  = mu*(k_L**2-kx**2)
+        mu    = self.prop.material.G_complex
+        #mu    = self.prop.material.G
+        D1  = mu*(kSz2-kx**2)
+        #D1  = self.prop.material.lambda_lame()*(kx**2+kLz2)+2*mu*kLz2
         D2  = 2*mu*kx
+        
+        # if allard:
 
-
-
-
-        Gamma = np.zeros((len(xdata),4,4),dtype = np.complex128) 
-        # 1st row
-        Gamma[:,0,0] = omega*kx*np.cos(kLz*h)
-        Gamma[:,0,1] = -omega*kx*np.sin(kLz*h)
-        Gamma[:,0,2] = 1j*omega*kSz*np.sin(kSz*h)
-        Gamma[:,0,3] = -omega*kSz*np.cos(kSz*h)
-        # 2nd row
-        Gamma[:,1,0] = -1j*omega*kLz*np.sin(kLz*h)
-        Gamma[:,1,1] = omega*kLz*np.cos(kLz*h)
-        Gamma[:,1,2] = omega*kx*np.cos(kSz*h)
-        Gamma[:,1,3] = -1j*omega*kx*np.sin(kSz*h)
-        # 3rd row
-        Gamma[:,2,0] = -D1*np.cos(kLz*h)
-        Gamma[:,2,1] = 1j*D1*np.sin(kLz*h)
-        Gamma[:,2,2] = 1j*D2*kSz*np.sin(kSz*h)
-        Gamma[:,2,3] = -D2*kSz*np.cos(kSz*h)
-        # 4th row
-        Gamma[:,3,0] = 1j*D2*kLz*np.sin(kLz*h)
-        Gamma[:,3,1] = -D2*kLz*np.cos(kLz*h)
-        Gamma[:,3,2] = D1*np.cos(kSz*h)
-        Gamma[:,3,3] = -1j*D1*np.sin(kSz*h)
+        # Gamma = np.zeros((len(xdata),4,4),dtype = np.complex128)
+        # h = -h
+        # # 1st row
+        # Gamma[:,0,0] = omega*kx*np.cos(kLz*h)
+        # Gamma[:,0,1] = -1j*omega*kx*np.sin(kLz*h)
+        # Gamma[:,0,2] = 1j*omega*kSz*np.sin(kSz*h)
+        # Gamma[:,0,3] = -omega*kSz*np.cos(kSz*h)
+        # # 2nd row
+        # Gamma[:,1,0] = -1j*omega*kLz*np.sin(kLz*h)
+        # Gamma[:,1,1] = omega*kLz*np.cos(kLz*h)
+        # Gamma[:,1,2] = omega*kx*np.cos(kSz*h)
+        # Gamma[:,1,3] = -1j*omega*kx*np.sin(kSz*h)
+        # # 3rd row
+        # Gamma[:,2,0] = -D1*np.cos(kLz*h)
+        # Gamma[:,2,1] = 1j*D1*np.sin(kLz*h)
+        # Gamma[:,2,2] = 1j*D2*kSz*np.sin(kSz*h)
+        # Gamma[:,2,3] = -D2*kSz*np.cos(kSz*h)
+        # # 4th row
+        # Gamma[:,3,0] = 1j*D2*kLz*np.sin(kLz*h)
+        # Gamma[:,3,1] = -D2*kLz*np.cos(kLz*h)
+        # Gamma[:,3,2] = D1*np.cos(kSz*h)
+        # Gamma[:,3,3] = -1j*D1*np.sin(kSz*h)
 
        
-        Gamma0_inv = np.zeros((len(xdata),4,4),dtype = np.complex128) 
+        # Gamma0_inv = np.zeros((len(xdata),4,4),dtype = np.complex128) 
 
 
-        Gamma0_inv[:,0,0] = 2*kx/omega/k_S**2
-        Gamma0_inv[:,0,2] = -1/mu/k_S**2
-        Gamma0_inv[:,1,1] = (kSz**2-kx**2)/omega/kLz/k_S**2
-        Gamma0_inv[:,1,3] = -kx/mu/kLz/k_S**2
-        Gamma0_inv[:,2,1] = kx/omega/k_S**2
-        Gamma0_inv[:,2,3] = 1/mu/k_S**2
-        Gamma0_inv[:,3,0] = (kSz**2-kx**2)/omega/kSz/k_S**2
-        Gamma0_inv[:,3,2] = -kx/mu/kSz/k_S**2
+
+        # Gamma0_inv[:,0,0] = 2*kx/omega/k_S**2
+        # Gamma0_inv[:,0,2] = -1/mu/k_S**2
+        # Gamma0_inv[:,1,1] = (kSz2-kx**2)/omega/kLz/k_S**2
+        # Gamma0_inv[:,1,3] = -kx/mu/kLz/k_S**2
+        # Gamma0_inv[:,2,1] = kx/omega/k_S**2
+        # Gamma0_inv[:,2,3] = 1/mu/k_S**2
+        # Gamma0_inv[:,3,0] = -(kSz2-kx**2)/omega/kSz/k_S**2 # corrected in VAOne docs
+        # Gamma0_inv[:,3,2] = -kx/mu/kSz/k_S**2
         
-        Gamma = np.matmul(Gamma,Gamma0_inv)
-        Gamma = np.moveaxis(Gamma,0,-1) # put xaxis last
+        # Gamma = np.matmul(Gamma,Gamma0_inv)
+        # Gamma = np.moveaxis(Gamma,0,-1) # put xaxis last
 
-
+        # else:
+            
+        Gamma = np.zeros((4,4,len(xdata)),dtype = np.complex128) 
+        A = 1./(D1 + D2*kx) # Denominator not used!
+        
+        coshkLz = np.cos(kLz*h)
+        sinhkLz = np.sin(kLz*h)
+        coshkSz = np.cos(kSz*h)
+        sinhkSz = np.sin(kSz*h)
+      
+        
+        Gamma[0,0,:] = A*(D1*coshkSz+D2*kx*coshkLz)
+        Gamma[3,3,:] = Gamma[0,0,:]
+        Gamma[1,1,:] = A*(D1*coshkLz+D2*kx*coshkSz)
+        Gamma[2,2,:] = Gamma[1,1,:]
+        Gamma[0,1,:] = A*-1j*(D2*kLz*kSz*sinhkSz-D1*kx*sinhkLz)/kLz
+        Gamma[2,3,:] = Gamma[0,1,:] 
+        Gamma[1,0,:] = A*1j*(D2*kLz*kSz*sinhkLz-D1*kx*sinhkSz)/kSz
+        #Gamma[1,0,:] = A*1j*kx*(D2*kSz*sinhkLz-D1*sinhkSz)/kSz # kLz replaced by kx 
+        Gamma[3,2,:] = Gamma[1,0,:]
+        # Buffer to avoid T31 and T42 singularity for kx = 0
+        T13_ = (coshkSz - coshkLz)
+        Gamma[0,2,:] = A*T13_*kx*omega
+        Gamma[1,3,:] = Gamma[0,2,:]
+        Gamma[2,0,:] = A*D1*D2/omega*T13_
+        Gamma[3,1,:] = Gamma[2,0,:]
+        Gamma[0,3,:] = A*-1j*omega*(kLz*kSz*sinhkSz+kx**2*sinhkLz)/kLz
+        Gamma[1,2,:] = A*-1j*omega*(kLz*kSz*sinhkLz+kx**2*sinhkSz)/kSz
+        #Gamma[1,2,:] = A*-1j*omega*kx*(kSz*sinhkLz+kx*sinhkSz)/kSz # kLz replaced by kx
+        Gamma[2,1,:] = A*-1j*(D2**2*kLz*kSz*sinhkSz+D1**2*sinhkLz)/(omega*kLz)
+        Gamma[3,0,:] = A*-1j*(D2**2*kLz*kSz*sinhkLz+D1**2*sinhkSz)/(omega*kSz)
+            
+            
+            
         xdata = self.get_xdata(omega, kx )   
                        
         
