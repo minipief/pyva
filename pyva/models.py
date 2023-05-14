@@ -637,8 +637,9 @@ class TMmodel:
             overall Allard Matrix D0 matrix.
 
         """
-
-        
+        # 
+        #   #
+        #   
         # Determine the xdata depending on the combination of kx and omega 
         xdata = iL.AcousticLayer.get_xdata(omega, kx)
         
@@ -656,7 +657,8 @@ class TMmodel:
         
         # Set current type from first layer  
         current_type = 'equivalent_fluid'
-        layer_set_started = False # no element creation of multiple similar layers started
+        layer_set_finished = False # no element creation as long as set is not finished
+        layer_set_started  = False # no element creation as long as set is not finished
         
         V0,V1 = self.V0(boundary_condition=boundary_condition)
         D0 = mC.DynamicMatrix.zeros(xdata,V0,V1,0,dtype = np.complex)
@@ -665,10 +667,13 @@ class TMmodel:
             # check if the next layer is of different type
             if current_type != self.layers[ix].type or ix==0: #New DOFs are required
                 if layer_set_started:
-                    # finish layer before continuing
                     D0 += I12
                     D0 += J12
-                    layer_set_started = True                    
+                else:
+                    layer_set_started = True
+                    
+                    
+                # Layer nature has changed
                 if current_type == 'equivalent_fluid':
                     # fluid - fluid connection, only possible at first layer
                     if self.layers[ix].type == 'equivalent_fluid':
@@ -692,14 +697,15 @@ class TMmodel:
                 T0 = self.layers[ix].transfer_impedance(omega,kx,ID=[2*ix+1,2*ix+2])
                 J12 = J12.dot(T0)                
                 
-            else: # go to next layer and use transfermatrix
+            else: # go to next layer and use transfermatrix with out recreating I12 and J12
                 # In a first step the transfermatrices are multiplied without I because
                 # there is currently no porosity involved
                 J12 = J12.dot(self.layers[ix].transfer_impedance(omega,kx,ID = [2*ix,2*ix+2])) # 1st ID is set to left 
           
             # consider last layer
-            D0 += I12
-            D0 += J12
+            if ix == self.N-1:
+                D0 += I12
+                D0 += J12
             
         # Deal with boundary condition
         if boundary_condition == 'fixed':
@@ -775,7 +781,7 @@ class TMmodel:
         return TM_
         
             
-    def impedance(self,omega,kx=0.,ID=1, boundary_condition = 'fixed',signal = True):
+    def impedance(self,omega,kx=0.,ID=1, boundary_condition = 'fixed',signal = True,out_fluid = matC.Fluid()):
         """
         impedance provides the surface impedance of a TMmodel with specified end condition
         
@@ -805,6 +811,13 @@ class TMmodel:
         elif isinstance(boundary_condition, str ) and boundary_condition == 'free':
             _z = TM_.data[1,0,:]/TM_._data[1,1,:]
             _doftype = TM_.resdof.type[0]/TM_.resdof.type[1]
+        elif isinstance(boundary_condition, str ) and boundary_condition == 'equivalent_fluid':
+            SIF_out = aR.HalfSpace(out_fluid)
+            z_out = SIF_out.radiation_impedance_wavenumber(omega,kx)
+            _z = (TM_.data[0,0,:]*z_out+TM_.data[0,1,:])/(TM_.data[1,0,:]*z_out+TM_.data[1,1,:])
+            _doftype = TM_.resdof.type[0]/TM_.resdof.type[1]
+            
+            
             
         # @todo pick our any ID even in the middle, default 1
         # @todo 
@@ -815,9 +828,9 @@ class TMmodel:
             xdata_ = TM_.xdata # turn single values into arrays
             return mC.Signal(xdata_,_z,dof.DOF(ID,3,_doftype))
         else:
-            _z
+            return _z
 
-    def impedance_allard(self,omega,kx=0.,ID=1, boundary_condition = 'fixed', signal = True):
+    def impedance_allard(self,omega,kx=0.,ID=1, boundary_condition = 'fixed', signal = True,out_fluid = matC.Fluid()):
         """
         impedance provides the surface impedance of a TMmodel with specified end condition
         
@@ -840,7 +853,7 @@ class TMmodel:
         
         
         # Create reduces Allard matrix
-        D1,F = self.allard_matrix(omega, kx = kx, reduced=True, boundary_condition = boundary_condition)
+        D1,F = self.allard_matrix(omega, kx = kx, reduced=True, boundary_condition = boundary_condition, out_fluid = out_fluid)
         V    = D1.solve(F) 
                     
         Z_s = 1./V.ydata[0,:]
@@ -854,7 +867,7 @@ class TMmodel:
             # ix 0 is the index of the velcoity at the surface
             return Z_s
     
-    def transmission_allard(self,omega,kx=0.,ID=1, fluids = (matC.Fluid(),matC.Fluid()), signal = True):
+    def transmission_allard(self,omega,kx=0.,ID=1, fluids = (matC.Fluid(),matC.Fluid()), signal = True,plot = 0):
         """
         Calculate the transmission of TMM according to Allards method.
         
@@ -877,16 +890,23 @@ class TMmodel:
         
         
         # Create reduces Allard matrix
-        D1,F = self.allard_matrix(omega, kx = kx, reduced=True, boundary_condition = 'equivalent_fluid',out_fluid=fluids[1])
+        D1,F = self.allard_matrix(omega, kx = kx, reduced=True, 
+                                  boundary_condition = 'equivalent_fluid',out_fluid=fluids[1])
         V    = D1.solve(F) 
                     
         Z_s = 1./V.ydata[0,:] # = 1/V_3(A)
         SIF_in = aR.HalfSpace(fluids[0])
-        Zin = SIF_in.radiation_impedance_wavenumber(omega,kx)
+        Zin = np.real(SIF_in.radiation_impedance_wavenumber(omega,kx))
               
         R = (Z_s-Zin)/(Z_s+Zin)
-        T = (1-R)*V.ydata[-2,:] # = (1+R)*P(B)
-        tau = abs(T)*2
+        #print(R)
+        T = (1+R)*V.ydata[-2,:] # = (1+R)*P(B)
+        # Validation plot if requestet
+        if plot > 0:
+            V[-2].plot(plot,marker='.',res = 'real')
+            V[-2].plot(plot,marker='>',res = 'imag')
+        
+        tau = np.abs(T)**2
         
         # xdata predifined by non-scalar element kx or omega
         if signal:
@@ -895,7 +915,7 @@ class TMmodel:
             return mC.Signal(xdata_,tau,_doftype)
         else:
             # ix 0 is the index of the velcoity at the surface
-            return tau 
+            return tau #,1-np.abs(R**2) 
     
 
     def stiffness_matrix(self,omega,distances,ks,dA,Nstep = 10):
@@ -1098,7 +1118,7 @@ class TMmodel:
         return tau_trim/tau_plate
                
     
-    def absorption(self,omega,kx,in_fluid = matC.Fluid(),ID=1, boundary_condition = 'fixed', allard = False, signal = True):
+    def absorption(self,omega,kx,in_fluid = matC.Fluid(),ID=1, boundary_condition = 'fixed', allard = False, signal = True,out_fluid = matC.Fluid()):
         """
         Calculates the surface absorption with specified end condition and input fluid
 
@@ -1129,9 +1149,9 @@ class TMmodel:
         Zin = SIF.radiation_impedance_wavenumber(omega,kx)
 
         if allard:
-            Zsurf  = self.impedance_allard(omega,kx,ID,boundary_condition)
+            Zsurf  = self.impedance_allard(omega, kx, ID, boundary_condition, out_fluid=out_fluid)
         else:
-            Zsurf  = self.impedance(omega,kx,ID,boundary_condition)
+            Zsurf  = self.impedance(omega, kx, ID, boundary_condition)
         
         xdata_ = Zsurf.xdata # turn single values into arrays
         
@@ -1146,7 +1166,7 @@ class TMmodel:
     
     def absorption_diffuse(self,omega,theta_max = 78/180*np.pi,theta_step = np.pi/180,\
                            in_fluid = matC.Fluid(),ID=1,boundary_condition= 'fixed', allard = False, \
-                           signal = True):
+                           signal = True,out_fluid = matC.Fluid()):
         """
         diffuse surface absorption with specified end condition and input fluid
 
@@ -1187,7 +1207,7 @@ class TMmodel:
 
             k  = np.real(in_fluid.wavenumber(om))
             kx_    = np.sin(theta_)*k
-            abs_kx = self.absorption(om,kx_,in_fluid,ID,boundary_condition,allard = allard).ydata
+            abs_kx = self.absorption(om,kx_,in_fluid,ID,boundary_condition,allard = allard,out_fluid = matC.Fluid()).ydata
             #remove nans
             abs_kx[np.isnan(abs_kx)] = 0.
             denom = np.sin(theta_max)**2
@@ -1201,7 +1221,7 @@ class TMmodel:
         else:
             return abs_diffuse
         
-    def transmission_coefficient(self,omega,kx,fluids = (matC.Fluid(),matC.Fluid()),ID=0):
+    def transmission_coefficient(self,omega,kx,fluids = (matC.Fluid(),matC.Fluid()),ID=0,signal = True):
         """
         provides the acoustic transmission coefficient of TMmodel objects
         
@@ -1252,7 +1272,10 @@ class TMmodel:
         
         tau_  = 4*np.real(1/Z_out)/np.real(1/Z_in)/np.abs(T11+T12/Z_out+T21*Z_in+T22*Z_in/Z_out)**2
         
-        return mC.Signal(xdata,tau_,dof.DOF(ID,0,dof.DOFtype(typestr='transmission')))        
+        if signal:
+            return mC.Signal(xdata,tau_,dof.DOF(ID,0,dof.DOFtype(typestr='transmission')))        
+        else:
+            return tau_
         
     def transmission_diffuse(self,omega,theta_max = 78/180*np.pi,theta_step = np.pi/180,\
                                   fluids = (matC.Fluid(),matC.Fluid()),ID = 0,signal = True,
