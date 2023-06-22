@@ -1,7 +1,7 @@
 Systems package
 ===============
 
-The systems sub-package :mod:`pyva.systems` provide several modules for the simulation of various
+The systems sub-package :mod:`pyva.systems` provide several modules for the [All2009] of various
 dynamic systems. At first all classes have attributes to describe each system in an appropriate way. 
 This includes the topology, the properties and the materials that are used to build up the system.
 
@@ -26,7 +26,7 @@ The foundation of the system modules is given in chapters 1,4,5 and 6 of [Pei202
 In addition there are system like objects. They are special in that sense that they are infinite in at least one dimension.
 But even a half space has a response to an excitation and can therefore be considered as a system. 
 This concerns all kind of sources and radiators in the fluid domain :mod:`pyva.systems.acousticRadiators` and the infinite
-layers that are mandatory for the noise control treatment simulation :mod:`pyva.systems.infiniteLayers`.
+layers that are mandatory for the noise control treatment [All2009] :mod:`pyva.systems.infiniteLayers`.
 There is lumpedSystems module that includes a harmonic oscillator class mainly aimed at documentation for the book creation 
 of [Pei2022]_.
 
@@ -42,8 +42,8 @@ SEA_system
 ----------
 
 This class is the abstract base class for all SEA systems. 
-All daughter classes are obliged to implement specific methods, that are required for SEA simulation.
-Those methods represent the functions or parameters required for SEA simulation.
+All daughter classes are obliged to implement specific methods, that are required for SEA [All2009].
+Those methods represent the functions or parameters required for SEA [All2009].
 
 - :meth:`pyva.systems.SEA_system.SEA_system.modal_density`
 - :meth:`pyva.systems.SEA_system.SEA_system.modal_overlap`

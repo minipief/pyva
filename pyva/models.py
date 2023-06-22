@@ -572,20 +572,32 @@ class TMmodel:
         if current_type == 'equivalent_fluid':
             v1 = iL.fluid_fluid_res_dof(0)
         elif current_type =='solid':
-            v1 = iL.solid_fluid_res_dof(1) # for response, always 
-        
+            v1 = iL.solid_fluid_res_dof(1) # for response, always
+        elif current_type == 'poro_elastic':
+            v1 = iL.porous_fluid_res_dof(1)
         
         for ix in range(1,self.N):
             # check if the next layer is of different type
             if current_type != self.layers[ix].type: #New DOFs are required
                 if current_type == 'equivalent_fluid':
+                    v0 = v0 + iL.fluid_exc_dof(ix*2)
                     if self.layers[ix].type == 'solid':
-                        v0 = v0 + iL.fluid_exc_dof(ix*2)
-                        v1 = v1 + iL.solid_fluid_res_dof(ix*2+1) # fluid-solid takes right ID
+                        v1 = v1 + iL.solid_fluid_res_dof(ix*2+1) # fluid-solid takes right response ID
+                    if self.layers[ix].type == 'poro_elastic':
+                        v1 = v1 + iL.porous_fluid_res_dof(ix*2+1) # fluid-solid takes right response ID
                 elif current_type == 'solid':
+                    v0 = v0 + iL.solid_exc_dof(ix*2)
                     if self.layers[ix].type == 'equivalent_fluid':
-                        v0 = v0 + iL.solid_exc_dof(ix*2)
                         v1 = v1 + iL.solid_fluid_res_dof(ix*2)
+                    if self.layers[ix].type == 'poro_elastic':
+                        v1 = v1 + iL.solid_porous_res_dof(ix*2+1) # solid-porous takes right response ID
+                elif current_type == 'poro_elastic':
+                    v0 = v0 + iL.porous_exc_dof(ix*2)
+                    if self.layers[ix].type == 'equivalent_fluid':
+                        v1 = v1 + iL.porous_fluid_res_dof(ix*2)
+                    if self.layers[ix].type == 'solid':
+                        v1 = v1 + iL.solid_porous_res_dof(ix*2) # porous-solid takes left response ID
+                        
                 #ix_current = ix      
                 current_type = self.layers[ix].type
         
@@ -596,6 +608,8 @@ class TMmodel:
         elif current_type == 'solid':
             v0 = v0 + iL.solid_exc_dof(self.N*2)
             #v1 = v1 + iL.solid_fluid_res_dof(self.N*2)
+        elif current_type == 'solid':
+            v0 = v0 + iL.porous_exc_dof(self.N*2)
 
         # Add row depending on boundary condition
         if boundary_condition == 'fixed':
@@ -603,6 +617,8 @@ class TMmodel:
                 v1 = v1 + dof.DOF([self.N*2+1],[3],['velocity'])
             elif current_type == 'solid':
                 v1 = v1 + dof.DOF([self.N*2+1,self.N*2+1],[1,3],['velocity','velocity'])
+            elif current_type == 'poro_elastic':
+                v1 = v1 + dof.DOF([self.N*2+1,self.N*2+1],[1,3,2],['velocity','velocity','velocity'])
         elif boundary_condition == 'equivalent_fluid':
             # Deal with condition of eq. (11.83)
             v0 = v0 + iL.fluid_exc_dof(self.N*2+1)
@@ -611,6 +627,8 @@ class TMmodel:
                 v1 = v1 + iL.fluid_fluid_res_dof(self.N*2)
             elif current_type == 'solid':
                 v1 = v1 + iL.solid_fluid_res_dof(self.N*2)
+            elif current_type == 'poro_elastic':
+                v1 = v1 + iL.porous_fluid_res_dof(self.N*2)
             # finally implement (11.84)
             v1 = v1 + dof.DOF([self.N*2+1],[0],['pressure'])
 
@@ -690,6 +708,8 @@ class TMmodel:
                     if self.layers[ix].type == 'equivalent_fluid':
                         I12 = iL.I_solid_fluid(xdata,2*ix,2*ix)
                         J12 = iL.J_solid_fluid(xdata,2*ix,2*ix+1) # e.g. M2 and M3 
+                elif current_type == 'poro_elastic':
+                    pass
                         
                 # set current type accordinmg to the new layer
                 current_type = self.layers[ix].type

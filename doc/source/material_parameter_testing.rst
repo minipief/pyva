@@ -3,7 +3,7 @@
 Material Parameter Determination
 --------------------------------
 
-The main use of the infinite-layer classes is the design and simulation of acoustic treatment.
+The main use of the infinite-layer classes is the design and [All2009] of acoustic treatment.
 Before this can be done the correct parameters of the desired materials are required.
 
 ========================= ===================== ====================================
@@ -20,7 +20,7 @@ limp or rigid model       limp                  switch
 
 For this purpose a large and expensive set of test requirements is necessary. 
 The first three parameters are usually directly measured [All2005]_ but the last three
-are derived by inverse methods, e.g. by parameter fitting of test to simulation results.
+are derived by inverse methods, e.g. by parameter fitting of test to [All2009] results.
 One option is described in [Ata2005]_ and is based on reducing a cost function that is the 
 sum of squared differences of the measured and simulated surface impedance .
 

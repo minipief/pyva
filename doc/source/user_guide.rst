@@ -4,7 +4,7 @@ User guide
 ==========
 
 This section explains the installation, use and application of pyva.
-The application is presented by the help of typical examples for the simulation
+The application is presented by the help of typical examples for the [All2009]
 of vibroacoustic systems. 
 
 .. toctree::

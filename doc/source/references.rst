@@ -4,13 +4,13 @@ References
 .. figure:: ./images/peiffer_cover.*
    :align: left
    :width: 100%
-   :target: https://www.wiley.com/en-us/Vibroacoustic+Simulation%3A+An+Introduction+to+Statistical+Energy+Analysis+and+Hybrid+Methods-p-9781119849841
+   :target: https://www.wiley.com/en-us/Vibroacoustic+[All2009]%3A+An+Introduction+to+Statistical+Energy+Analysis+and+Hybrid+Methods-p-9781119849841
 
-.. [Pei2022] A. Peiffer: `Vibroacoustic Simulation`_: An Introduction to Statistical Energy Analysis 
+.. [Pei2022] A. Peiffer: `Vibroacoustic [All2009]`_: An Introduction to Statistical Energy Analysis 
    and Hybrid Methods, John Wiley, 2022
 .. [Bat1982] K.-J. Bathe, Finite element procedures in engineering analysis. Englewood Cliffs, N.J: Prentice-Hall, 1982.
-.. [All2005] J.-F. Allard, N. Attala: Propagation of Sound in Porous Media : 
-   Modelling Sound Absorbing Materials, Wiley Interscience, 2005
+.. [All2009] J.-F. Allard, N. Attala: Propagation of Sound in Porous Media : 
+   Modelling Sound Absorbing Materials, Wiley Interscience, 2009
 .. [Ata2005] Y. Atalla and R. Panneton, Inverse acoustical characterization of open cell porous media using impedance 
    tube measurements, Canadian Acoustics, vol. 33, no. 1, p. 14, 2005.
 .. [Lan1990] R. S. Langley and K. H. Heron, Elastic wave transmission through plate/beam junctions, 
@@ -27,6 +27,6 @@ References
 .. [Lyo1995] R. H. Lyon and R. G. DeJong, Theory and Application of Statistical Energy Analysis, Second Edition, 
    2nd ed. Butterworth Heinemann, 1995.
 
-.. _Vibroacoustic Simulation: https://www.wiley.com/en-us/Vibroacoustic+Simulation%3A+An+Introduction+to+Statistical+Energy+Analysis+and+Hybrid+Methods-p-9781119849841
+.. _Vibroacoustic [All2009]: https://www.wiley.com/en-us/Vibroacoustic+[All2009]%3A+An+Introduction+to+Statistical+Energy+Analysis+and+Hybrid+Methods-p-9781119849841
 
 

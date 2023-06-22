@@ -96,8 +96,8 @@ For this purpose there is the :meth:`~pyva.properties.materialClasses.Fluid.air`
 Equivalent fluids
 +++++++++++++++++
 
-The equivalent fluids model is used for the simulation of very soft (limb) or very stiff (rigid) porous materials.
-This model is described in detail in [All2005]_ and briefly in [Pei2022]_. The advantage of the equivalent fluid model is,
+The equivalent fluids model is used for the [All2009] of very soft (limb) or very stiff (rigid) porous materials.
+This model is described in detail in [All2009]_ and briefly in [Pei2022]_. The advantage of the equivalent fluid model is,
 that the state variables are the same as for fluids: pressure and velocity.
 
 The number of parameters, models and model details is quite complex and study of related literature is strongly recommended. 

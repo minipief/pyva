@@ -183,22 +183,108 @@ def J_fluid_fluid(xdata,left_ID,right_ID):
     
     return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)
 
-def I_porous_fluid(xdata,porosity,ID):
+def I_porous_porous(xdata,porosity_left,porosity_right,left_ID,right_ID):
+    """
+    Provide contact matrix I of fluid - fluid intefaces.
     
-    #res_dof = dof()
+    Parameters
+    ----------
+    xdata : DataAxis
+        xdata for contact matrix definition, wavenumber or frequency.
+    left_ID : integer
+        left ID of connection.
+    right_ID : integer
+        right ID of connection.
+
+    Returns
+    -------
+    DynamicMatrix
+        I matrix of solid fluid connection.
+
+    """
+    #
+    res_dof = porous_dof(left_ID)
+    exc_dof = porous_dof(left_ID)
+    
+    qphi = porosity_right/porosity_left
+    
+    data = np.array([[1,  0   , 0  , 0, 0,  0     ],
+                     [0,  1   , 0  , 0, 0,  0     ],
+                     [0,1-qphi,qphi, 0, 0,  0     ],
+                     [0,  0   , 0  , 1, 0,1-1/qphi],
+                     [0,  0   , 0  , 0, 1,  0     ],
+                     [0,  0   , 0  , 0, 0,1/qphi  ] ])
+    
+    # stack data along depth dimension
+    data = np.dstack([data for _ in range(len(xdata))]) 
+    
+    return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)
+
+def I_solid_porous(xdata,left_ID,right_ID):
+    
+    res_dof = solid_porous_res_dof(right_ID)
+    exc_dof = solid_exc_dof(left_ID)
+    
+    data = np.array([[1,0,0,0],
+                     [0,1,0,0],
+                     [0,1,0,0],
+                     [0,0,1,0],
+                     [0,0,0,1]])
+    
+    # stack data along depth dimension
+    data = np.dstack([data for _ in range(len(xdata))]) 
+    
+    return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)    
+
+def J_solid_porous(xdata,right_ID):
+    
+    res_dof = solid_porous_res_dof(right_ID)
+    exc_dof = porous_exc_dof(right_ID)
+    
+    data = np.array([[1,0,0,0,0,0],
+                     [0,1,0,0,0,0],
+                     [0,0,1,0,0,0],
+                     [0,0,0,1,0,1],
+                     [0,0,0,0,1,0]])
+    
+    # stack data along depth dimension
+    data = np.dstack([data for _ in range(len(xdata))]) 
+    
+    return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)    
+
+
+def I_porous_fluid(xdata,porosity,left_ID):
+    
+    exc_dof = porous_exc_dof(left_ID)
+    res_dof = porous_fluid_res_dof(left_ID)
+    
     phi = porosity
-    return np.array([[0,1-phi,phi,0,0,0],
+    data = np.array([[0,1-phi,phi,0,0,0],
                      [0,  0  , 0 ,1,0,0],
                      [0,  0  , 0 ,0,1,0],
                      [0,  0  , 0 ,0,0,1]])
 
-def J_porous_fluid(porosity):
+    # stack data along depth dimension
+    data = np.dstack([data for _ in range(len(xdata))]) 
+    
+    return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)    
+
+
+def J_porous_fluid(xdata,porosity,left_ID,right_ID):
+
+    exc_dof = porous_exc_dof(right_ID)
+    res_dof = porous_fluid_res_dof(left_ID)
     
     phi = porosity
-    return np.array([[0    ,-1],
+    data = np.array([[0    ,-1],
                      [1-phi, 0],
                      [0    , 0],
                      [0    , 0]])
+
+    data = np.dstack([data for _ in range(len(xdata))]) 
+    
+    return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)    
+
 
 # functions for DOF generation
 
@@ -237,6 +323,28 @@ def fluid_fluid_res_dof(left_ID):
     dof_  = [0,3]
     type_ = [ PRESSURE, VELOCITY] 
     return dof.DOF(ID_,dof_,type_)
+
+def porous_exc_dof(ID):
+    
+    ID_   = [ID]*6
+    dof_  = [1,3,3,3,1,3]
+    type_ = [ VELOCITY, VELOCITY, VELOCITY, STRESS, STRESS, STRESS ] 
+    return dof.DOF(ID_,dof_,type_)
+
+def solid_porous_res_dof(ID):
+    
+    ID_   = [ID]*5
+    dof_  = [1,3,2,3,1] # 2 is used as pseudo DOF for v_3_f in eq (11.75)
+    type_ = [ VELOCITY, VELOCITY, VELOCITY, STRESS, STRESS ] 
+    return dof.DOF(ID_,dof_,type_)
+
+def porous_fluid_res_dof(ID):
+    
+    ID_   = [ID]*4
+    dof_  = [1,3,1,2] # 2 is used as pseudo DOF for sig_33_f in eq (11.73)
+    type_ = [ VELOCITY, STRESS, STRESS, STRESS ] 
+    return dof.DOF(ID_,dof_,type_)
+    
 
 class AcousticLayer:
     """
@@ -1137,3 +1245,214 @@ class SolidLayer(AcousticLayer):
         rdof = dof.DOF([ID[1],ID[1],ID[1],ID[1]], self.right_dof.dof,self.right_dof.type)
         
         return mC.DynamicMatrix(Gamma,xdata,rdof,ldof)
+    
+class PoroElasticLayer(AcousticLayer):
+        """
+        Class for Modelling poro-elastic material as InfiniteLayer.
+        
+        Attributes
+        ----------
+        thickness : float
+            thickness of the perforted layer.
+        poroelasticmat : PoroElasticMat
+            poroelastic material of layer.
+        thickness : float
+            thickness of layer.
+        """
+        
+        def __init__(self,poroelasticmat,thickness):
+            """
+            Class contructor for PoroElasticLayer objects.
+
+            Parameters
+            ----------
+            poroelasticmat : PoroElasticMat
+                poroelastic material of layer.
+            thickness : float
+                thickness of layer.
+            ID : list or tuple
+                node IDs of left and right side
+            """
+                    
+            # set DOF according to ID and natural DOF of the layer
+            Tdof = ('velocity','velocity','velocity','stress','stress','stress')
+            _left_dof  = dof.DOF([0,0,0,0],[1,3,3,3,1,3],Tdof)
+            _right_dof = dof.DOF([1,1,1,1],[1,3,3,3,1,3],Tdof)
+                           
+            super().__init__(thickness,_left_dof,_right_dof)
+            
+            self.poroelasticmat = poroelasticmat
+            self.type = 'poro_elastic'
+        
+        def __repr__(self):
+            """
+            repr for PoroElasticLayer
+
+            Returns
+            -------
+            str_ : TYPE
+                DESCRIPTION.
+
+            """
+            
+            str_ = 'poroelasticlayer layer of thickness {0}'.format(self.thickness)
+            return str_
+
+        @property
+        def isequivalentfluid(self):
+            """
+            Determine if layer is of type equivalent fluid
+
+            Defauls parameter is False
+
+            Returns
+            -------
+            bool
+                False.
+
+            """
+            return False
+
+        @property
+        def mass_per_area(self):
+            """
+            Mass per area of PoroElasticLayer.
+            
+            Returns
+            -------
+            float
+                mass per area.
+
+            """        
+            return self.thickness*self.poroelasticmat.rho0
+        
+        def transfer_impedance(self,omega,kx=0, ID = [1,2], allard = False):
+            """
+            Transferimpedance of PoroElasticLayer
+            
+            Implementation according to [All2009_].
+
+            Parameters
+            ----------
+            omega : float or ndarray
+                scalar angular frequency
+            kx : float or ndarray, optional
+                In-plane wavenumber. The default is 0.
+            ID : list of int
+                Left and right ID. The default is [1,2].
+                          
+            Returns
+            -------
+            DynamicMatrix
+                [2 x 2] array of transferimpedance         
+            
+            """
+                        
+            xdata = self.get_xdata(omega, kx)
+                           
+            # squared wavenumbers = delta_i
+            delta1,delta2,delta3,mu1,mu2,mu3 = self.poroelasticmat.wavenumbers(omega)
+
+            # wavenumber in z=3 for 1,2 (compressional) and 3 (shear)
+            kx2 = kx*kx
+            k13_2 = delta1-kx2
+            k23_2 = delta2-kx2
+            k33_2 = delta3-kx2
+            k13 = np.sqrt(k13_2) 
+            k23 = np.sqrt(k23_2) 
+            k33 = np.sqrt(k33_2) 
+            
+            # Other constants
+            P = self.P(omega)
+            Q = self.Q(omega)
+            R = self.R(omega)
+            N = self.N(omega)
+            
+            D1 = (P+Q*mu1)*delta1 - 2*N*kx2
+            D2 = (P+Q*mu2)*delta2 - 2*N*kx2
+            E1 = (R*mu1+Q)*delta1
+            E2 = (R*mu2+Q)*delta2
+            
+            h  = self.thickness
+                        
+            Gamma = np.zeros((len(xdata),6,6),dtype = np.complex128)
+            h = -h
+            # row 1
+            Gamma[:,0,0] = kx*omega*np.cos(h*k13)
+            Gamma[:,0,1] = -1j*kx*omega*np.sin(h*k13)
+            Gamma[:,0,2] = kx*omega*np.cos(h*k23)
+            Gamma[:,0,3] = -1j*kx*omega*np.sin(h*k23)
+            Gamma[:,0,4] = 1j*k33*omega*np.sin(h*k33)
+            Gamma[:,0,5] = -k33*omega*np.cos(h*k33)
+            # row 2
+            Gamma[:,1,0] = -1j*k13*omega*np.sin(h*k13)
+            Gamma[:,1,1] = k13*omega*np.cos(h*k13)
+            Gamma[:,1,2] = -1j*k23*omega*np.sin(h*k23)
+            Gamma[:,1,3] = k23*omega*np.cos(h*k23)
+            Gamma[:,1,4] = kx*omega*np.cos(h*k33)
+            Gamma[:,1,5] = -1j*kx*omega*np.sin(h*k33)
+            # row 3
+            Gamma[:,2,0] = -1j*k13*mu1*omega*np.sin(h*k13)
+            Gamma[:,2,1] = k13*mu1*omega*np.cos(h*k13)
+            Gamma[:,2,2] = -1j*k23*mu2*omega*np.sin(h*k23)
+            Gamma[:,2,3] = k23*mu2*omega*np.cos(h*k23)
+            Gamma[:,2,4] = kx*mu3*omega*np.cos(h*k33)
+            Gamma[:,2,5] = -1j*kx*mu3*omega*np.sin(h*k33)
+            # row 4
+            Gamma[:,3,0] = -D1*np.cos(h*k13)
+            Gamma[:,3,1] = 1j*D1*np.sin(h*k13)
+            Gamma[:,3,2] = -D2*np.cos(h*k23)
+            Gamma[:,3,3] = 1j*D2*np.sin(h*k23)
+            Gamma[:,3,4] = 2j*N*kx*k33*np.sin(h*k33)
+            Gamma[:,3,5] = -2*N*kx*k33*np.cos(h*k33)
+            # row 5
+            Gamma[:,4,0] = 2j*N*kx*k13*np.sin(h*k13)
+            Gamma[:,4,1] = -2*N*kx*k13*np.cos(h*k13)
+            Gamma[:,4,2] = 2j*N*kx*k23*np.sin(h*k23)
+            Gamma[:,4,3] = -2*N*kx*k23*np.cos(h*k23)
+            Gamma[:,4,4] = N*(-kx**2 + k33**2)*np.cos(h*k33)
+            Gamma[:,4,5] = -1j*N*(-kx**2 + k33**2)*np.sin(h*k33)
+            # row 6
+            Gamma[:,5,0] = -E1*np.cos(h*k13)
+            Gamma[:,5,1] = 1j*E1*np.sin(h*k13)
+            Gamma[:,5,2] = -E2*np.cos(h*k23)
+            Gamma[:,5,3] = 1j*E2*np.sin(h*k23)
+            Gamma[:,5,4] = 0
+            Gamma[:,5,5] = 0    
+                       
+            Gamma0_inv = np.zeros((len(xdata),6,6),dtype = np.complex128)     
+            # row 1
+            Gamma0_inv[:,0,0] = 2*E2*N*kx/(omega*(D1*E2 - D2*E1 - 2*E1*N*kx2 + 2*E2*N*kx2))
+            Gamma0_inv[:,0,3] = E2/(-D1*E2 + D2*E1 + 2*E1*N*kx2 - 2*E2*N*kx2)
+            Gamma0_inv[:,0,5] = (D2 + 2*N*kx2)/(D1*E2 - D2*E1 - 2*E1*N*kx2 + 2*E2*N*kx2)
+            # row 2
+            Gamma0_inv[:,1,1] = (kx2*mu2 - 2*kx2*mu3 - k33**2*mu2)/(k13*omega*(kx2*mu1 - kx2*mu2 + k33**2*mu1 - k33**2*mu2))
+            Gamma0_inv[:,1,2] = 1/(k13*omega*(mu1 - mu2))
+            Gamma0_inv[:,1,4] = kx*(mu2 - mu3)/(N*k13*(kx2*mu1 - kx2*mu2 + k33**2*mu1 - k33**2*mu2))
+            # row 3
+            Gamma0_inv[:,2,0] = 2*E1*N*kx/(omega*(-D1*E2 + D2*E1 + 2*E1*N*kx2 - 2*E2*N*kx2))
+            Gamma0_inv[:,2,3] = E1/(D1*E2 - D2*E1 - 2*E1*N*kx2 + 2*E2*N*kx2)
+            Gamma0_inv[:,2,5] = (D1 + 2*N*kx2)/(-D1*E2 + D2*E1 + 2*E1*N*kx2 - 2*E2*N*kx2)
+            # row 4
+            Gamma0_inv[:,3,1] = (-kx2*mu1 + 2*kx2*mu3 + k33**2*mu1)/(k23*omega*(kx2*mu1 - kx2*mu2 + k33**2*mu1 - k33**2*mu2))
+            Gamma0_inv[:,3,2] = -1/(k23*omega*(mu1 - mu2))
+            Gamma0_inv[:,3,4] = kx*(-mu1 + mu3)/(N*k23*(kx2*mu1 - kx2*mu2 + k33**2*mu1 - k33**2*mu2))
+            # row 5
+            Gamma0_inv[:,4,1] = 2*kx/(omega*(kx2 + k33**2))
+            Gamma0_inv[:,4,4] = 1/(N*(kx2 + k33**2))
+            # row 6
+            Gamma0_inv[:,5,0] = (-D1*E2 + D2*E1)/(k33*omega*(D1*E2 - D2*E1 - 2*E1*N*kx2 + 2*E2*N*kx2))
+            Gamma0_inv[:,5,3] = kx*(E1 - E2)/(k33*(D1*E2 - D2*E1 - 2*E1*N*kx2 + 2*E2*N*kx2))
+            Gamma0_inv[:,5,5] = kx*(-D1 + D2)/(k33*(D1*E2 - D2*E1 - 2*E1*N*kx2 + 2*E2*N*kx2))
+            
+            Gamma = np.matmul(Gamma,Gamma0_inv)
+            Gamma = np.moveaxis(Gamma,0,-1) # put xaxis last
+
+            xdata = self.get_xdata(omega, kx )   
+                           
+            
+            # Update ID in DOF attribute
+            ldof = dof.DOF([ID[0],ID[0],ID[0],ID[0],ID[0],ID[0]], self.left_dof.dof,self.left_dof.type)
+            rdof = dof.DOF([ID[1],ID[1],ID[1],ID[1],ID[0],ID[0]], self.right_dof.dof,self.right_dof.type)
+            
+            return mC.DynamicMatrix(Gamma,xdata,rdof,ldof)

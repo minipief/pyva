@@ -13,6 +13,8 @@ import pyva.data.matrixClasses as mC
 import pyva.data.dof as dof
 import pyva.useful as uf
 
+import matplotlib.pyplot as plt
+
 def isscalar(data):
     return np.isscalar(data) and not(isinstance(data,str))
 
@@ -650,7 +652,7 @@ class IsoMat:
         return _str
 
     def __repr__(self):
-        return "IsoMat(E={0},,rho0={1},nu={2},eta={3})".format(self.E,self.rho0,self.nu,self.eta) 
+        return "IsoMat(E={0},rho0={1},nu={2},eta={3})".format(self.E,self.rho0,self.nu,self.eta) 
       
     @property    
     def c_T(self):
@@ -786,9 +788,23 @@ class IsoMat:
         """
         return omega/self.c_S
     
+    @property
+    def bulk_modulus(self):
+        """
+        
+
+        Returns
+        -------
+        TYPE
+            DESCRIPTION.
+
+        """
+        
+        return self.E_complex/(3-6*self.nu) 
+    
 class EquivalentFluid(Fluid):
     """
-    The EquivalentFluid class deals fibre models based on Champoux Allard with 
+    The EquivalentFluid class deals with fibre models based on Champoux Allard with 
     limp/rigid frame theory
     
     This class is a doughter class of fluid.
@@ -821,17 +837,17 @@ class EquivalentFluid(Fluid):
 
         Parameters
         ----------
-        flow_res : TYPE
+        flow_res : float
             flow resistivity
-        porosity : TYPE
+        porosity : float
             volume porosity.
-        tortuosity : TYPE
+        tortuosity : float
             tortuosity (alpha_inf)N.
-        rho_bulk : TYPE
+        rho_bulk : float
             apearant density of fluid and matrix.
-        length_visc : TYPE
+        length_visc : float
             viscous characteristic lengt.
-        length_therm : TYPE
+        length_therm : float
             thermal characteristic length.
         limp : bool, optional
             Switch for use of limp model. The default is True.
@@ -863,6 +879,32 @@ class EquivalentFluid(Fluid):
         self.length_visc = length_visc
         self.length_therm = length_therm
         self.limp       = limp
+        
+    def __repr__(self):
+        _str = 'EquivalentFluid(flow_res={0},porosity={1},tortuosity={2},rho_bulk={3},length_visc={4},length_visc={5},limp={6},'.\
+            format(self.flow_res, self.porosity,self.tortuosity,self.rho_bulk,self.length_visc,self.length_visc,self.limp)
+        _str += 'c0={0},rho0={1},eta={2})'.format(self.c0, self.rho0,self.eta)
+        return _str
+   
+    def __str__(self):
+        """
+        str for EquivalentFluids
+
+        Returns
+        -------
+        _str : str
+            Fluid description.
+
+        """
+        _str  = super().__str__()
+        _str += "flow_res          : {0}\n".format(self.flow_res)
+        _str += "porosity          : {0}\n".format(self.porosity)
+        _str += "tortuosity        : {0}\n".format(self.tortuosity)
+        _str += "rho_bulk          : {0}\n".format(self.rho_bulk)
+        _str += "lentgh_visc       : {0}\n".format(self.length_visc)
+        _str += "lentgh_therm      : {0}\n".format(self.length_therm)
+        
+        return _str
 
     def G(self,omega):    
         """
@@ -882,9 +924,9 @@ class EquivalentFluid(Fluid):
         tor2  = self.tortuosity*self.tortuosity
         rho0  = self.rho0
         
-        return np.sqrt(1+4*1j*tor2*self.nu0*rho0*omega/ \
-                       ( self.flow_res*self.length_visc*self.porosity)/ \
-                        (self.flow_res*self.length_visc*self.porosity));
+        return np.sqrt(1+4j*tor2*self.nu0*rho0*omega/ \
+                    (self.flow_res*self.length_visc*self.porosity)/ \
+                    (self.flow_res*self.length_visc*self.porosity));
 
     def rho_rigid(self,omega):
         """
@@ -1004,4 +1046,336 @@ class EquivalentFluid(Fluid):
          
         return 1j*omega/self.propagation_constant(omega)
 
+class PoroElasticMat(EquivalentFluid):
+    """
+    The PoroElasticMat class deals porous and elastic material
+
+    The material model is implemented according to Allard [All2009]_ and requires a geometry information 
+    of the frame given by the EquivalentFlluid attributes and the bulk properties elastic frame matrial.
+    In addition the bulk modulus of the material the frame is made of can be given, but most cases this can 
+    be considered as much stiffer as the bulk material and is therefor considered as inf.
     
+    Attributes
+    ----------
+    frame: flow resistivity
+    : porosity: volume porosity
+    tortuosity: tortuosity (alpha_inf)
+    rho_bulk: apearant density of fluid and matrix
+    length_visc: viscous characteristic length
+    length_therm:  thermal characteristic length
+    E
+    
+    
+    See [All2005]_ for details of the theory
+
+    """
+    
+    def __init__(self,solid_mat,\
+                      flow_res,porosity,tortuosity,length_visc,length_therm,limp = False,\
+                      c0=343.,rho0=1.23,dynamic_viscosity=1.84e-5,kappa = 1.4, \
+                      Cp=1005.1, heat_conductivity = 0.0257673 , Ks = np.Inf):
+        """
+        Construcutor of equivalent fluid class.
+        
+        The equivalent fluid model deals with the propagation of sound waves through
+        a geometrical porous construction. It models the acoustic motion inside the 
+        skeleon and the viscous and thermal interactions between fluid and skeleton.
+        
+        Parameters
+        ----------
+        solid_mat : IsoMat
+            Bulk frame material (in vaccuum). 
+        flow_res : float
+            flow resistivity
+        porosity : float
+            volume porosity.
+        tortuosity : float
+            tortuosity (alpha_inf)N.
+        rho_bulk : float
+            apearant density of fluid and matrix.
+        length_visc : float
+            viscous characteristic lengt.
+        length_therm : float
+            thermal characteristic length.
+        limp : bool, optional
+            Switch for use of limp model. The default is True.
+        c0 : complex, optional
+            Speed of sound. The default is 343..
+        rho0 : complex, optional
+            density. The default is 1.23.
+        eta : float, optional
+            Damping loss. The default is 0.01.
+        dynamic_viscosity : float, optional
+            Dynamic viscosity. The default is 1.84e-5.
+        kappa : float, optional
+            ratio of specific heat capacities. The default is 1.4.
+        Pr : float, optional
+            Prandtl number. The default is 0.71.
+
+        Returns
+        -------
+        None.
+
+        
+        """
+        # Calculate rho_bulk - not used in Bio theory
+        rho_bulk = solid_mat.rho0 + porosity * rho0
+        super().__init__(flow_res,porosity,tortuosity,rho_bulk,length_visc,length_therm,limp,c0,rho0,0.,dynamic_viscosity,kappa,Cp,heat_conductivity) 
+        self.solid_mat = solid_mat     
+    
+    def __repr__(self):
+        """
+        reps for PoroElasticMat
+
+        Returns
+        -------
+        str_ : string
+            PoroElasticMat expression.
+
+        """
+        _str = 'PoroElasticMat({0},flow_res={1},porosity={2},tortuosity={3},rho_bulk={4},length_visc={5},length_visc={6},'.\
+            format(repr(self.solid_mat),self.flow_res, self.porosity,self.tortuosity,self.rho_bulk,self.length_visc,self.length_visc)
+        _str += 'c0={0},rho0={1},eta={2})'.format(self.c0, self.rho0,self.eta)
+        return _str
+    
+    def P(self,omega):
+        """
+        P function of poroelastic material 
+        
+        Eq. (6.28) of [All2009]_ assuming Ks >> Kb
+
+        Parameters
+        ----------
+        omega : float
+            Angular frequency.
+
+        Returns
+        -------
+        complex
+            P.
+
+        """
+        
+        return 4/3*self.solid_mat.G_complex+self.solid_mat.bulk_modulus+(1-self.porosity)**2*self.bulk_modulus(omega) # /self.porosity current version is K/phi
+    
+    def Q(self,omega):
+        """
+        Q function of poroelastic material 
+        
+        Eq. (6.27) of [All2009]_ assuming Ks >> Kb
+
+        Parameters
+        ----------
+        omega : float
+            Angular frequency.
+
+        Returns
+        -------
+        complex
+            Q.
+
+        """
+        
+        return (1-self.porosity)*self.bulk_modulus(omega)*self.porosity
+    
+    def R(self,omega):
+        """
+        R function of poroelastic material 
+        
+        Eq. (6.26) of [All2009]_ assuming Ks >> Kb
+
+        Parameters
+        ----------
+        omega : float
+            Angular frequency.
+
+        Returns
+        -------
+        complex
+            R.
+
+        """
+        
+        return self.porosity**2*self.bulk_modulus(omega)
+
+    def N(self,omega):
+        """
+        N function of poroelastic material, equal to shear modulus
+        
+        Just for usage of similar symbols
+
+        Parameters
+        ----------
+        omega : float
+            Angular frequency.
+
+        Returns
+        -------
+        complex
+            shear modulus.
+
+        """
+        
+        return self.G_complex(omega)
+
+    @property  
+    def rho0(self):
+        """
+        Joint density of air and frame.
+        
+        Returns
+        -------
+        complex
+            Dynamic coupled density.
+
+        """
+        
+        return self.porosity*np.real(self.fluid.rho0)+self.solid_mat.rho0
+        
+    def rho12(self,omega):
+        """
+        Dynamic coupled density rho_12.
+        
+        Eq. (6.56)
+
+        Parameters
+        ----------
+        omega : float
+            angular frequency.
+
+        Returns
+        -------
+        complex
+            Dynamic coupled density.
+
+        """
+        
+        rho12_ = -self.porosity*self.rho0*(self.tortuosity-1)
+        return rho12_+1j*self.flow_res*self.porosity**2*self.G(omega)/omega
+    
+    def rho11(self,omega):
+        """
+        Dynamic frame density rho_11.
+        
+        Eq. (6.56)
+
+        Parameters
+        ----------
+        omega : float
+            angular frequency.
+
+        Returns
+        -------
+        complex
+            Dynamic frame density.
+
+        """        
+        return self.solid_mat.rho0 - self.rho12(omega)        
+    
+    def rho22(self,omega):
+        """
+        Dynamic frame density rho_11.
+        
+        Eq. (6.56)
+
+        Parameters
+        ----------
+        omega : float
+            angular frequency.
+
+        Returns
+        -------
+        complex
+            Dynamic frame density.
+
+        """        
+        return self.porosity*self.rho0 - self.rho12(omega)
+    
+    def Delta(self,omega):
+        """
+        Delta helper function for Biot Theory
+        
+        Eq(6.69)
+
+        Parameters
+        ----------
+        omega : float
+            angular frequency.
+
+        Returns
+        -------
+        complex
+            Delta.
+
+        """
+        
+        P     = self.P(omega)
+        Q     = self.Q(omega)
+        R     = self.R(omega)
+        rho11 = self.rho11(omega)
+        rho12 = self.rho12(omega)
+        rho22 = self.rho22(omega)
+        
+        return (P*rho22+R*rho11-2*Q*rho12)**2-4*(P*R-Q*Q)*(rho11*rho22-rho12)
+    
+    def wavenumbers(self,omega):
+
+        P     = self.P(omega)
+        Q     = self.Q(omega)
+        R     = self.R(omega)
+        rho11 = self.rho11(omega)
+        rho12 = self.rho12(omega)
+        rho22 = self.rho22(omega)
+        rho_  = rho11*rho22-rho12*rho12
+
+        omega2 = omega*omega
+        
+        PR_Q2 = P*R-Q*Q
+        
+        #ka    = omega*np.sqrt(rho22/R)
+        
+        PR2Q  = P*rho22+R*rho11-2*Q*rho12
+        Delta = PR2Q*PR2Q-4*PR_Q2*rho_
+        
+        # plt.figure(100)
+        # plt.plot(omega,np.real(PR2Q*PR2Q),label='Re PR-2Q')
+        # plt.plot(omega,np.imag(PR2Q*PR2Q),label='Im PR-2Q')
+        # plt.plot(omega,np.real(PR_Q2*rho_),label='Re PR-Q^2 * rho_')
+        # plt.plot(omega,np.imag(PR_Q2*rho_),label='Im PR-Q^2 * rho_')
+        # plt.legend()
+        
+        # plt.figure(101)
+        # plt.plot(omega,np.real(np.sqrt(Delta)),label='Re Delta')
+        # plt.plot(omega,np.imag(np.sqrt(Delta)),label='Im Delta')
+        # plt.legend()
+
+        # plt.figure(102)
+        # plt.subplot(2,1,1)
+        # plt.plot(omega,np.abs(Delta),label='Re Delta')
+        # plt.legend()
+        # plt.subplot(2,1,2)
+        # plt.plot(omega,np.angle(Delta,deg=True),label='Im Delta')
+        # plt.legend()
+
+        # plt.figure(103)
+        # plt.subplot(2,1,1)
+        # plt.plot(omega,np.abs(np.sqrt(Delta)),label='Re Delta')
+        # plt.legend()
+        # plt.subplot(2,1,2)
+        # plt.plot(omega,np.angle(np.sqrt(Delta),deg=True),label='Im Delta')
+        # plt.legend()    
+
+        # delta are the squared values, because they are mainly used
+        # compressional waves 
+        delta1 = omega2/2/PR_Q2*(PR2Q-np.sqrt(Delta))
+        delta2 = omega2/2/PR_Q2*(PR2Q+np.sqrt(Delta))
+        mu1    = (P*delta1-omega2*rho11)/(omega2*rho12-Q*delta1)
+        mu2    = (P*delta2-omega2*rho11)/(omega2*rho12-Q*delta2)
+
+        # shear wave
+        delta3 = omega*omega/self.solid_mat.G_complex*rho_/rho22
+        mu3    = -rho12/rho22
+        
+        return (delta1,delta2,delta3,mu1,mu2,mu3)
+        
+        

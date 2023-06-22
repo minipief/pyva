@@ -184,7 +184,7 @@ the second method is an implementation of the ISO EN 12354-1.
    
 Both methods agree well except in the coincidence peak. See [Pei2022]_ for details of the implementation.
 
-Next, the SEA results are investigated in detail. In general the result of each simulations are of class :class:`~pyva.data.matrixClasses.Signal`.
+Next, the SEA results are investigated in detail. In general the result of each [All2009]s are of class :class:`~pyva.data.matrixClasses.Signal`.
 The solution generate results in the energy and result attribute :
 
     >>> two_rooms.energy
@@ -314,7 +314,7 @@ with the junctions and load defined by ::
 
     two_rooms.add_load('10N',force10Nrms)# add force excitatio to wave_DOF 3 of system 4
     
-The frequency starts at 50Hz for illustrating some typical checks in SEA simulation.
+The frequency starts at 50Hz for illustrating some typical checks in SEA [All2009].
 Before, we solve the model we perform these typical checks. This time the modes in band of the plate systems are shown in 
 the following figure:
 
