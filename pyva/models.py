@@ -608,7 +608,7 @@ class TMmodel:
         elif current_type == 'solid':
             v0 = v0 + iL.solid_exc_dof(self.N*2)
             #v1 = v1 + iL.solid_fluid_res_dof(self.N*2)
-        elif current_type == 'solid':
+        elif current_type == 'poro_elastic':
             v0 = v0 + iL.porous_exc_dof(self.N*2)
 
         # Add row depending on boundary condition
@@ -616,9 +616,9 @@ class TMmodel:
             if current_type == 'equivalent_fluid':
                 v1 = v1 + dof.DOF([self.N*2+1],[3],['velocity'])
             elif current_type == 'solid':
-                v1 = v1 + dof.DOF([self.N*2+1,self.N*2+1],[1,3],['velocity','velocity'])
+                v1 = v1 + dof.DOF([self.N*2+1]*2,[1,3],['velocity','velocity'])
             elif current_type == 'poro_elastic':
-                v1 = v1 + dof.DOF([self.N*2+1,self.N*2+1],[1,3,2],['velocity','velocity','velocity'])
+                v1 = v1 + dof.DOF([self.N*2+1]*3,[1,3,2],['velocity','velocity','velocity'])
         elif boundary_condition == 'equivalent_fluid':
             # Deal with condition of eq. (11.83)
             v0 = v0 + iL.fluid_exc_dof(self.N*2+1)
@@ -664,7 +664,7 @@ class TMmodel:
         # Create empty dynamic matrix
         
         # The current DOF 1 is the DOF just left of the next interface
-        current_left_ID = 0
+        #current_left_ID = 0
         
         #SIF_in  = aR.HalfSpace(fluids[0])
         SIF_out = aR.HalfSpace(out_fluid)
@@ -675,7 +675,7 @@ class TMmodel:
         
         # Set current type from first layer  
         current_type = 'equivalent_fluid'
-        layer_set_finished = False # no element creation as long as set is not finished
+        #layer_set_finished = False # no element creation as long as set is not finished
         layer_set_started  = False # no element creation as long as set is not finished
         
         V0,V1 = self.V0(boundary_condition=boundary_condition)
@@ -692,6 +692,8 @@ class TMmodel:
                     
                     
                 # Layer nature has changed
+                # In any of the following methods, the res_ID is always determined by the 'complicated' layer.
+                # solid in case of fluid - soild of porous in case ot porous - solid
                 if current_type == 'equivalent_fluid':
                     # fluid - fluid connection, only possible at first layer
                     if self.layers[ix].type == 'equivalent_fluid':
@@ -701,15 +703,37 @@ class TMmodel:
                     # fluid - solid connection
                     if self.layers[ix].type == 'solid':
                         I12 = iL.J_solid_fluid(xdata,2*ix+1,2*ix)
-                        J12 = iL.I_solid_fluid(xdata,2*ix+1,2*ix+1) # e.g. M2 and M3 
-                        
+                        J12 = iL.I_solid_fluid(xdata,2*ix+1,2*ix+1) # e.g. M3 and M3 
+
+                    # fluid - porous connection
+                    if self.layers[ix].type == 'poro_elastic':
+                        # set current porosity for possible porous layer coupling    
+                        porosity_left = self.layers[ix].poroelasticmat.porosity
+                        I12 = iL.J_porous_fluid(xdata,porosity_left,2*ix+1,2*ix)
+                        J12 = iL.I_porous_fluid(xdata,porosity_left,2*ix+1,2*ix+1) # e.g. M3 and M3 
                 elif current_type == 'solid':
                     # solid - fluid connection
                     if self.layers[ix].type == 'equivalent_fluid':
                         I12 = iL.I_solid_fluid(xdata,2*ix,2*ix)
                         J12 = iL.J_solid_fluid(xdata,2*ix,2*ix+1) # e.g. M2 and M3 
+                    # solid - porous connection
+                    if self.layers[ix].type == 'poro_elastic':
+                        # set current porosity for possible porous layer coupling    
+                        porosity_left = self.layers[ix].poroelasticmat.porosity
+                        I12 = iL.I_solid_porous(xdata,porosity_left,2*ix+1,2*ix) # e.g. M3 and M2 
+                        J12 = iL.J_solid_porous(xdata,porosity_left,2*ix+1,2*ix+1) # e.g. M3 and M3 
+
                 elif current_type == 'poro_elastic':
-                    pass
+                    # porous - fluid connection
+                    if self.layers[ix].type == 'equivalent_fluid':
+                        I12 = iL.I_porous_fluid(xdata,porosity_left,2*ix,2*ix)
+                        J12 = iL.J_porous_fluid(xdata,porosity_left,2*ix,2*ix+1) # e.g. M2 and M3 
+                    # porous - solid connection
+                    if self.layers[ix].type == 'solid':
+                        I12 = iL.J_solid_porous(xdata,porosity_left,2*ix+1,2*ix) # e.g. M3 and M2 
+                        J12 = iL.I_solid_porous(xdata,porosity_left,2*ix+1,2*ix+1) # e.g. M3 and M3
+                   
+               
                         
                 # set current type accordinmg to the new layer
                 current_type = self.layers[ix].type
@@ -718,8 +742,12 @@ class TMmodel:
                 J12 = J12.dot(T0)                
                 
             else: # go to next layer and use transfermatrix with out recreating I12 and J12
-                # In a first step the transfermatrices are multiplied without I because
-                # there is currently no porosity involved
+                if current_type == 'poro_elastic':
+                    # consider different porosity
+                    porosity_right = self.layers[ix].poroelasticmat.porosity
+                    J12 = J12.dot(iL.I_porous_porous(xdata, porosity_left, porosity_right, 2*ix,2*ix+2))
+                    porosity_left = porosity_right
+                        
                 J12 = J12.dot(self.layers[ix].transfer_impedance(omega,kx,ID = [2*ix,2*ix+2])) # 1st ID is set to left 
           
             # consider last layer
@@ -733,13 +761,18 @@ class TMmodel:
                 D0 += iL.Y_fluid_fixed(xdata,2*self.N)
             elif current_type == 'solid':
                 D0 += iL.Y_solid_fixed(xdata,2*self.N)
+            elif current_type == 'poro_elastic':
+                D0 += iL.Y_porous_fixed(xdata,2*self.N)
         elif boundary_condition == 'equivalent_fluid': # (11.83)
             if current_type == 'equivalent_fluid': 
                 D0 += iL.I_fluid_fluid(xdata,2*self.N)        # both M2
                 D0 += iL.J_fluid_fluid(xdata,2*self.N,2*self.N+1) # e.g. M2 and M3 
             elif current_type == 'solid': 
                 D0 += iL.I_solid_fluid(xdata,2*self.N,2*self.N)
-                D0 += iL.J_solid_fluid(xdata,2*self.N,2*self.N+1) # e.g. M2 and M3 
+                D0 += iL.J_solid_fluid(xdata,2*self.N,2*self.N+1) # e.g. M2 and M3             
+            elif current_type == 'poro_elastic': 
+                D0 += iL.I_porous_fluid(xdata,2*self.N,2*self.N)
+                D0 += iL.J_porous_fluid(xdata,2*self.N,2*self.N+1) # e.g. M2 and M3 
             # Use SIF radiation impedanz to get the radiation condition
             data_ = np.zeros((1,2,len(xdata) ),dtype=np.complex128)
             data_[0,0,:] = -1
@@ -880,9 +913,10 @@ class TMmodel:
         
         # xdata predifined by non-scalar element kx or omega
         if signal:
-            _doftype = dof.DOFtype(typestr = 'pressure')/F.dof.type[0]
+            #_doftype = dof.DOFtype(typestr = 'pressure')/F.dof.type[0]
+            _impedance = dof.DOFtype(typestr='impedance')
             xdata_ = D1.xdata # turn single values into arrays
-            return mC.Signal(xdata_,Z_s,_doftype)
+            return mC.Signal(xdata_,Z_s,dof.DOF(1,3,_impedance))
         else:
             # ix 0 is the index of the velcoity at the surface
             return Z_s

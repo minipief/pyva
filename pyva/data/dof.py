@@ -745,7 +745,8 @@ TYPEDICT = {   0 : 'unknown',          1 : 'general',
               22 : 'sound intensity',
               23 : 'power',           24 : 'area',
               25 : 'transmission' ,
-              26 : 'wavenumber'   ,   27 : 'energy' }
+              26 : 'wavenumber'   ,   27 : 'energy' ,
+              28 : 'impedance' }
 
 SIUNITDICT = { 0 : '',                1 : '',
                2 : 'pascal',          3 : 'pascal',
@@ -759,7 +760,8 @@ SIUNITDICT = { 0 : '',                1 : '',
               22 : 'watt/meter**2',
               23 : 'watt',           24 : 'meter**2' ,
               25 : '' ,
-              26 : '1/meter'      ,  27 : 'joule'}
+              26 : '1/meter'      ,  27 : 'joule' ,
+              28 : 'pascal*second/meter'}
 
 # Dictionary for L,M,T and related type
 LMTDICT    = {( 0, 0, 0) : 1 ,
@@ -776,7 +778,8 @@ LMTDICT    = {( 0, 0, 0) : 1 ,
               ( 2, 1,-3) : 23,
               ( 2, 0 ,0) : 24,
               (-1, 0, 0) : 26,
-              ( 2, 1,-2) : 27}
+              ( 2, 1,-2) : 27,
+              (-2, 1,-1) : 28 }
 
 # Dictionary that provides the multiplication of types
 MULDICT = { (15,24) : 13 , # pressure * area = force
@@ -939,8 +942,8 @@ class DOFtype:
             else:
                  raise ValueError('Unkown keyword argument {0}'.format(kw))
                  
-            self._ureg = ureg.parse_expression(SIUNITDICT[self._type])
-            self._xureg = ureg.parse_expression(SIUNITDICT[self._xtype])
+        self._ureg = ureg.parse_expression(SIUNITDICT[self._type])
+        self._xureg = ureg.parse_expression(SIUNITDICT[self._xtype])
                     
     # helpers
     def _equal_exp_args(self,other):
@@ -1355,12 +1358,12 @@ class DOFtype:
         if self==other:
             return DOFtype(typeID=0)
         elif all(self.LMT==other.LMT):
-            return DOFtype(typeID=other._xtype, exponent=other._xexp, xtypeID = self._xtype, xdata_exponent=self._xexp)
+            return DOFtype(typeID=other._xtype, exponent=other._xexp, xtypeID = self._type, xdata_exponent=self._xexp)
         elif all(self.xLMT==other.LMT):
             return DOFtype(typeID=self._type, exponent=self._exp,xtypeID = other._type, xdata_exponent=other._exp)
         else: # rely on the pint capapilities
             res_LMT  = self.LMT-other.xLMT
-            res_xLMT = self.xLMT-other.LMT
+            res_xLMT = other.LMT-self.xLMT
             _type  = typeIDfromLMT(res_LMT)
             _xtype = typeIDfromLMT(res_xLMT)
             if _type == 0 or _xtype == 0: # one is unknown so try total

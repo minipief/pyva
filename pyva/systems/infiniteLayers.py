@@ -21,13 +21,16 @@ VELOCITY = dof.DOFtype(typestr='velocity')
 STRESS   = dof.DOFtype(typestr='stress')
 
 
-def I_solid_fluid(xdata,left_ID,right_ID):
+def I_solid_fluid(xdata,res_ID,exc_ID):
     """
-    Provide contact matrix I of solid - fluid intefaces.
+    Provide contact matrix I of solid - fluid interfaces.
     
-    The matrix corresponds to Eq. (11.71) in [All2008_]
+    The matrix corresponds to Eq. (11.71) in [All2009_]
     
-    When solid and fluid are exchanged J and I are interchanged. 
+    The I matrix defined the coupling coefficient for the same 
+    material, here solid!
+    
+    When solid and fluid are exchanged J and I are interchanged.
     The response DOFs stay the same, because they defined the row index in the
     global allard matrix.
 
@@ -35,10 +38,10 @@ def I_solid_fluid(xdata,left_ID,right_ID):
     ----------
     xdata : DataAxis
         xdata for contact matrix definition, wavenumber or frequency.
-    left_ID : integer
-        left ID of connection.
-    right_ID : integer
-        right ID of connection.
+    res_ID : integer
+        reponse ID of I matrix.
+    exc_ID : integer
+        exc_ID of I matrix.
 
     Returns
     -------
@@ -47,8 +50,8 @@ def I_solid_fluid(xdata,left_ID,right_ID):
 
     """
     #
-    res_dof = solid_fluid_res_dof(left_ID)
-    exc_dof = solid_exc_dof(right_ID)
+    res_dof = solid_fluid_res_dof(res_ID)
+    exc_dof = solid_exc_dof(exc_ID)
     
     #data = np.zeros((3,4,xdata.Nxdata))
     data = np.array([[0,1,0,0],
@@ -59,11 +62,11 @@ def I_solid_fluid(xdata,left_ID,right_ID):
     
     return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)
 
-def J_solid_fluid(xdata,left_ID,right_ID):
+def J_solid_fluid(xdata,res_ID,exc_ID):
     """
-    Provide contact matrix JU of solid - fluid intefaces.
+    Provide contact matrix J of solid - fluid interfaces.
     
-    The matrix corresponds to Eq. (11.71) in [All2008_]
+    The matrix corresponds to Eq. (11.71) in [All2009_]
     When solid and fluid are exchanged J and I are interchanged. 
     The response DOFs stay the same, because they defined the row index in the
     global allard matrix.
@@ -72,10 +75,10 @@ def J_solid_fluid(xdata,left_ID,right_ID):
     ----------
     xdata : DataAxis
         xdata for contact matrix definition, wavenumber or frequency.
-    left_ID : integer
-        left ID of connection.
-    right_ID : integer
-        right ID of connection.
+    res_ID : integer
+        response ID of matrix.
+    exc_ID : integer
+        excitation ID of matrix.
 
     Returns
     -------
@@ -84,8 +87,8 @@ def J_solid_fluid(xdata,left_ID,right_ID):
 
     """
     #
-    res_dof = solid_fluid_res_dof(left_ID)
-    exc_dof = fluid_exc_dof(right_ID)
+    res_dof = solid_fluid_res_dof(res_ID)
+    exc_dof = fluid_exc_dof(exc_ID)
     
     #data = np.zeros((3,4,xdata.Nxdata))
     data = np.array([[0,-1],
@@ -97,7 +100,22 @@ def J_solid_fluid(xdata,left_ID,right_ID):
     return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)
 
 def Y_fluid_fixed(xdata,left_ID):
+    """
+    Y Matrix of fluid hard wall temination
     
+    Parameters
+    ----------
+    xdata : DataAxis
+        xdata for contact matrix definition, wavenumber or frequency.
+    left_ID : integer
+        ID of connection left to the hard wall.
+
+    Returns
+    -------
+    DynamicMatrix
+        Hard wall termination matrix.
+
+    """    
     #
     res_dof = dof.DOF([left_ID+1],[3],[VELOCITY])
     exc_dof = fluid_exc_dof(left_ID)
@@ -110,7 +128,22 @@ def Y_fluid_fixed(xdata,left_ID):
     return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)
 
 def Y_solid_fixed(xdata,left_ID):
+    """
+    Y Matrix of solid-hard wall temination
     
+    Parameters
+    ----------
+    xdata : DataAxis
+        xdata for contact matrix definition, wavenumber or frequency.
+    left_ID : integer
+        ID of connection left to the hard wall.
+
+    Returns
+    -------
+    DynamicMatrix
+        Hard wall termination matrix.
+
+    """    
     #
     res_dof = dof.DOF([left_ID+1,left_ID+1],[1,3],[VELOCITY,VELOCITY])
     exc_dof = solid_exc_dof(left_ID)
@@ -123,9 +156,45 @@ def Y_solid_fixed(xdata,left_ID):
     
     return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)
 
+def Y_porous_fixed(xdata,left_ID):
+    """
+    Y Matrix of porous hard wall temination
+    
+    Parameters
+    ----------
+    xdata : DataAxis
+        xdata for contact matrix definition, wavenumber or frequency.
+    left_ID : integer
+        ID of connection left to the hard wall.
+
+    Returns
+    -------
+    DynamicMatrix
+        Hard wall termination matrix.
+
+    """    
+
+    #
+    res_dof = dof.DOF([left_ID+1]*3,[1,3,2],[VELOCITY,VELOCITY,VELOCITY])
+    exc_dof = porous_exc_dof(left_ID)
+    
+    #data = np.zeros((3,4,xdata.Nxdata))
+    data = np.array([[1,0,0,0,0,0],
+                     [0,1,0,0,0,0],
+                     [0,0,1,0,0,0]])
+    
+    # stack data along depth dimension
+    data = np.dstack([data for _ in range(len(xdata)) ] ) 
+    
+    return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)
+
 def I_fluid_fluid(xdata,left_ID):
     """
-    Provide contact matrix I of fluid - fluid intefaces.
+    Provide contact matrix I of fluid - fluid interfaces.
+    
+    This matrix is required because of the face that the fluid-fluid 
+    context is necessary in case of excitation of free field radiatoin which is
+    always into a fluid.
     
     Parameters
     ----------
@@ -133,13 +202,12 @@ def I_fluid_fluid(xdata,left_ID):
         xdata for contact matrix definition, wavenumber or frequency.
     left_ID : integer
         left ID of connection.
-    right_ID : integer
-        right ID of connection.
+
 
     Returns
     -------
     DynamicMatrix
-        I matrix of solid fluid connection.
+        I matrix of fluid fluid connection.
 
     """
     #
@@ -153,7 +221,7 @@ def I_fluid_fluid(xdata,left_ID):
     
     return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)
 
-def J_fluid_fluid(xdata,left_ID,right_ID):
+def J_fluid_fluid(xdata,res_ID,exc_ID):
     """
     Provide contact matrix J of fluid - fluid intefaces.
     
@@ -161,20 +229,20 @@ def J_fluid_fluid(xdata,left_ID,right_ID):
     ----------
     xdata : DataAxis
         xdata for contact matrix definition, wavenumber or frequency.
-    left_ID : integer
-        left ID of connection.
-    right_ID : integer
-        right ID of connection.
+    res_ID : integer
+        reponse ID of connection.
+    exc_ID : integer
+        exciation ID of connection.
 
     Returns
     -------
     DynamicMatrix
-        I matrix of solid fluid connection.
+        J matrix of fluid fluid connection.
 
     """
     #
-    res_dof = fluid_fluid_res_dof(left_ID)
-    exc_dof = fluid_fluid_res_dof(right_ID)
+    res_dof = fluid_fluid_res_dof(res_ID)
+    exc_dof = fluid_fluid_res_dof(exc_ID)
     
     #data = np.zeros((3,4,xdata.Nxdata))
     data = -np.eye(2)
@@ -183,18 +251,18 @@ def J_fluid_fluid(xdata,left_ID,right_ID):
     
     return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)
 
-def I_porous_porous(xdata,porosity_left,porosity_right,left_ID,right_ID):
+def I_porous_porous(xdata,porosity_left,porosity_right,res_ID,exc_ID):
     """
-    Provide contact matrix I of fluid - fluid intefaces.
+    Provide contact matrix I of porous - porous intefaces.
     
     Parameters
     ----------
     xdata : DataAxis
         xdata for contact matrix definition, wavenumber or frequency.
-    left_ID : integer
-        left ID of connection.
-    right_ID : integer
-        right ID of connection.
+    res_ID : integer
+        response ID of connection.
+    exc_ID : integer
+        excitation ID of connection.
 
     Returns
     -------
@@ -203,8 +271,8 @@ def I_porous_porous(xdata,porosity_left,porosity_right,left_ID,right_ID):
 
     """
     #
-    res_dof = porous_dof(left_ID)
-    exc_dof = porous_dof(left_ID)
+    res_dof = porous_exc_dof(res_ID)
+    exc_dof = porous_exc_dof(exc_ID)
     
     qphi = porosity_right/porosity_left
     
@@ -220,10 +288,38 @@ def I_porous_porous(xdata,porosity_left,porosity_right,left_ID,right_ID):
     
     return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)
 
-def I_solid_porous(xdata,left_ID,right_ID):
+def I_solid_porous(xdata,res_ID,exc_ID):
+    """
+    Provide contact matrix I of solid - porous intefaces.
     
-    res_dof = solid_porous_res_dof(right_ID)
-    exc_dof = solid_exc_dof(left_ID)
+    The matrix corresponds to Eq. (11.75) in [All2009_]
+    
+    The I matrix defined the coupling coefficient for the same 
+    material, here solid!
+    
+    When solid and porous are exchanged J and I are interchanged.
+    The response DOFs stay the same, because they defined the row index in the
+    global allard matrix.
+
+    Parameters
+    ----------
+    xdata : DataAxis
+        xdata for contact matrix definition, wavenumber or frequency.
+    res_ID : integer
+        reponse ID of I matrix.
+    exc_ID : integer
+        exc_ID of I matrix.
+
+    Returns
+    -------
+    DynamicMatrix
+        I matrix of solid porous connection.
+
+    """
+    #
+    
+    res_dof = solid_porous_res_dof(res_ID)
+    exc_dof = solid_exc_dof(exc_ID)
     
     data = np.array([[1,0,0,0],
                      [0,1,0,0],
@@ -236,10 +332,33 @@ def I_solid_porous(xdata,left_ID,right_ID):
     
     return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)    
 
-def J_solid_porous(xdata,right_ID):
+def J_solid_porous(xdata,res_ID,exc_ID):
+    """
+    Provide contact matrix J of solid - fluid intefaces.
     
-    res_dof = solid_porous_res_dof(right_ID)
-    exc_dof = porous_exc_dof(right_ID)
+    The matrix corresponds to Eq. (11.75) in [All2009_]
+    When solid and fluid are exchanged J and I are interchanged. 
+    The response DOFs stay the same, because they defined the row index in the
+    global allard matrix.
+
+    Parameters
+    ----------
+    xdata : DataAxis
+        xdata for contact matrix definition, wavenumber or frequency.
+    res_ID : integer
+        response ID of matrix.
+    exc_ID : integer
+        excitation ID of matrix.
+
+    Returns
+    -------
+    DynamicMatrix
+        J matrix of solid porous connection.
+
+    """
+    #
+    res_dof = solid_porous_res_dof(res_ID)
+    exc_dof = porous_exc_dof(exc_ID)
     
     data = np.array([[1,0,0,0,0,0],
                      [0,1,0,0,0,0],
@@ -253,10 +372,38 @@ def J_solid_porous(xdata,right_ID):
     return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)    
 
 
-def I_porous_fluid(xdata,porosity,left_ID):
+def I_porous_fluid(xdata,porosity,res_ID,exc_ID):
+    """
+    Provide contact matrix I of porous-fluid interfaces.
     
-    exc_dof = porous_exc_dof(left_ID)
-    res_dof = porous_fluid_res_dof(left_ID)
+    The matrix corresponds to Eq. (11.73) in [All2009_]
+    
+    The I matrix defined the coupling coefficient for the same 
+    material, here !
+    
+    When solid and porous are exchanged J and I are interchanged.
+    The response DOFs stay the same, because they defined the row index in the
+    global allard matrix.
+
+    Parameters
+    ----------
+    xdata : DataAxis
+        xdata for contact matrix definition, wavenumber or frequency.
+    res_ID : integer
+        reponse ID of I matrix.
+    exc_ID : integer
+        exc_ID of I matrix.
+
+    Returns
+    -------
+    DynamicMatrix
+        I matrix of solid porous connection.
+
+    """
+    #
+    
+    exc_dof = porous_exc_dof(res_ID)
+    res_dof = porous_fluid_res_dof(exc_ID)
     
     phi = porosity
     data = np.array([[0,1-phi,phi,0,0,0],
@@ -270,16 +417,16 @@ def I_porous_fluid(xdata,porosity,left_ID):
     return mC.DynamicMatrix(data, xdata, exc_dof, res_dof)    
 
 
-def J_porous_fluid(xdata,porosity,left_ID,right_ID):
+def J_porous_fluid(xdata,porosity,res_ID,exc_ID):
 
-    exc_dof = porous_exc_dof(right_ID)
-    res_dof = porous_fluid_res_dof(left_ID)
+    exc_dof = fluid_exc_dof(exc_ID)
+    res_dof = porous_fluid_res_dof(res_ID)
     
     phi = porosity
     data = np.array([[0    ,-1],
                      [1-phi, 0],
                      [0    , 0],
-                     [0    , 0]])
+                     [phi  , 0]])
 
     data = np.dstack([data for _ in range(len(xdata))]) 
     
@@ -288,57 +435,169 @@ def J_porous_fluid(xdata,porosity,left_ID,right_ID):
 
 # functions for DOF generation
 
-def solid_fluid_res_dof(left_ID):
+def solid_fluid_res_dof(res_ID):
+    """
+    Response DOFs of solid-fluid I and J matrices.
     
-    ID_   = [left_ID]*3
+    The I or J matrix of Allard interface formulation are no real response DOF.
+    Their main use is to define the row of the matrices in the global system.
+    
+    Due to the face that I and J are interchanged in case of a fluid solid connection
+    the 'complicated layer' determines the response DOFs.
+    
+    Parameters
+    ----------
+    res_ID : int
+        reponse ID.
+
+    Returns
+    -------
+    DOF
+        response DOFs.
+
+    """
+    ID_   = [res_ID]*3
     dof_  = [3,3,1]
     type_ = [ VELOCITY , STRESS, STRESS ] 
     return dof.DOF(ID_,dof_,type_)
 
-def solid_exc_dof(left_ID):
+def solid_exc_dof(exc_ID):
+    """
+    Excitation DOFs of solid layer
+
+    Parameters
+    ----------
+    exc_ID : int
+        relevant ID of solid layer.
+
+    Returns
+    -------
+    DOF
+        excistion DOF of solid layer.
+
+    """
     
-    ID_   = [left_ID]*4 
+    ID_   = [exc_ID]*4 
     dof_  = [1,3,3,1]
     type_ = [VELOCITY, VELOCITY , STRESS, STRESS] 
         
     return dof.DOF(ID_,dof_,type_)
 
-# def fluid_solid_dof(left_ID):
-    
-#     ID_   = [left_ID]*2
-#     dof_  = [0,3]
-#     type_ = [ PRESSURE, VELOCITY ] 
-#     return dof.DOF(ID_,dof_,type_)
+def fluid_exc_dof(exc_ID):
+    """
+    Excitation DOFs of fluid layer
 
-def fluid_exc_dof(left_ID):
+    Parameters
+    ----------
+    exc_ID : int
+        relevant ID of fluid layer.
+
+    Returns
+    -------
+    DOF
+        excitration DOF of fluid layer.
+
+    """
     
-    ID_   = [left_ID]*2
+    ID_   = [exc_ID]*2
     dof_  = [0,3]
     type_ = [ PRESSURE, VELOCITY] 
     return dof.DOF(ID_,dof_,type_)
 
-def fluid_fluid_res_dof(left_ID):
+def fluid_fluid_res_dof(res_ID):
+    """
+    Response DOFs of fluid-fluid I matrix.
+    
+    The I or J matrix of Allard interface formulation are no real response DOF.
+    Their main use is to define the row of the matrices in the global system.
+    
+    Due to the face that I and J are interchanged in case of a fluid solid connection
+    the 'complicated layer' determines the response DOFs.
+    
+    Parameters
+    ----------
+    res_ID : int
+        reponse ID.
 
-    ID_   = [left_ID]*2
+    Returns
+    -------
+    DOF
+        response DOFs.
+
+    """
+    ID_   = [res_ID]*2
     dof_  = [0,3]
     type_ = [ PRESSURE, VELOCITY] 
     return dof.DOF(ID_,dof_,type_)
 
-def porous_exc_dof(ID):
+def porous_exc_dof(exc_ID):
+    """
+    Exciation DOFs of porous layer    
+
+    Parameters
+    ----------
+    exc_ID : int
+        ID of excitation DOF.
+
+    Returns
+    -------
+    DOF
+        excitation DOFs of porous layer.
+
+    """
     
-    ID_   = [ID]*6
-    dof_  = [1,3,3,3,1,3]
+    ID_   = [exc_ID]*6
+    dof_  = [1,3,2,3,1,2]
     type_ = [ VELOCITY, VELOCITY, VELOCITY, STRESS, STRESS, STRESS ] 
     return dof.DOF(ID_,dof_,type_)
 
 def solid_porous_res_dof(ID):
+    """
+    Response DOFs of solid-porous I and J matrices.
     
+    The I or J matrix of Allard interface formulation are no real response DOF.
+    Their main use is to define the row of the matrices in the global system.
+    
+    Due to the face that I and J are interchanged in case of a porous-solid connection
+    the 'complicated layer' determines the response DOFs.
+    
+    Parameters
+    ----------
+    res_ID : int
+        reponse ID.
+
+    Returns
+    -------
+    DOF
+        response DOFs.
+
+    """
     ID_   = [ID]*5
     dof_  = [1,3,2,3,1] # 2 is used as pseudo DOF for v_3_f in eq (11.75)
     type_ = [ VELOCITY, VELOCITY, VELOCITY, STRESS, STRESS ] 
     return dof.DOF(ID_,dof_,type_)
 
 def porous_fluid_res_dof(ID):
+    """
+    Response DOFs of porous-fluid I and J matrices.
+    
+    The I or J matrix of Allard interface formulation are no real response DOF.
+    Their main use is to define the row of the matrices in the global system.
+    
+    Due to the face that I and J are interchanged in case of a fluid-porous connection
+    the 'complicated layer' determines the response DOFs here the porous.
+    
+    Parameters
+    ----------
+    res_ID : int
+        reponse ID.
+
+    Returns
+    -------
+    DOF
+        response DOFs.
+
+    """
     
     ID_   = [ID]*4
     dof_  = [1,3,1,2] # 2 is used as pseudo DOF for sig_33_f in eq (11.73)
@@ -1250,13 +1509,15 @@ class PoroElasticLayer(AcousticLayer):
         """
         Class for Modelling poro-elastic material as InfiniteLayer.
         
+        This class implements the theory of the mixed pressure-displacement formulation of [All98_]
+        
         Attributes
         ----------
         thickness : float
             thickness of the perforted layer.
         poroelasticmat : PoroElasticMat
-            poroelastic material of layer.
-        thickness : float
+            poroelastic material of layer in Vacuum.
+
             thickness of layer.
         """
         
@@ -1271,13 +1532,13 @@ class PoroElasticLayer(AcousticLayer):
             thickness : float
                 thickness of layer.
             ID : list or tuple
-                node IDs of left and right side
+                node IDs of left and right side of layer
             """
                     
             # set DOF according to ID and natural DOF of the layer
             Tdof = ('velocity','velocity','velocity','stress','stress','stress')
-            _left_dof  = dof.DOF([0,0,0,0],[1,3,3,3,1,3],Tdof)
-            _right_dof = dof.DOF([1,1,1,1],[1,3,3,3,1,3],Tdof)
+            _left_dof  = dof.DOF([0]*6,[1,3,2,3,1,2],Tdof) # v_3^f := v_2 
+            _right_dof = dof.DOF([1]*6,[1,3,2,3,1,2],Tdof) # sig_33_f _= sig_2
                            
             super().__init__(thickness,_left_dof,_right_dof)
             
@@ -1295,23 +1556,23 @@ class PoroElasticLayer(AcousticLayer):
 
             """
             
-            str_ = 'poroelasticlayer layer of thickness {0}'.format(self.thickness)
+            str_ = 'PoroElasticlayer layer of thickness {0}'.format(self.thickness)
             return str_
 
-        @property
-        def isequivalentfluid(self):
-            """
-            Determine if layer is of type equivalent fluid
+        # @property
+        # def isequivalentfluid(self):
+        #     """
+        #     Determine if layer is of type equivalent fluid
 
-            Defauls parameter is False
+        #     Default parameter is False
 
-            Returns
-            -------
-            bool
-                False.
+        #     Returns
+        #     -------
+        #     bool
+        #         False.
 
-            """
-            return False
+        #     """
+        #     return False
 
         @property
         def mass_per_area(self):
@@ -1324,13 +1585,13 @@ class PoroElasticLayer(AcousticLayer):
                 mass per area.
 
             """        
-            return self.thickness*self.poroelasticmat.rho0
+            return self.thickness*self.poroelasticmat.rho
         
-        def transfer_impedance(self,omega,kx=0, ID = [1,2], allard = False):
+        def transfer_impedance(self,omega,kx=0, ID = [1,2], allard = True):
             """
             Transferimpedance of PoroElasticLayer
             
-            Implementation according to [All2009_].
+            Implementation according to the diplacement-pressure formulation of Allard [All2009_].
 
             Parameters
             ----------
@@ -1363,16 +1624,16 @@ class PoroElasticLayer(AcousticLayer):
             k33 = np.sqrt(k33_2) 
             
             # Other constants
-            P = self.P(omega)
-            Q = self.Q(omega)
-            R = self.R(omega)
-            N = self.N(omega)
+            P = self.poroelasticmat.P(omega)
+            Q = self.poroelasticmat.Q(omega)
+            R = self.poroelasticmat.R(omega)
+            N = self.poroelasticmat.N(omega)
             
             D1 = (P+Q*mu1)*delta1 - 2*N*kx2
             D2 = (P+Q*mu2)*delta2 - 2*N*kx2
             E1 = (R*mu1+Q)*delta1
             E2 = (R*mu2+Q)*delta2
-            
+                        
             h  = self.thickness
                         
             Gamma = np.zeros((len(xdata),6,6),dtype = np.complex128)
@@ -1410,17 +1671,16 @@ class PoroElasticLayer(AcousticLayer):
             Gamma[:,4,1] = -2*N*kx*k13*np.cos(h*k13)
             Gamma[:,4,2] = 2j*N*kx*k23*np.sin(h*k23)
             Gamma[:,4,3] = -2*N*kx*k23*np.cos(h*k23)
-            Gamma[:,4,4] = N*(-kx**2 + k33**2)*np.cos(h*k33)
-            Gamma[:,4,5] = -1j*N*(-kx**2 + k33**2)*np.sin(h*k33)
+            Gamma[:,4,4] = N*(k33**2-kx**2)*np.cos(h*k33)
+            Gamma[:,4,5] = -1j*N*(k33**2-kx**2)*np.sin(h*k33)
             # row 6
             Gamma[:,5,0] = -E1*np.cos(h*k13)
             Gamma[:,5,1] = 1j*E1*np.sin(h*k13)
             Gamma[:,5,2] = -E2*np.cos(h*k23)
             Gamma[:,5,3] = 1j*E2*np.sin(h*k23)
-            Gamma[:,5,4] = 0
-            Gamma[:,5,5] = 0    
-                       
-            Gamma0_inv = np.zeros((len(xdata),6,6),dtype = np.complex128)     
+            
+            Gamma0_inv = np.zeros((len(xdata),6,6),dtype = np.complex128)
+            # The inverse results from analytic inversion of Gamma(0) 
             # row 1
             Gamma0_inv[:,0,0] = 2*E2*N*kx/(omega*(D1*E2 - D2*E1 - 2*E1*N*kx2 + 2*E2*N*kx2))
             Gamma0_inv[:,0,3] = E2/(-D1*E2 + D2*E1 + 2*E1*N*kx2 - 2*E2*N*kx2)
@@ -1452,7 +1712,7 @@ class PoroElasticLayer(AcousticLayer):
                            
             
             # Update ID in DOF attribute
-            ldof = dof.DOF([ID[0],ID[0],ID[0],ID[0],ID[0],ID[0]], self.left_dof.dof,self.left_dof.type)
-            rdof = dof.DOF([ID[1],ID[1],ID[1],ID[1],ID[0],ID[0]], self.right_dof.dof,self.right_dof.type)
+            ldof = dof.DOF([ID[0]]*6, self.left_dof.dof,self.left_dof.type)
+            rdof = dof.DOF([ID[1]]*6, self.right_dof.dof,self.right_dof.type)
             
             return mC.DynamicMatrix(Gamma,xdata,rdof,ldof)

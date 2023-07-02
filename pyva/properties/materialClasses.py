@@ -1058,7 +1058,7 @@ class PoroElasticMat(EquivalentFluid):
     Attributes
     ----------
     frame: flow resistivity
-    : porosity: volume porosity
+    porosity: volume porosity
     tortuosity: tortuosity (alpha_inf)
     rho_bulk: apearant density of fluid and matrix
     length_visc: viscous characteristic length
@@ -1216,12 +1216,12 @@ class PoroElasticMat(EquivalentFluid):
 
         """
         
-        return self.G_complex(omega)
+        return self.solid_mat.G_complex
 
     @property  
-    def rho0(self):
+    def rho(self):
         """
-        Joint density of air and frame.
+        Joint static density of air and frame.
         
         Returns
         -------
@@ -1319,6 +1319,31 @@ class PoroElasticMat(EquivalentFluid):
         return (P*rho22+R*rho11-2*Q*rho12)**2-4*(P*R-Q*Q)*(rho11*rho22-rho12)
     
     def wavenumbers(self,omega):
+        """
+        Provide wavenumber coefficients of poroelastic materials
+
+        Parameters
+        ----------
+        omega : float
+            angular frequency.
+
+        Returns
+        -------
+        delta1 : complex
+            squared first compressional wavenmuber.
+        delta2 : complex
+            squared first compressional wavenmuber.
+        delta3 : complex
+            squared shear wavenmuber.
+        mu1 : complex
+            ratio of the velocity of air to the velocity of the frame of 1st compr. wave.
+        mu2 : complex
+            ratio of the velocity of air to the velocity of the frame of 2nd compr. wave.
+        mu3 : complex
+            ratio of the velocity of air to the velocity if the frame of shear wave.
+
+        """
+        
 
         P     = self.P(omega)
         Q     = self.Q(omega)
@@ -1336,46 +1361,92 @@ class PoroElasticMat(EquivalentFluid):
         
         PR2Q  = P*rho22+R*rho11-2*Q*rho12
         Delta = PR2Q*PR2Q-4*PR_Q2*rho_
-        
-        # plt.figure(100)
-        # plt.plot(omega,np.real(PR2Q*PR2Q),label='Re PR-2Q')
-        # plt.plot(omega,np.imag(PR2Q*PR2Q),label='Im PR-2Q')
-        # plt.plot(omega,np.real(PR_Q2*rho_),label='Re PR-Q^2 * rho_')
-        # plt.plot(omega,np.imag(PR_Q2*rho_),label='Im PR-Q^2 * rho_')
-        # plt.legend()
-        
-        # plt.figure(101)
-        # plt.plot(omega,np.real(np.sqrt(Delta)),label='Re Delta')
-        # plt.plot(omega,np.imag(np.sqrt(Delta)),label='Im Delta')
-        # plt.legend()
-
-        # plt.figure(102)
-        # plt.subplot(2,1,1)
-        # plt.plot(omega,np.abs(Delta),label='Re Delta')
-        # plt.legend()
-        # plt.subplot(2,1,2)
-        # plt.plot(omega,np.angle(Delta,deg=True),label='Im Delta')
-        # plt.legend()
-
-        # plt.figure(103)
-        # plt.subplot(2,1,1)
-        # plt.plot(omega,np.abs(np.sqrt(Delta)),label='Re Delta')
-        # plt.legend()
-        # plt.subplot(2,1,2)
-        # plt.plot(omega,np.angle(np.sqrt(Delta),deg=True),label='Im Delta')
-        # plt.legend()    
 
         # delta are the squared values, because they are mainly used
         # compressional waves 
-        delta1 = omega2/2/PR_Q2*(PR2Q-np.sqrt(Delta))
-        delta2 = omega2/2/PR_Q2*(PR2Q+np.sqrt(Delta))
-        mu1    = (P*delta1-omega2*rho11)/(omega2*rho12-Q*delta1)
+        delta1 = omega2/2/PR_Q2*(PR2Q-np.sqrt(Delta)) # Eq (6.67)
+        delta2 = omega2/2/PR_Q2*(PR2Q+np.sqrt(Delta)) # Eq (6.68)
+        mu1    = (P*delta1-omega2*rho11)/(omega2*rho12-Q*delta1) # Eq (6.71)
         mu2    = (P*delta2-omega2*rho11)/(omega2*rho12-Q*delta2)
 
         # shear wave
-        delta3 = omega*omega/self.solid_mat.G_complex*rho_/rho22
-        mu3    = -rho12/rho22
+        delta3 = omega*omega/self.solid_mat.G_complex*rho_/rho22 # Eq (6.83)
+        mu3    = -rho12/rho22 # Eq (6.84)
         
         return (delta1,delta2,delta3,mu1,mu2,mu3)
+    
+    def impedances(self,omega):
+        """
+        Characteristic impedances of poroelastic material.
+
+        Parameters
+        ----------
+        omega : float
+            angular frequency.
+
+        Returns
+        -------
+        Zf1 : complex
+            Characterisitc impedance of the air for the first compressinal wave.
+        Zf2 : complex
+            Characterisitc impedance of the air for the second compressinal wave.
+        Zs1 : complex
+            Characterisitc impedance of the frame for the first compressinal wave.
+        Zs2 : complex
+            Characterisitc impedance of the frame for the second compressinal wave.
+
+
+        """
         
         
+        delta1_2,delta2_2,delta3_2,mu1,mu2,mu3 = self.wavenumbers(omega)
+        delta1 = np.sqrt(delta1_2)
+        delta2 = np.sqrt(delta2_2)
+        
+        R = self.R(omega)
+        Q = self.Q(omega)
+        P = self.P(omega)
+        
+        Zf1 = (R+Q/mu1)*delta1/self.porosity/omega # Eq (6.74)
+        Zf2 = (R+Q/mu2)*delta2/self.porosity/omega # Eq (6.75)
+        
+        Zs1 = (P+Q*mu1)*delta1/omega # Eq (6.77)
+        Zs2 = (P+Q*mu2)*delta2/omega
+        
+        return (Zf1,Zf2,Zs1,Zs2)
+    
+    def surface_impedances(self,omega,thickness):
+        """
+        Surface impedance of poroelastic layer with hard wall backing
+
+        Parameters
+        ----------
+        omega : float
+            angular frequency.
+        thickness : float
+            thickness of layer.
+
+        Returns
+        -------
+        Z : ndarray
+            surface impedance.
+
+        """
+        h = thickness
+        phi = self.porosity
+        
+        delta1_2,delta2_2,delta3_2,mu1,mu2,mu3 = self.wavenumbers(omega)
+        delta1 = np.sqrt(delta1_2)
+        delta2 = np.sqrt(delta2_2)
+        
+        Zf1,Zf2,Zs1,Zs2 = self.impedances(omega)
+        
+        # Eq. (6.108)
+        D = (1-phi+phi*mu2)*(Zs1-(1-phi)*Zf1*mu1)*np.tan(delta2*h) + \
+            (1-phi+phi*mu1)*(Zf2*mu2*(1-phi)-Zs2)*np.tan(delta1*h) 
+        # Eq. (6.107)
+        Z = -1j*(Zs1*Zf2*mu2-Zs2*Zf1*mu1)/D
+        
+        return Z
+
+    
