@@ -16,10 +16,12 @@ p2_per_frequency = dof.DOFtype(typestr = 'pressure',exponent = 2, xdata_exponent
 
 freq      = dof.DOFtype(typestr = 'frequency')
 pressure_ = dof.DOFtype(typestr = 'pressure')
+velocity_ = dof.DOFtype(typestr = 'velocity')
 
 p2_ = p2_per_frequency*freq
 
 no_unit = pressure_/pressure
+impedance = pressure_/velocity_
 
 print(no_unit)
 

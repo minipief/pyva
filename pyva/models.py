@@ -720,8 +720,8 @@ class TMmodel:
                     if self.layers[ix].type == 'poro_elastic':
                         # set current porosity for possible porous layer coupling    
                         porosity_left = self.layers[ix].poroelasticmat.porosity
-                        I12 = iL.I_solid_porous(xdata,porosity_left,2*ix+1,2*ix) # e.g. M3 and M2 
-                        J12 = iL.J_solid_porous(xdata,porosity_left,2*ix+1,2*ix+1) # e.g. M3 and M3 
+                        I12 = iL.I_solid_porous(xdata,2*ix+1,2*ix) # e.g. M3 and M2 
+                        J12 = iL.J_solid_porous(xdata,2*ix+1,2*ix+1) # e.g. M3 and M3 
 
                 elif current_type == 'poro_elastic':
                     # porous - fluid connection
@@ -730,8 +730,8 @@ class TMmodel:
                         J12 = iL.J_porous_fluid(xdata,porosity_left,2*ix,2*ix+1) # e.g. M2 and M3 
                     # porous - solid connection
                     if self.layers[ix].type == 'solid':
-                        I12 = iL.J_solid_porous(xdata,porosity_left,2*ix+1,2*ix) # e.g. M3 and M2 
-                        J12 = iL.I_solid_porous(xdata,porosity_left,2*ix+1,2*ix+1) # e.g. M3 and M3
+                        I12 = iL.J_solid_porous(xdata,2*ix+1,2*ix) # e.g. M3 and M2 
+                        J12 = iL.I_solid_porous(xdata,2*ix+1,2*ix+1) # e.g. M3 and M3
                    
                
                         
@@ -745,10 +745,11 @@ class TMmodel:
                 if current_type == 'poro_elastic':
                     # consider different porosity
                     porosity_right = self.layers[ix].poroelasticmat.porosity
-                    J12 = J12.dot(iL.I_porous_porous(xdata, porosity_left, porosity_right, 2*ix,2*ix+2))
+                    J12 = J12.dot(iL.I_porous_porous(xdata, porosity_left, porosity_right, 2*ix,2*ix+1)) 
+                    J12 = J12.dot(self.layers[ix].transfer_impedance(omega,kx,ID = [2*ix+1,2*ix+2])) # 1st ID is set to left 
                     porosity_left = porosity_right
-                        
-                J12 = J12.dot(self.layers[ix].transfer_impedance(omega,kx,ID = [2*ix,2*ix+2])) # 1st ID is set to left 
+                else:        
+                    J12 = J12.dot(self.layers[ix].transfer_impedance(omega,kx,ID = [2*ix,2*ix+2])) # 1st ID is set to left 
           
             # consider last layer
             if ix == self.N-1:
@@ -771,8 +772,8 @@ class TMmodel:
                 D0 += iL.I_solid_fluid(xdata,2*self.N,2*self.N)
                 D0 += iL.J_solid_fluid(xdata,2*self.N,2*self.N+1) # e.g. M2 and M3             
             elif current_type == 'poro_elastic': 
-                D0 += iL.I_porous_fluid(xdata,2*self.N,2*self.N)
-                D0 += iL.J_porous_fluid(xdata,2*self.N,2*self.N+1) # e.g. M2 and M3 
+                D0 += iL.I_porous_fluid(xdata,porosity_left,2*self.N,2*self.N)
+                D0 += iL.J_porous_fluid(xdata,porosity_left,2*self.N,2*self.N+1) # e.g. M2 and M3 
             # Use SIF radiation impedanz to get the radiation condition
             data_ = np.zeros((1,2,len(xdata) ),dtype=np.complex128)
             data_[0,0,:] = -1
@@ -943,7 +944,7 @@ class TMmodel:
         """
         
         
-        # Create reduces Allard matrix
+        # Create reduced Allard matrix
         D1,F = self.allard_matrix(omega, kx = kx, reduced=True, 
                                   boundary_condition = 'equivalent_fluid',out_fluid=fluids[1])
         V    = D1.solve(F) 

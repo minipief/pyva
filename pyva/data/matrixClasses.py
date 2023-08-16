@@ -39,8 +39,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
-#import scipy.linalg as linalg
-import numpy.linalg as linalg
+import scipy.linalg as linalg
+#import numpy.linalg as linalg
 import copy
 from cycler import cycler
 
@@ -1595,7 +1595,11 @@ class DynamicMatrix(LinearMatrix):
             for ifreq in range(len(other.xdata)):
                 _M          = self.Dindex(ifreq)
                 _F[indexF]  = other.ydata[:,ifreq]
-                _R[:,ifreq] = np.linalg.solve(_M,_F)
+                #_R[:,ifreq] = np.linalg.solve(_M,_F)
+                try:
+                    _R[:,ifreq] = linalg.solve(_M,_F)
+                except np.linalg.LinAlgError as le:
+                    print('{0} at index {1} with data {2} = {3}'.format(le,ifreq,str(other.xdata.type.typestr),other.xdata.data[ifreq]))
                 
             return Signal(self._xdata, _R, dof = self._excdof)
         else:

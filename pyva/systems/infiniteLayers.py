@@ -360,11 +360,11 @@ def J_solid_porous(xdata,res_ID,exc_ID):
     res_dof = solid_porous_res_dof(res_ID)
     exc_dof = porous_exc_dof(exc_ID)
     
-    data = np.array([[1,0,0,0,0,0],
-                     [0,1,0,0,0,0],
-                     [0,0,1,0,0,0],
-                     [0,0,0,1,0,1],
-                     [0,0,0,0,1,0]])
+    data = -np.array([[1,0,0,0,0,0],
+                      [0,1,0,0,0,0],
+                      [0,0,1,0,0,0],
+                      [0,0,0,1,0,1],
+                      [0,0,0,0,1,0]])
     
     # stack data along depth dimension
     data = np.dstack([data for _ in range(len(xdata))]) 
@@ -478,7 +478,7 @@ def solid_exc_dof(exc_ID):
     """
     
     ID_   = [exc_ID]*4 
-    dof_  = [1,3,3,1]
+    dof_  = [1,3,3,5]
     type_ = [VELOCITY, VELOCITY , STRESS, STRESS] 
         
     return dof.DOF(ID_,dof_,type_)
@@ -547,7 +547,7 @@ def porous_exc_dof(exc_ID):
     """
     
     ID_   = [exc_ID]*6
-    dof_  = [1,3,2,3,1,2]
+    dof_  = [1,3,2,3,5,2] # v_2 for fluid 3 and sig_2 for sig_5 fluid
     type_ = [ VELOCITY, VELOCITY, VELOCITY, STRESS, STRESS, STRESS ] 
     return dof.DOF(ID_,dof_,type_)
 
@@ -573,7 +573,7 @@ def solid_porous_res_dof(ID):
 
     """
     ID_   = [ID]*5
-    dof_  = [1,3,2,3,1] # 2 is used as pseudo DOF for v_3_f in eq (11.75)
+    dof_  = [1,3,2,3,5] # 2 is used as pseudo DOF for v_3_f in eq (11.75)
     type_ = [ VELOCITY, VELOCITY, VELOCITY, STRESS, STRESS ] 
     return dof.DOF(ID_,dof_,type_)
 
@@ -600,7 +600,7 @@ def porous_fluid_res_dof(ID):
     """
     
     ID_   = [ID]*4
-    dof_  = [1,3,1,2] # 2 is used as pseudo DOF for sig_33_f in eq (11.73)
+    dof_  = [1,3,5,2] # 2 is used as pseudo DOF for sig_33_f in eq (11.73)
     type_ = [ VELOCITY, STRESS, STRESS, STRESS ] 
     return dof.DOF(ID_,dof_,type_)
     
@@ -1321,8 +1321,8 @@ class SolidLayer(AcousticLayer):
                 
         # set DOF according to ID and natural DOF of the layer
         Tdof = ('velocity','velocity','stress','stress')
-        _left_dof = dof.DOF([0,0,0,0],[1,3,3,1],Tdof)
-        _right_dof = dof.DOF([1,1,1,1],[1,3,3,1],Tdof)
+        _left_dof = dof.DOF([0,0,0,0],[1,3,3,5],Tdof)
+        _right_dof = dof.DOF([1,1,1,1],[1,3,3,5],Tdof)
                        
         super().__init__(plate_prop.thickness,_left_dof,_right_dof)
         
@@ -1537,8 +1537,8 @@ class PoroElasticLayer(AcousticLayer):
                     
             # set DOF according to ID and natural DOF of the layer
             Tdof = ('velocity','velocity','velocity','stress','stress','stress')
-            _left_dof  = dof.DOF([0]*6,[1,3,2,3,1,2],Tdof) # v_3^f := v_2 
-            _right_dof = dof.DOF([1]*6,[1,3,2,3,1,2],Tdof) # sig_33_f _= sig_2
+            _left_dof  = dof.DOF([0]*6,[1,3,2,3,5,2],Tdof) # v_3^f := v_2 
+            _right_dof = dof.DOF([1]*6,[1,3,2,3,5,2],Tdof) # sig_33_f _= sig_2
                            
             super().__init__(thickness,_left_dof,_right_dof)
             

@@ -138,9 +138,13 @@ class Fluid:
     @staticmethod
     def air(temperature, pressure,h_rel=0.):
         """
-        Determine precise properties from ambient conditions.
+        Determine precise properties of air from ambient conditions.
         
-        [1] Saha, Pranab: Acoustical Materials: Solving the Challenge of Vehicle Noise
+        Implementation is based on [1] that collects numerous papers dealing with various
+        properties of air. Rasmussen condenses all papers into one formula collection.
+        
+        [1] Rasmussen, K. (1997). Calculation methods for the physical properties of air 
+        used in the calibration of microphones.
 
         Parameters
         ----------
@@ -149,7 +153,7 @@ class Fluid:
         pressure : float
             atmospheric pressure in bar
         h_rel : float
-            relative humidity. The default is 0 (dry air).
+            relative humidity in percent. The default is 0 (dry air).
 
         Returns
         -------
@@ -162,38 +166,76 @@ class Fluid:
         R_d = 461.   # gas constant of water steam
         M_d = 29     # molecular weight of dry air
         M_w = 18     # molecular weight of water
+        p_sr = 101325 # The reference static pressure in Pa
+        x_c = 0.0004 # Mole fraction of CO2 - recommended value under lab conditions
         
+        # Table A.1 coefficients
+        a_sv = [1.2378847E-5, -1.9121316E-02, 33.93711047,-6.3431645E+3]
+        a_f  = [1.00062, 3.14E-8, 5.6E-7]
+        a_Z  = [1.58123E-6, -2.9331E-8, 1.1043E-10, 5.707E-6, -2.051E-8,\
+                1.9898E-4,  -2.376E-6,  1.83E-11 , -7.65E-9 ]
+        a_c  = [331.5024, 0.603055, -5.28E-4, 51.471935,	0.1495874, \
+                -7.82E-4, -1.82E-7,  3.73E-8, -2.93E-10,-85.20931, \
+                -0.228525, 5.91E-5, -2.835149,-2.15E-13, 29.179762, 4.86E-4 ]
+        a_k  = [ 1.400822, -1.75E-5, -1.73E-7, -0.0873629, -1.665E-4, \
+                -3.26E-6,  2.047E-8, -1.26E-10, 5.939E-14, -0.1199717,\
+                -8.693E-4, 1.979E-6,	 -1.104E-2, -3.478E-16, 4.50616E-2, 1.82E-6 ]
+        a_e  = [84.986, 7.0, 113.157, -1., -3.7501E-3,-100.015 ]
+        a_ka = [60.054, 1.846, 2.06E-6, 40.,	-1.775E-4]
+        a_cp = [0.251625, -9.2525E-5, 2.1334E-7,	-1.0043E-10, 0.12477, \
+                -2.283E-5, 1.267E-7, 0.01116, 4.61E-6, 1.74E-8 ]
         
         # unit changes
-        TC = temperature-T0
-        p_Pa = pressure*100000
+        T  = temperature
+        T2 = T*T
+        t = T-T0 # tmeperature in Celsius
+        t2 = t*t # square
+        p_s = pressure*100000
+        p_s2 = p_s*p_s 
+        H = h_rel
+        kcal = 4186.8 # kilo calories in J 
         
         # speed of sound in dry air
-        c_d = 331-45*np.sqrt(1+TC/T0) # [1] Eq.(10.1)
-        # Vapor pressure of water
-        vP = 1000*0.61121*np.exp((18.678-TC/234.5)*(TC/(257.14+TC))) # Buck Equation
-        # Gas constant of humid air
-        R_f = R_l/(1-(h_rel*vP/p_Pa*(1-R_l/R_d)))
-
+        #c_d = 331.45*np.sqrt(1+TC/T0) # [1] Eq.(10.1)
+        # Vapor pressure of water in Pa [2] eq. 22
+        p_sv = np.exp(a_sv[0]*T2+a_sv[1]*T+a_sv[2]+a_sv[3]/T) # Buck Equation
+        # Vapor pressure of water in Pa [2] eq. 22
+        #C = 4.6151 - 6.8346*(T0+0.01/T)**1.261
+        #p_sv = p_sr*10**C
+        # Enhancement factor
+        f = a_f[0]+a_f[1]*p_s+a_f[2]*t2
+        # Mole fraction of water vapor in air
+        x_w = H/100*p_sv/p_s*f
+        # Compressibility factor
+        ps_T = p_s/T
+        x_w2 = x_w*x_w
+        Z = 1-ps_T*(a_Z[0]+a_Z[1]*t+a_Z[2]*t2+(a_Z[3]+a_Z[4]*t)*x_w +\
+                     (a_Z[5]+a_Z[6]*t)*x_w2) + ps_T*ps_T*(a_Z[7]+a_Z[8]*x_w2)
+                
         # density of air
-        #rho_ = 1.293*T0/temperature*pressure/1.013
-        rho_ = p_Pa/R_f/temperature
+        rho = (3.48349+1.44*(x_c-0.0004))/1000*p_s/Z/T*(1-0.378*x_w)
+
+        # Zero frequency speed of sound
+        c_0 = a_c[0]+a_c[1]*t+a_c[2]*t2+(a_c[3]+a_c[4]*t+a_c[5]*t2)*x_w + \
+              (a_c[6]+a_c[7]*t+a_c[8]*t2)*p_s +(a_c[9]+a_c[10]*t+a_c[11]*t2)*x_c + \
+              a_c[12]*x_w2+a_c[13]*p_s2+a_c[14]*x_c*x_c+a_c[15]*x_w*p_s*x_c
+
+        # Ratio of specific heats
+        kappa = a_k[0]+a_k[1]*t+a_k[2]*t2+(a_k[3]+a_k[4]*t+a_k[5]*t2)*x_w + \
+              (a_k[6]+a_k[7]*t+a_k[8]*t2)*p_s +(a_k[9]+a_k[10]*t+a_k[11]*t2)*x_c + \
+              a_k[12]*x_w2+a_k[13]*p_s2+a_k[14]*x_c*x_c+a_k[15]*x_w*p_s*x_c
+        # Viscosity of air
+        eta = (a_e[0]+a_e[1]*T+(a_e[2]+a_e[3]*T)*x_w+a_e[4]*T2+a_e[5]*x_w2)*1.E-8
+        # Thermal Conductivity
+        k_a = (a_ka[0] + a_ka[1]*T +a_ka[2]*T2 +(a_ka[3] +a_ka[4]*T)*x_w)*1.E-8
+        # Specific heat at constant pressure
+        C_p = a_cp[0]+a_cp[1]*T+a_cp[2]*T2+a_cp[3]*T*T2+ \
+              (a_cp[4]+a_cp[5]*T+a_cp[6]*T2)*x_w + \
+              (a_cp[7]+a_cp[8]*T+a_cp[9]*T2)*x_w2
         
-        eta_ = 1.e-5*(1.723+0.0047*TC)
-        lambda_ = (0.02427+7.130e-5*TC)
-        c_p_ = 1003.+0.1*TC
-        
-        # speed of sound
-        h = 0.01*h_rel*vP/p_Pa # [1] Eq.(10.3)
-        # fraction of molecues of water in air
-        gamma_w = (h+7)/(h+5) # [1] Eq.(10.2)
-        # molecular weight of humid air
-        M_ha = M_d-(M_d-M_w)*h
-        
-        #c0_ = 331.5+0.6*TC
-        c0_ = 4.5513*c_d*np.sqrt(gamma_w/M_ha)
-        
-        return Fluid(c0=c0_,rho0=rho_,eta=0,dynamic_viscosity=eta_,Cp=c_p_, heat_conductivity=lambda_)
+        return Fluid(c0=c_0,rho0=rho,eta=0,dynamic_viscosity=eta,\
+                     Cp=C_p*kcal, heat_conductivity=k_a*kcal,kappa = kappa)
+
         
     @property    
     def z0(self):
@@ -211,7 +253,7 @@ class Fluid:
     @property    
     def Pr(self):
         """
-        Prandtl number
+        Prandtl number.
 
         Returns
         -------
@@ -222,9 +264,36 @@ class Fluid:
         return self.Cp/self.heat_conductivity*self.dynamic_viscosity
     
     @property    
+    def kinematic_viscosity(self):
+        """
+        Kinematic viscosity.
+
+        Returns
+        -------
+        float
+            Kinematic viscosity.
+
+        """
+        return self.nu0
+
+    @property    
+    def diffusivity(self):
+        """
+        Diffusivity.
+
+        Returns
+        -------
+        float
+            Diffusivity.
+
+        """
+        return self.heat_conductivity/self.Cp/self.rho0
+
+    
+    @property    
     def nu0(self):
         """
-        Kinematic viscosity 
+        Kinematic viscosity.
         
 
         Returns
