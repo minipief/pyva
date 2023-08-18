@@ -1,17 +1,17 @@
 About pyva
 ==========
 
-Vibroacoustic [All2009] is a challenging and demanding task. 
+Vibroacoustic simulation is a challenging and demanding task. 
 Students in this field of acoustics must get used to several methods and tools. 
-A full frequency vibroacoustic [All2009] requires very different tools
+A full frequency vibroacoustic simulation requires very different tools
 ranging from deterministic approaches, for example finite element methods (FEM), to random methods as the statistical energy analysis (SEA)
 In the mid frequency range deterministic and random approaches must be used simultaneously.
 This is called the hybrid FEM/SEA-method.
 
 Students (and small acoustic consultancies) usually cannot afford the licence costs of typical 
-vibroacoustic [All2009] software.  Thus, the **pyva** toolbox aims at providing a software framework
+vibroacoustic  simulation software.  Thus, the **pyva** toolbox aims at providing a software framework
 to apply all the above mentioned methods in a python environment for free.
-The idea is to allow students to exercise vibroacoustic [All2009] using a free software without the need to implement
+The idea is to allow students to exercise vibroacoustic  simulation using a free software without the need to implement
 everything from scratch.
 
 Objectives
@@ -20,7 +20,7 @@ Objectives
 So what are the main goals of the pyva package?
 The main goals are ...
 
-- to establish a data structure that deals with typical data of vibroacoustic [All2009] as transfer matrices, 
+- to establish a data structure that deals with typical data of vibroacoustic simulation as transfer matrices, 
   system matrices, signals, shape function etc.
 - to implement an API for SEA-methods that can be easily used and extended
 - to implement an API for hybrid FEM/SEA-methods
@@ -52,7 +52,7 @@ Those are classes are:
 - Vibro Acoustic Models :class:`pyva.models.VAmodel`
 
 The transfermatrix class is a deterministic model class but with the specific task
-of multiple and infinite layer [All2009].
+of multiple and infinite layer simulation.
 
 - Transfermatrix Models :class:`pyva.models.TMmodel`
 

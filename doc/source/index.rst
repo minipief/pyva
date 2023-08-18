@@ -3,17 +3,17 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Vibro Acoustic [All2009] Package - pyva
+Vibro Acoustic Package - pyva
 ========================================
 
 The pyva [#f1]_ package provides typical routines to calculate and predict the **vibroacoustics** of technical systems 
 using deterministic e.g. (FEM), random (SEA) and  the combination of both hybrid FEM/SEA.
 
-It is a **Py**\ thon library for **V**\ ibro\ **a**\ coustic [All2009] using numpy, scipy and matplotlib.
+It is a **Py**\ thon library for **V**\ ibro\ **a**\ coustic simulation using numpy, scipy and matplotlib.
 
 
 
-All examples, systems and models from the book **Vibroacoustic [All2009] - An Introduction to SEA and hybrid methods** [Pei2022]_ are created using this toolbox.
+All examples, systems and models from the book **Vibroacoustic Simulation - An Introduction to SEA and hybrid methods** [Pei2022]_ are created using this toolbox.
 
 
 Contents

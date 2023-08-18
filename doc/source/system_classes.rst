@@ -43,7 +43,7 @@ SEA_system
 
 This class is the abstract base class for all SEA systems. 
 All daughter classes are obliged to implement specific methods, that are required for SEA [All2009].
-Those methods represent the functions or parameters required for SEA [All2009].
+Those methods represent the functions or parameters required for SEA simulation.
 
 - :meth:`pyva.systems.SEA_system.SEA_system.modal_density`
 - :meth:`pyva.systems.SEA_system.SEA_system.modal_overlap`

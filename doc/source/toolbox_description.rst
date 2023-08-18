@@ -1,8 +1,8 @@
 Toolbox description
 ===================
 
-This section introduces the modules and sub-packages of pyva from the [All2009] perspective.
-It presents each module in the context of its [All2009] purpose. 
+This section introduces the modules and sub-packages of pyva from the  simulation perspective.
+It presents each module in the context of its  simulation purpose. 
 
 .. figure:: ./images/pyva_packages.*
    :align: center
@@ -20,7 +20,7 @@ to efficiently handle system matrices, vectors and degrees of freedom.
 
 This section gives an overview about the functionality and features of the implemented modules and classes. 
 For details of classes, methods and attributes please refer to the API section :ref:`sec-pyva_API`, for the application 
-of the classes in a [All2009] context you should refer to the :ref:`sec-creating_models` section of the :ref:`sec-user_guide` 
+of the classes in a  simulation context you should refer to the :ref:`sec-creating_models` section of the :ref:`sec-user_guide` 
 
 
 .. toctree::

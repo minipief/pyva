@@ -101,7 +101,7 @@ Please note that only SEA Systems are obligatory. FEM-subsystems are not require
 Transfer matrix model
 ---------------------
 
-Especially the [All2009] of flat noise control treatment can be performed efficiently using the 
+Especially the  simulation of flat noise control treatment can be performed efficiently using the 
 transfer matrix method. The :class:`pyva.models.TMmodel` class provides methods to deal with system configurations that can be 
 treated by transfer matrices. 
 Obviously, this is restricted to sequential arrangements, for example a series of tubes or infinite layers. 

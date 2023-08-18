@@ -62,30 +62,37 @@ foam_1cm = iL.PoroElasticLayer(poroela, 0.01)
 foam_1um = iL.PoroElasticLayer(poroela, 0.00001)
 foam_equiv = iL.MassLayer(0.03, 12.)
 
+
+
+
 # metal
 steel_1mm    = stPC.PlateProp(0.001, steel)
 alu_1um    = stPC.PlateProp(1.E-6, alu) #
 rubber_2mm    = stPC.PlateProp(0.002, rubber)
 
 iL_steel_1mm = iL.PlateLayer(steel_1mm)
-iL_alu_1um = iL.PlateLayer(alu_1um)
-#iL_alu_1um = iL.SolidLayer(alu_1um)
+#iL_alu_1um = iL.PlateLayer(alu_1um)
+iL_alu_1um = iL.SolidLayer(alu_1um)
 iL_rubber_2mm = iL.SolidLayer(rubber_2mm)
 heavy2_4kg   = iL.MassLayer(0.002, 1200)
+iL_nothing = iL.MassLayer(1e-6,1.)
 
-
-#layer_set1 = mds.TMmodel((foam_3cm,iL_alu_1um))
-layer_set1 = mds.TMmodel((foam_3cm,))
-#layer_set2  = mds.TMmodel((heavy2_4kg,foam_3cm,iL_alu_1um))
-#layer_set2  = mds.TMmodel((iL_rubber_2mm,foam_3cm,iL_alu_1um))
-layer_set2  = mds.TMmodel((iL_rubber_2mm,foam_3cm))
+#layer_set1 = mds.TMmodel((iL_alu_1um,foam_3cm))
+layer_set1 = mds.TMmodel((foam_3cm,iL_alu_1um))
+layer_set1a = mds.TMmodel((foam_3cm,))
+#layer_set1 = mds.TMmodel((foam_3cm,))
+#layer_set2  = mds.TMmodel((heavy2_4kg,foam_3cm,iL_alu_1um)) # 
+layer_set2  = mds.TMmodel((iL_rubber_2mm,foam_3cm,iL_alu_1um))
+layer_set2a  = mds.TMmodel((iL_rubber_2mm,foam_3cm))
 
 
 steel_set = mds.TMmodel((iL_steel_1mm,))
 mass_set  = mds.TMmodel((foam_equiv,))
 
 tau1 = layer_set1.transmission_diffuse(omega,theta_max=78/180*np.pi,allard=True)
+tau1a = layer_set1a.transmission_diffuse(omega,theta_max=78/180*np.pi,allard=True)
 tau2 = layer_set2.transmission_diffuse(omega,theta_max=78/180*np.pi,allard=True)
+tau2a = layer_set2a.transmission_diffuse(omega,theta_max=78/180*np.pi,allard=True)
 
 abs1 = layer_set1.absorption_diffuse(omega,theta_max=78/180*np.pi,allard=True)
 abs2 = layer_set2.absorption_diffuse(omega,theta_max=78/180*np.pi,allard=True)
@@ -100,6 +107,7 @@ kl = np.sqrt(kl2)
 
 #%% Plot1
 plt.figure(1)
+plt.plot(freq,-10*np.log10(tau1.ydata[0]),'.:',label='TL_this alu + foam')
 plt.plot(freq,-10*np.log10(tau1.ydata[0]),'.:',label='TL_foam')
 plt.plot(freq_VA1,TL_melamin3cm_VA1,label='VA1 mela')
 plt.plot(freq_VA1,TL_melamin3cm_dec_VA1,label='VA1 mela dec')
@@ -111,7 +119,8 @@ plt.legend()
 
 #%% Plot2
 plt.figure(2)
-plt.plot(freq,-10*np.log10(tau2.ydata[0]),label='TL_mass_foam')
+plt.plot(freq,-10*np.log10(tau2.ydata[0]),label='TL_mass_foam_thin alu')
+plt.plot(freq,-10*np.log10(tau2a.ydata[0]),label='TL_mass_foam')
 plt.plot(freq_VA1,TL_melamin3cm_2_4kg_VA1,label='VA1 mela + mass')
 plt.plot(freq_VA1,TL_melamin3cm_2_4kg_dec_VA1,label='VA1 mela + mass dec')
 plt.xlabel('f/Hz')
@@ -121,7 +130,7 @@ plt.legend()
 
 #%% Plot3
 plt.figure(3)
-plt.plot(freq,abs1.ydata[0],label='foam')
+plt.plot(freq,abs1.ydata[0],'.-',label='foam')
 plt.plot(freq_VA1,abs_melamin3cm_VA1,label='VA1 mela')
 plt.plot(freq_VA1,abs_melamin3cm_dec_VA1,label='VA1 mela dec')
 plt.xlabel('f/Hz')
