@@ -527,7 +527,7 @@ class LineJunction(Junction) :
         
         _LM identifies the slow LinearMatrix version
         
-        In ref [Pei2022_] this is Equation (8.129).
+        In ref [Pei2022]_ this is Equation (8.129).
         
         Parameters
         ----------

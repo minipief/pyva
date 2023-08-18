@@ -730,8 +730,8 @@ class TMmodel:
                         J12 = iL.J_porous_fluid(xdata,porosity_left,2*ix,2*ix+1) # e.g. M2 and M3 
                     # porous - solid connection
                     if self.layers[ix].type == 'solid':
-                        I12 = iL.J_solid_porous(xdata,2*ix+1,2*ix) # e.g. M3 and M2 
-                        J12 = iL.I_solid_porous(xdata,2*ix+1,2*ix+1) # e.g. M3 and M3
+                        I12 = iL.J_solid_porous(xdata,2*ix,2*ix) # e.g. M3 and M2 +1 bei res ID entfernt
+                        J12 = iL.I_solid_porous(xdata,2*ix,2*ix+1) # e.g. M3 and M3
                    
                
                         
@@ -1428,7 +1428,7 @@ class VAmodel(mC.DynamicMatrix):
             response degrees of freedom.
         sym : int
             Symmetry identifier.
-       **kwargs : dict
+        **kwargs : dict
             Arbitrary keyword arguments passed to DynamicMatrix constructor.
 
         Returns
