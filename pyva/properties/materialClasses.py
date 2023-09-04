@@ -1135,7 +1135,7 @@ class PoroElasticMat(EquivalentFluid):
     E
     
     
-    See [All2005]_ for details of the theory
+    See [All2009]_ for details of the theory
 
     """
     
@@ -1160,8 +1160,6 @@ class PoroElasticMat(EquivalentFluid):
             volume porosity.
         tortuosity : float
             tortuosity (alpha_inf)N.
-        rho_bulk : float
-            apearant density of fluid and matrix.
         length_visc : float
             viscous characteristic lengt.
         length_therm : float
@@ -1189,12 +1187,13 @@ class PoroElasticMat(EquivalentFluid):
         """
         # Calculate rho_bulk - not used in Bio theory
         rho_bulk = solid_mat.rho0 + porosity * rho0
+        
         super().__init__(flow_res,porosity,tortuosity,rho_bulk,length_visc,length_therm,limp,c0,rho0,0.,dynamic_viscosity,kappa,Cp,heat_conductivity) 
         self.solid_mat = solid_mat     
     
     def __repr__(self):
         """
-        reps for PoroElasticMat
+        repr for PoroElasticMat
 
         Returns
         -------
@@ -1209,9 +1208,10 @@ class PoroElasticMat(EquivalentFluid):
     
     def P(self,omega):
         """
-        P function of poroelastic material 
+        P function of poroelastic material.
         
-        Eq. (6.28) of [All2009]_ assuming Ks >> Kb
+        Eq. (6.28) of [All2009]_ assuming that the stiffness of the matrix material is much higher that the 
+        bulk stiffness, thus Ks >> Kb
 
         Parameters
         ----------
@@ -1229,9 +1229,10 @@ class PoroElasticMat(EquivalentFluid):
     
     def Q(self,omega):
         """
-        Q function of poroelastic material 
+        Q function of poroelastic material. 
         
-        Eq. (6.27) of [All2009]_ assuming Ks >> Kb
+        Eq. (6.27) of [All2009]_ assuming that the stiffness of the matrix material is much higher that the 
+        bulk stiffness, thus Ks >> Kb
 
         Parameters
         ----------
@@ -1249,9 +1250,10 @@ class PoroElasticMat(EquivalentFluid):
     
     def R(self,omega):
         """
-        R function of poroelastic material 
+        R function of poroelastic material.
         
-        Eq. (6.26) of [All2009]_ assuming Ks >> Kb
+        Eq. (6.26) of [All2009]_ assuming that the stiffness of the matrix material is much higher that the 
+        bulk stiffness, thus Ks >> Kb
 
         Parameters
         ----------
@@ -1262,14 +1264,13 @@ class PoroElasticMat(EquivalentFluid):
         -------
         complex
             R.
-
         """
         
         return self.porosity**2*self.bulk_modulus(omega)
 
     def N(self,omega):
         """
-        N function of poroelastic material, equal to shear modulus
+        N function of poroelastic material, equal to shear modulus.
         
         Just for usage of similar symbols
 
@@ -1362,7 +1363,7 @@ class PoroElasticMat(EquivalentFluid):
     
     def Delta(self,omega):
         """
-        Delta helper function for Biot Theory
+        Delta helper function for Biot Theory.
         
         Eq(6.69)
 
@@ -1389,7 +1390,7 @@ class PoroElasticMat(EquivalentFluid):
     
     def wavenumbers(self,omega):
         """
-        Provide wavenumber coefficients of poroelastic materials
+        Provide wavenumber coefficients of poroelastic materials.
 
         Parameters
         ----------

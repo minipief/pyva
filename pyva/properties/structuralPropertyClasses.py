@@ -389,6 +389,21 @@ class PlateProp:
 
         """
         return self.material.E*self.thickness/2/(1+self.material.nu)
+    
+    @property      
+    def S_complex(self):
+        """
+        complex transversal stiffness.
+        
+        Returns
+        -------
+        complex
+            complex transversal stiffness.
+
+        """
+        eta = self.material.eta
+        return self.material.E*(1+1j*eta)*self.thickness/2/(1+self.material.nu)
+
 
     @property      
     def C(self):

@@ -25,7 +25,7 @@ def I_solid_fluid(xdata,res_ID,exc_ID):
     """
     Provide contact matrix I of solid - fluid interfaces.
     
-    The matrix corresponds to Eq. (11.71) in [All2009_]
+    The matrix corresponds to Eq. (11.71) in [All2009]_
     
     The I matrix defined the coupling coefficient for the same 
     material, here solid!
@@ -66,7 +66,7 @@ def J_solid_fluid(xdata,res_ID,exc_ID):
     """
     Provide contact matrix J of solid - fluid interfaces.
     
-    The matrix corresponds to Eq. (11.71) in [All2009_]
+    The matrix corresponds to Eq. (11.71) in [All2009]_
     When solid and fluid are exchanged J and I are interchanged. 
     The response DOFs stay the same, because they defined the row index in the
     global allard matrix.
@@ -103,6 +103,8 @@ def Y_fluid_fixed(xdata,left_ID):
     """
     Y Matrix of fluid hard wall temination
     
+    The matrix corresponds to Eq. (11.81) in [All2009]_
+    
     Parameters
     ----------
     xdata : DataAxis
@@ -131,6 +133,8 @@ def Y_solid_fixed(xdata,left_ID):
     """
     Y Matrix of solid-hard wall temination
     
+    The matrix corresponds to Eq. (11.81) in [All2009]_
+    
     Parameters
     ----------
     xdata : DataAxis
@@ -158,7 +162,9 @@ def Y_solid_fixed(xdata,left_ID):
 
 def Y_porous_fixed(xdata,left_ID):
     """
-    Y Matrix of porous hard wall temination
+    Y Matrix of porous hard wall temination.
+    
+    The matrix corresponds to Eq. (11.81) in [All2009]_
     
     Parameters
     ----------
@@ -171,7 +177,6 @@ def Y_porous_fixed(xdata,left_ID):
     -------
     DynamicMatrix
         Hard wall termination matrix.
-
     """    
 
     #
@@ -255,6 +260,8 @@ def I_porous_porous(xdata,porosity_left,porosity_right,res_ID,exc_ID):
     """
     Provide contact matrix I of porous - porous intefaces.
     
+    The matrix corresponds to Eq. (11.67) in [All2009]_
+   
     Parameters
     ----------
     xdata : DataAxis
@@ -267,7 +274,7 @@ def I_porous_porous(xdata,porosity_left,porosity_right,res_ID,exc_ID):
     Returns
     -------
     DynamicMatrix
-        I matrix of solid fluid connection.
+        I matrix of porous fluid connection.
 
     """
     #
@@ -292,7 +299,7 @@ def I_solid_porous(xdata,res_ID,exc_ID):
     """
     Provide contact matrix I of solid - porous intefaces.
     
-    The matrix corresponds to Eq. (11.75) in [All2009_]
+    The matrix corresponds to Eq. (11.75) in [All2009]_
     
     The I matrix defined the coupling coefficient for the same 
     material, here solid!
@@ -336,7 +343,7 @@ def J_solid_porous(xdata,res_ID,exc_ID):
     """
     Provide contact matrix J of solid - fluid intefaces.
     
-    The matrix corresponds to Eq. (11.75) in [All2009_]
+    The matrix corresponds to Eq. (11.75) in [All2009]_
     When solid and fluid are exchanged J and I are interchanged. 
     The response DOFs stay the same, because they defined the row index in the
     global allard matrix.
@@ -376,12 +383,12 @@ def I_porous_fluid(xdata,porosity,res_ID,exc_ID):
     """
     Provide contact matrix I of porous-fluid interfaces.
     
-    The matrix corresponds to Eq. (11.73) in [All2009_]
+    The matrix corresponds to Eq. (11.73) in [All2009]_
     
     The I matrix defined the coupling coefficient for the same 
     material, here !
     
-    When solid and porous are exchanged J and I are interchanged.
+    When fluid and porous are exchanged J and I are interchanged.
     The response DOFs stay the same, because they defined the row index in the
     global allard matrix.
 
@@ -418,6 +425,30 @@ def I_porous_fluid(xdata,porosity,res_ID,exc_ID):
 
 
 def J_porous_fluid(xdata,porosity,res_ID,exc_ID):
+    """
+    Provide contact matrix J of porous-fluid interfaces.
+    
+    The matrix corresponds to Eq. (11.73) in [All2009]_
+        
+    When solid and fluid are exchanged J and I are interchanged.
+    The response DOFs stay the same, because they defined the row index in the
+    global allard matrix.
+
+    Parameters
+    ----------
+    xdata : DataAxis
+        xdata for contact matrix definition, wavenumber or frequency.
+    res_ID : integer
+        reponse ID of I matrix.
+    exc_ID : integer
+        exc_ID of I matrix.
+
+    Returns
+    -------
+    DynamicMatrix
+        I matrix of solid porous connection.
+
+    """
 
     exc_dof = fluid_exc_dof(exc_ID)
     res_dof = porous_fluid_res_dof(res_ID)
@@ -627,7 +658,6 @@ class AcousticLayer:
         """
         Constructor of AcousticLayer
        
-
         Parameters
         ----------
         thickness : float
@@ -658,7 +688,7 @@ class AcousticLayer:
     @staticmethod   
     def get_xdata(omega,kx):
         """
-        Determines the appropriate xdata from omega and kx.
+        Determine the appropriate xdata from omega and kx.
         
         Infinite Layer theory often involves integration over wavenumber.
         Thus, the kx is the integration variable.
@@ -709,10 +739,9 @@ class AcousticLayer:
         return True
     
 
-
 class FluidLayer(AcousticLayer):
     """
-    The AcousticLayer class deals with the infinite layers of fluid
+    The FluidLayer class deals with the infinite layers of fluid
     
     Attributes
     ----------
@@ -809,9 +838,9 @@ class FluidLayer(AcousticLayer):
 
 class FluidLayerHoneyComb(FluidLayer):
     """
-    The FluidLayer class deals with the infinite honcomb core layers in the absorber context
+    The FluidLayer class deals with the infinite honeycomb core layers in the absorber context
     
-    Implementation is equal to fluid layer, except that the wavenumbe in in-plane direction is alway zero.
+    Implementation is equal to fluid layer, except that the wavenumber in in-plane direction is alway zero.
     
     Attributes
     ----------
@@ -1301,8 +1330,6 @@ class SolidLayer(AcousticLayer):
     
     Attributes
     ----------
-    thickness: float
-        thickness of the perforted layer
     prop: PlateProp
         property of plate modelled as 3D layer
     """
@@ -1315,8 +1342,6 @@ class SolidLayer(AcousticLayer):
         ----------
         plate_prop : PlateProp
             plate property of layer
-        ID : list or tuple
-            node IDs of left and right side
         """
                 
         # set DOF according to ID and natural DOF of the layer
@@ -1375,7 +1400,8 @@ class SolidLayer(AcousticLayer):
         """
         Transferimpedance of Solidlayer
         
-        Implementation according to [1] except the not used denominator D1+D2*kx.
+        Implementation according to [1].
+        
         [1] A. Uthayasuriyan, Advanced vibro-acoustic condensed models for multi-layer structures,
         PhD Thesis, University de Lyon, Lyon, France, 2021.
 
@@ -1419,9 +1445,8 @@ class SolidLayer(AcousticLayer):
         #D1  = self.prop.material.lambda_lame()*(kx**2+kLz2)+2*mu*kLz2
         D2  = 2*mu*kx
         
-        allard = False
-        if allard:
-
+        if allard: # implementation with T = Gammma[-h]*Gamma[0]^-1
+            # Eq. (11.17) of [All2009]_
             Gamma = np.zeros((len(xdata),4,4),dtype = np.complex128)
             h = -h
             # 1st row
@@ -1448,21 +1473,21 @@ class SolidLayer(AcousticLayer):
            
             Gamma0_inv = np.zeros((len(xdata),4,4),dtype = np.complex128) 
     
-    
+            # Eq. (11.20) of [All2009]_with several corrections
     
             Gamma0_inv[:,0,0] = 2*kx/omega/k_S2
             Gamma0_inv[:,0,2] = -1/mu/k_S2
             Gamma0_inv[:,1,1] = (kSz2-kx**2)/omega/kLz/k_S2
             Gamma0_inv[:,1,3] = -kx/mu/kLz/k_S2
-            Gamma0_inv[:,2,1] = 2*kx/omega/k_S2
+            Gamma0_inv[:,2,1] = 2*kx/omega/k_S2 # addition 2* 
             Gamma0_inv[:,2,3] = 1/mu/k_S2
-            Gamma0_inv[:,3,0] = -(kSz2-kx**2)/omega/kSz/k_S2 # corrected in VAOne docs
+            Gamma0_inv[:,3,0] = -(kSz2-kx**2)/omega/kSz/k_S2 # different sign
             Gamma0_inv[:,3,2] = -kx/mu/kSz/k_S2
             
             Gamma = np.matmul(Gamma,Gamma0_inv)
             Gamma = np.moveaxis(Gamma,0,-1) # put xaxis last
 
-        else:
+        else: # analytical solution 
             
             Gamma = np.zeros((4,4,len(xdata)),dtype = np.complex128) 
             A = 1./(D1 + D2*kx) # Denominator not used!
@@ -1480,7 +1505,6 @@ class SolidLayer(AcousticLayer):
             Gamma[0,1,:] = A*-1j*(D2*kLz*kSz*sinhkSz-D1*kx*sinhkLz)/kLz
             Gamma[2,3,:] = Gamma[0,1,:] 
             Gamma[1,0,:] = A*1j*(D2*kLz*kSz*sinhkLz-D1*kx*sinhkSz)/kSz
-            #Gamma[1,0,:] = A*1j*kx*(D2*kSz*sinhkLz-D1*sinhkSz)/kSz # kLz replaced by kx 
             Gamma[3,2,:] = Gamma[1,0,:]
             # Buffer to avoid T31 and T42 singularity for kx = 0
             T13_ = (coshkSz - coshkLz)
@@ -1490,7 +1514,6 @@ class SolidLayer(AcousticLayer):
             Gamma[3,1,:] = Gamma[2,0,:]
             Gamma[0,3,:] = A*-1j*omega*(kLz*kSz*sinhkSz+kx**2*sinhkLz)/kLz
             Gamma[1,2,:] = A*-1j*omega*(kLz*kSz*sinhkLz+kx**2*sinhkSz)/kSz
-            #Gamma[1,2,:] = A*-1j*omega*kx*(kSz*sinhkLz+kx*sinhkSz)/kSz # kLz replaced by kx
             Gamma[2,1,:] = A*-1j*(D2**2*kLz*kSz*sinhkSz+D1**2*sinhkLz)/(omega*kLz)
             Gamma[3,0,:] = A*-1j*(D2**2*kLz*kSz*sinhkLz+D1**2*sinhkSz)/(omega*kSz)
                 
@@ -1504,12 +1527,112 @@ class SolidLayer(AcousticLayer):
         rdof = dof.DOF([ID[1],ID[1],ID[1],ID[1]], self.right_dof.dof,self.right_dof.type)
         
         return mC.DynamicMatrix(Gamma,xdata,rdof,ldof)
+
+class ImperviousScreenLayer(SolidLayer):
+    """
+    Class for Modelling Impervious screen or thin plate as InfiniteLayer.
+    
+    The impervious screen formulation consideres the in-plane motion of the plate 
+    in contrast to the PlateLayer the in plane stress and motion is connected the next layer.
+    
+    However, the layer is considered as thin and the in-plane motion does not lead to 
+    moments or bending.
+    
+    Attributes
+    ----------
+    thickness: float
+        thickness of the perforted layer
+    prop: PlateProp
+        property of plate modelled as 3D layer
+    """
+    
+    def __init__(self,plate_prop):
+        """
+        Class contructor for ImperviousScreenLayer objects.
+
+        Parameters
+        ----------
+        plate_prop : PlateProp
+            plate property of layer
+        ID : list or tuple
+            node IDs of left and right side
+        """
+                
+        # set DOF according to ID and natural DOF of the layer
+        Tdof = ('velocity','velocity','stress','stress')
+        _left_dof = dof.DOF([0,0,0,0],[1,3,3,5],Tdof)
+        _right_dof = dof.DOF([1,1,1,1],[1,3,3,5],Tdof)
+                       
+        super().__init__(plate_prop)
+        
+        self.type = 'solid'
+    
+    def __repr__(self):
+        """
+        repr for ImperviousScreenLayer
+
+        Returns
+        -------
+        str_ : TYPE
+            DESCRIPTION.
+
+        """
+        
+        str_ = 'impervious screen layer of thickness {0}'.format(self.thickness)
+        return str_
+
+    
+    def transfer_impedance(self,omega,kx=0, ID = [1,2], allard = False):
+        """
+        Transferimpedance of ImperviousScreenLayer
+        
+        Implementation according to [All2009]_.
+        
+        Parameters
+        ----------
+        omega : float or ndarray
+            scalar angular frequency
+        kx : float or ndarray, optional
+            In-plane wavenumber. The default is 0.
+        ID : list of int
+            Left and right ID. The default is [1,2].
+                      
+        Returns
+        -------
+        DynamicMatrix
+            [2 x 2] array of transferimpedance         
+        
+        """
+                    
+        xdata = self.get_xdata(omega, kx)
+        
+        m   = self.prop.mass_per_area
+        S   = self.prop.S_complex
+
+        Zb  = self.prop.transfer_impedance(omega,kx)
+        Zs  = 1j*omega*m*(1-S*kx*kx/m/omega/omega)
+        
+        T = np.zeros((4,4,len(xdata)),dtype = np.complex128)
+            
+        T[0,0,:] = 1.
+        T[1,1,:] = 1.
+        T[2,1,:] = -Zb
+        T[2,2,:] = 1.
+        T[3,0,:] = -Zs 
+        T[3,3,:] = 1.
+                                            
+        # Update ID in DOF attribute
+        ldof = dof.DOF([ID[0],ID[0],ID[0],ID[0]], self.left_dof.dof,self.left_dof.type)
+        rdof = dof.DOF([ID[1],ID[1],ID[1],ID[1]], self.right_dof.dof,self.right_dof.type)
+        
+        return mC.DynamicMatrix(T,xdata,rdof,ldof)
     
 class PoroElasticLayer(AcousticLayer):
         """
         Class for Modelling poro-elastic material as InfiniteLayer.
         
-        This class implements the theory of the mixed pressure-displacement formulation of [All98_]
+        This class implements the theory of the mixed pressure-displacement formulation of [All2009]_
+        
         
         Attributes
         ----------
@@ -1559,21 +1682,6 @@ class PoroElasticLayer(AcousticLayer):
             str_ = 'PoroElasticlayer layer of thickness {0}'.format(self.thickness)
             return str_
 
-        # @property
-        # def isequivalentfluid(self):
-        #     """
-        #     Determine if layer is of type equivalent fluid
-
-        #     Default parameter is False
-
-        #     Returns
-        #     -------
-        #     bool
-        #         False.
-
-        #     """
-        #     return False
-
         @property
         def mass_per_area(self):
             """
@@ -1591,7 +1699,7 @@ class PoroElasticLayer(AcousticLayer):
             """
             Transferimpedance of PoroElasticLayer
             
-            Implementation according to the diplacement-pressure formulation of Allard [All2009_].
+            Implementation according to the diplacement-pressure formulation of Allard [All2009]_.
 
             Parameters
             ----------

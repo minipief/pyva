@@ -624,7 +624,7 @@ class LineJunction(Junction) :
         disscussed in the reference. 
         
         The method is the version that is used for validation purpose, thus the
-        radiated power can be calculated using the radiation stiffness. As shown in [Pei2022_] this 
+        radiated power can be calculated using the radiation stiffness. As shown in [Pei2022]_ this 
         is not correct in the wavenumber range [k_L < kx < k_S]
         
         The rad_sw argument is used for exactly this validation. 
@@ -1784,6 +1784,7 @@ class AreaJunction(Junction):
         """
         Calculates the coupling loss factors of plate to fluid junctions
 
+        Parameters
         ----------
         omega : float
             angular frequency.
