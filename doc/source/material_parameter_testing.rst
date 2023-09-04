@@ -19,7 +19,7 @@ limp or rigid model       limp                  switch
 ========================= ===================== ====================================
 
 For this purpose a large and expensive set of test requirements is necessary. 
-The first three parameters are usually directly measured parameters_ but the last three
+The first three parameters are usually directly measured parameters but the last three
 are derived by inverse methods, e.g. by parameter fitting of test to  simulation results.
 One option is described in [Ata2005]_ and is based on reducing a cost function that is the 
 sum of squared differences of the measured and simulated surface impedance .
@@ -156,7 +156,7 @@ By using the impedance_fit function with this parameters we get the result in te
 
     z_surf = impedance_fit(freq, *res.x) 
 
-In figure :ref:`fibrous-fit` the result of such a set-up is shown and compared to the results received with parameters from [Ata2005]_. 
+In figure :ref:`fig-fibrous-fit` the result of such a set-up is shown and compared to the results received with parameters from [Ata2005]_. 
 We see that the author did not perfectly succeed in picking the data from the paper copy. 
 However, the general option to receive the parameters from impedance tests without expensive commercial software and using pyva, python and
 some powerful toolboxes is demonstrated. 
@@ -165,7 +165,7 @@ Further materials from [Ata2005]_ can be tested with the full example in :ref:`s
 If you interested in applying the method on your test data, feel free to contact the author at author@alexanderpeiffer.de.
 Test impedance data with additional parameters derived by other methods are very welcome.
 
-.. _fig-fibrous1_fit:
+.. _fig-fibrous-fit:
     
 .. figure:: ./images/atalla_JCA_parameter_fibrous1.*
    :align: center

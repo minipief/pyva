@@ -625,7 +625,7 @@ First, we calculate the modal transmission coefficient using the modal hybrid me
 
     tau_modal = rec_plate6mm.modal_transmission_coefficient_discrete(omega,(half_air,),)
     
-See chapter 11 of [Pei2022_] for details. In addition (but mainly for demonstration purposes) the
+See chapter 11 of [Pei2022]_ for details. In addition (but mainly for demonstration purposes) the
 transmission coefficient can be calculated using the discrete radiation stiffness and the point 
 force transfer functions of flat plates. Thus, the radiating area is assumed to be finite but the 
 plate is infinite::
@@ -699,7 +699,7 @@ The classical and simple radiation stiffness is in the wavenumber domain ::
 Plotting this pure imaginary stiffness for air without damping shows the typical shape radiation stiffness until k_x has reached the 
 maximum wavenumber in air with singularity and zero stiffness for wavenumber k_x larger that in air (or below coincidence).
 
- .. _fig-half_space_stiffness_wavenumber:
+.. _fig-half_space_stiffness_wavenumber:
 
 .. figure:: ./images/half_space_stiffness_wavenumber.*
    :align: center
@@ -708,7 +708,7 @@ maximum wavenumber in air with singularity and zero stiffness for wavenumber k_x
    Stiffness of half space over wavenumber at 1000Hz.
 
 An alternative way for the calculation of the radiation stiffness is the Leppington method [Lep1982]_ that considers the finite dimension
-of the radiator (already presented in the context of plate systems :ref:`_sec-generic-2D-systems`). 
+of the radiator (already presented in the context of plate systems :ref:`sec-generic-2D-systems`). 
 Leppington did not calculate the radiation stiffness but the
 radiation efficiency that ca be used to derive the radiation stiffness.
 We define rectangular plate dimensions and call the related method ::
@@ -742,7 +742,7 @@ frequency. Here, the shape does not change over frequency ::
     
 When both results are plotted we see that both solutions coincide quite well
 
-.. _fig-half_space_sigma
+.. _fig-half_space_sigma:
 
 .. figure:: ./images/half_space_sigma.*
    :align: center
@@ -755,9 +755,9 @@ The base of these methods is the local stiffness function. The wave motion of on
 u creates a pressure at another element according to the Rayleigh integral. There are two versions implemented:
 
 #. The wavelet method [Lan2007]_
-#. The piston method [Pei20022]_
+#. The piston method [Pei2022]_
 
-.. _fig-half_space_mesh
+.. _fig-half_space_mesh:
 
 .. figure:: ./images/half_space_mesh.*
    :align: center
@@ -791,9 +791,9 @@ The wavelet method [Lan2007]_ requires the mesh wavenumber ks ::
     D11wavelet = HS.radiation_stiffness_wavelet(omega, 0., ks)
 
 
-In the following figure the difference between botgh methods is shown 
+In the following figure the difference between both methods is shown 
 
-.. _fig-half_space_D12
+.. _fig-half_space_D12:
 
 .. figure:: ./images/half_space_D12.*
    :align: center
@@ -801,7 +801,7 @@ In the following figure the difference between botgh methods is shown
 
    Radiation stiffness for elements with distance.   
 
-.. _fig-half_space_D11
+.. _fig-half_space_D11:
 
 .. figure:: ./images/half_space_D11.*
    :align: center
@@ -809,7 +809,7 @@ In the following figure the difference between botgh methods is shown
 
    Self radiation stiffness.
 
-The imaginary part of both stiffnesses are very simiilar. Only the reactive and real part of both methods differs.
+The imaginary part of both stiffnesses are very similar. Only the reactive and real part of both methods differs.
 As Langleys method is supposed to be more precise, it is recommended if inertia effects are important.   
 
 Both methods are organised such as one parameter of dist or omega must be scalar.
@@ -847,7 +847,7 @@ The radiation impedance of such a system is calculated with ::
     
 Leading to the following figure.
 
-.. _fig-piston-acoustic-impedance
+.. _fig-piston-acoustic-impedance:
 
 .. figure:: ./images/piston_acoustic_impedance.*
    :align: center
@@ -857,98 +857,5 @@ Leading to the following figure.
    
 For use in acoustic networks there is an :meth:`pyva.systems.acousticRadiators.CircularPiston.acoustic_FE` 
 method that calculates the nodal FE function for half space piston end conditions.
-  
-
-.. _sec-infinite-layers:
-
-Infinite Layers
-+++++++++++++++
-
-.. figure:: ./images/infinite_layer.*
-   :align: center
-   :width: 80%
-   
-   Sketch of connected infinite layers.
-  
-The infinite layer module is similar to the acoustic1Dsystems module. But here the dimensions perpendicular 
-to the propagation direction are assumed to be infinitely extended. Consequently, there is an additional parameter
-required to deal with the infinite dimension: the wavenumber.
-
-Infinite layers are used as system in the :class:`pyva.models.TMmodel` class. See section 
-:ref:`sec-TMM` for applicatoins of infinite layer in transfer matrix models.
-All infinite layer classes
-are subclasses of the :class:`pyva.systems.infiniteLayers.AcousticLayer`. This class is an abstract class
-that just implements all those methods that required by all infinite layers. 
-
-Beside the constructor that is exclusively used by the subclasses there is the :meth:`pyva.models.infiniteLayers.AcousticLayer.get_xdata`
-method that implements a specific logics for the wavenumber and angular frequency argument.
-
-The simplest AcousticLayer is the ``MassLayer``. As all subclasses it has implemented the ``transfer_impedance`` method that 
-provides the 2x2 DynamicMatrix of the following form. 
-
-.. math::
-    :label: SEA-matrix
-
-    \begin{bmatrix}
-    T(\omega,k_x)
-	\end{bmatrix} =   
-	\begin{bmatrix} 
-	1 & j\omega m'' \\
-    0 & 1
-    \end{bmatrix}
-
-:math:`m''` mass per area
-
-The muss layer does not depend on the wavenumber. As the so called mass law of transmission is quite important in acoustics
-it is implemented for this class. ::
-
-    import pyva.systems.infiniteLayers as iL
-    heavy_2kg7 = iL.MassLayer(0.001, 2700)
-    
-    tau_mass0  = heavy_2kg7.transmission_coefficient(omega,0.)
-    tau_mass30 = heavy_2kg7.transmission_coefficient(omega,30.*np.pi/180)
-    
-A furter class deals with infinite flat plates. ::
-
-    import pyva.properties.structuralPropertyClasses as stPC
-    alu = matC.IsoMat()
-    alu1mm = stPC.PlateProp(0.001,alu)
-    iL_alu1mm = iL.PlateLayer(alu1mm,)
-
-The PlateLayer class comes also with the transmission coefficient method ::
-    
-    tau_plate0  = iL_alu1mm.transmission_coefficient(omega,0.)
-    tau_plate30 = iL_alu1mm.transmission_coefficient(omega,30.*np.pi/180)
-    
-Plotting all curves gives the typical infinite behaviour with the sharp coincidence.
-
-.. figure:: ./images/infinite_layer_TL.*
-   :align: center
-   :width: 70%
-
-   Transmission loss of mass- and plate layer of same area weight
-
-    
-
-    
 
 
-
-
-
-
-
-
-
-
-
-
- 
-
-  
-
-    
-
-
-
-    

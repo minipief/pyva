@@ -1,5 +1,5 @@
 Hybrid model examples
-------------------
+---------------------
 
 Two rooms with FE plate and sound source in room 1
 ++++++++++++++++++++++++++++++++++++++++++++++++++

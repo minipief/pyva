@@ -58,7 +58,7 @@ order to model such systems as part of a VAmodel.
 For example the mass and stiffness matrices of an FE-model matrix equation can be converted into a dynamic stiffness representation by:
 
 .. math:: 
-    :label: dynamicStiffnessEOM_VA
+    :label: FEM_eq
 	
 	\left( \begin{bmatrix} K \end{bmatrix} - \omega^2  \begin{bmatrix} M \end{bmatrix} \right) 
     \begin{Bmatrix} \bm{q} \end{Bmatrix} =  

@@ -29,6 +29,7 @@ of the classes in a  simulation context you should refer to the :ref:`sec-creati
    model_classes
    property_classes
    system_classes
+   infinite_layer_classes
    coupling_classes
    geometry_classes
    data_structures

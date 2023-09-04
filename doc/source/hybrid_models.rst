@@ -65,9 +65,10 @@ we create the rectangular plate system ::
     plate = st2Dsys.RectangularPlate(2,Lx,Ly,prop=alu4mm,wave_DOF = [3],eta = 0.02)
     
 as usual. 
-The FEM object is now created by mapping modes and defining a mesh with the 
-:meth:`~pyva.systems.structure2Dsystems.RectangularPlate.normal_modes` method of 
-the :class:`~pyva.systems.structure2Dsystems.RectangularPlate`class ::
+
+The FEM object is now created by mapping modes and defining a mesh with 
+the :meth:`~pyva.systems.structure2Dsystems.RectangularPlate.normal_modes` method of 
+the :class:`~pyva.systems.structure2Dsystems.RectangularPlate` class ::
  
     # Create plate as FE-Model
     modes,mesh = plate.normal_modes(omega_max*1.2,mapping = 'mesh')

@@ -73,25 +73,29 @@ Other fluids can also be created by using the paramter list of the contructor::
 
     water = matC.Fluid(c0=1500, rho0=1000,dynamic_viscosity=1.0087,eta = 0.) 
     
-More detailed air
-+++++++++++++++++
+Air properties under specific atmospheric conditions
+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 In some applications the properties of air must be precisely known. For example in pressurise aircraft cabins
-that have lower static pressure conditions as on the ground or during tests of porous materials.
+that have lower static pressure conditions as on the ground or during tests of porous materials. 
+In [Ras1997]_ the various papers defining all required properties are condensed in one numeric recipe. His equations are used to 
+calculated the properties of air.
 
 For this purpose there is the :meth:`~pyva.properties.materialClasses.Fluid.air` method that creates a Fluid object with the desired properties. ::
     
-    >>> air_10C_1000 = matC.Fluid.air(284.15,1.0) # (T in Kelvin, pressure in bar) 
-    >>> print(air_10C_1000)
-    c0                : 338.1
-    rho0              : 1.226994522552932
-    nu0               : 1.4463797249131084e-05
+    >>> air_10C_1013_20 = matC.Fluid.air(284.15,1.023,20) # (T in Kelvin, pressure in bar, humidity in %) 
+    >>> print(air_10C_1013_20)
+    c0                : 338.1911712485711
+    rho0              : 1.253486363839927
+    nu0               : 1.4127054955709544e-05
     eta               : 0
-    dynamic_visc      : 1.7747000000000005e-05
-    Cp                : 1004.1
-    heat_conductivity : 0.0250543
-    Pr                : 0.7112456823778754
-    kappa             : 1.4
+    dynamic_visc      : 1.7708070748199177e-05
+    Cp                : 1007.2873957544533
+    heat_conductivity : 0.02448709290705875
+    Pr                : 0.7284293213363585
+    kappa             : 1.402275517294867
+    
+Note that eta is a global damping parameter that is not required when the viscosity of air is used. A frequency dependent eta can be defined from these properties.
     
 Equivalent fluids
 +++++++++++++++++
@@ -330,7 +334,12 @@ They are requested by ::
     alu4mm.c_B_group(omega)
 
 The first two are usually not frequency dependent. 
-The bending wave speed is frequency dependent which makes the frequency argument neccessary and motivates the introduction of a group speed.
+The bending wave speed is frequency dependent which makes the frequency argument necessary and motivates the introduction of a group speed.
+
+Poroelastic Materials
+---------------------
+
+Poroelastic materials are a combination of porous materials (here implemented as :class:`~pyva.properties.materialClasses.EquivalentFluid`
 
 
 
