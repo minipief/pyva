@@ -11,6 +11,8 @@ References
 .. [Bat1982] K.-J. Bathe, Finite element procedures in engineering analysis. Englewood Cliffs, N.J: Prentice-Hall, 1982.
 .. [All2009] J.-F. Allard, N. Attala: Propagation of Sound in Porous Media : 
    Modelling Sound Absorbing Materials, Wiley Interscience, 2009
+.. [Ara2021] U. Arasan, Advanced vibro-acoustic condensed models for multi-layer structures, PhD Thesis, Universite de Lyon,
+             Lyon, France, 2021
 .. [Ata2005] Y. Atalla and R. Panneton, Inverse acoustical characterization of open cell porous media using impedance 
    tube measurements, Canadian Acoustics, vol. 33, no. 1, p. 14, 2005.
 .. [Lan1990] R. S. Langley and K. H. Heron, Elastic wave transmission through plate/beam junctions, 

@@ -679,7 +679,7 @@ class TMmodel:
         layer_set_started  = False # no element creation as long as set is not finished
         
         V0,V1 = self.V0(boundary_condition=boundary_condition)
-        D0 = mC.DynamicMatrix.zeros(xdata,V0,V1,0,dtype = np.complex)
+        D0 = mC.DynamicMatrix.zeros(xdata,V0,V1,0,dtype = np.complex128)
         
         for ix in range(self.N):
             # check if the next layer is of different type

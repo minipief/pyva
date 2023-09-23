@@ -101,11 +101,42 @@ Please note that only SEA Systems are obligatory. FEM-subsystems are not require
 Transfer matrix model
 ---------------------
 
+.. _fig-infinite-layer-overview-TMM:
+
+.. figure:: ./images/infinite_layer.*
+   :align: center
+   :width: 80%
+   
+   Sketch of connected infinite layers.
+
 Especially the  simulation of flat noise control treatment can be performed efficiently using the 
 transfer matrix method. The :class:`pyva.models.TMmodel` class provides methods to deal with system configurations that can be 
 treated by transfer matrices. 
 Obviously, this is restricted to sequential arrangements, for example a series of tubes or infinite layers. 
-Furthermore, systems with complex degrees of freedom (for example the fluid and solid phase of porous layer) cannot yet be modelled by 
-the transfer matrix method.  
+
+In figure :ref:`fig-infinite-layer-overview-TMM` the arrangement of multiple layers, layer index n and node IDs used in the matrix set-up.
+The convention in the node IDs is as follows; the wetting fluid layer is always index 0, every layer has two degrees of freedom an odd (left) and an even (right).
+The node IDs are :math:`{\rm NID}_{left} = 2n-1` and :math:`{\rm NID}_{right} = 2n`. 
+The potentially connected connected fluid has the :math:`{\rm NID} = 2N +1`.
+
+The advantage of the former pressure-velocity formulation was, that the dynamics of the full layer set-up could be calculated
+by a simple chained matrix multiplication of all transfer matrices. With the new mix of layers of different nature this is no longer possible.
+Now, specific interface conditions are required making the calculation of the dynamics much more complicated.
+
+However, when the physics and the nature of the layer is not changed the transfer matrix multiplication can still be used - except for poroelastic layers that requires
+the consideration of different porosities.
+
+The Allard matrix
++++++++++++++++++
+
+The sound transmission of a specific layer set is performed solving a complex matrix that takes the different wave propagation, the coupling between the layers and 
+the boundary conditions into account. This is namely the matrix of equation (11.79) of [All2009]_ with the extra lines of equation (11.82) for hard wall termination or (11.84) and (11.85) for the free field.
+The excitation is given by equation (11.86) which makes the final matrix square.
+
+The Allard matrix is implemented as a :class:`~pyva.data.matrixClasses.DynamicMatrix` object. The exc_DOF correspond exactly to the :math:`{\bm V}` vector of Allard, but the res_DOF needs som further explication.
+Allard doesn't consider a response DOF in datail because he is summing up equations into a matrix, but as we need the ...
+
+
+
 
   

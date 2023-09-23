@@ -1189,7 +1189,13 @@ class PoroElasticMat(EquivalentFluid):
         rho_bulk = solid_mat.rho0 + porosity * rho0
         
         super().__init__(flow_res,porosity,tortuosity,rho_bulk,length_visc,length_therm,limp,c0,rho0,0.,dynamic_viscosity,kappa,Cp,heat_conductivity) 
-        self.solid_mat = solid_mat     
+        self.solid_mat = solid_mat
+        
+    def __str__(self):
+        str_ = str(self.solid_mat)
+        str_ += super().__str__()
+        return str_
+        
     
     def __repr__(self):
         """
@@ -1410,7 +1416,7 @@ class PoroElasticMat(EquivalentFluid):
         mu2 : complex
             ratio of the velocity of air to the velocity of the frame of 2nd compr. wave.
         mu3 : complex
-            ratio of the velocity of air to the velocity if the frame of shear wave.
+            ratio of the velocity of air to the velocity of the frame of shear wave.
 
         """
         

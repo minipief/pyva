@@ -1417,7 +1417,7 @@ class SolidLayer(AcousticLayer):
         Returns
         -------
         DynamicMatrix
-            [2 x 2] array of transferimpedance         
+            [4 x 4] array of transferimpedance         
         
         """
                     

@@ -339,7 +339,93 @@ The bending wave speed is frequency dependent which makes the frequency argument
 Poroelastic Materials
 ---------------------
 
-Poroelastic materials are a combination of porous materials (here implemented as :class:`~pyva.properties.materialClasses.EquivalentFluid`
+Poroelastic materials are a combination of porous materials (here implemented as :class:`~pyva.properties.materialClasses.EquivalentFluid`) and elastic solids (implemented as 
+:class:`~pyva.properties.materialClasses.IsoMat`). As most parameters are from the :class:`~pyva.properties.materialClasses.EquivalentFluid`) class, the
+:class:`~pyva.properties.materialClasses.IsoMat` class is a subclass of this class.
+
+The theory of poroelastic material was established in the late 50ties by M.A. Biot. This is the reason why many people talk
+about Biot materials instead of poroelastics. It is worth mentioning that the main achievements where made on new models ans descriptions of porous materials where made recently.
+Whereas the theory for the coupled dynamics was established by Biot much earlier.
+A comprising description of most models and theories are given by Allard ([All2009]_).
+
+Due to the fact that both models are implemented there are no additional parameters required for this type of material. 
+For test and presentation purposes we use the material parameters from section 6.5.4 of [All2009]_. ::
+
+    E = 2*2200000.*(1+0.) # Calculate E from G in reference 
+    ela_vac = matC.IsoMat(E,130., 0., 0.1) # Frame in vaccuum    
+    poroela = matC.PoroElasticMat(ela_vac, \
+                                flow_res = 40000., \
+                                porosity = 0.94, \
+                                tortuosity = 1.06, \
+                                length_visc = 56.E-6, length_therm = 110.E-6)
+
+There are numerous constants, coefficients and descriptions required to fully understand the underlying theory. So, if you are just using the poroelastic materials in specific layers
+without implementations a basic understanding of the main parameters is sufficient. With `print` the various parameters are summarized. ::
+
+    >>>print(poroela)
+    E              : 4400000.0
+    rho0           : 130.0
+    nu             : 0.0
+    eta            : 0.1
+    c0                : 343.0
+    rho0              : 1.23
+    nu0               : 1.4959349593495935e-05
+    eta               : 0.0
+    dynamic_visc      : 1.84e-05
+    Cp                : 1005.1
+    heat_conductivity : 0.0257673
+    Pr                : 0.717725178811905
+    kappa             : 1.4
+    flow_res          : 40000.0
+    porosity          : 0.94
+    tortuosity        : 1.06
+    rho_bulk          : 131.1562
+    lentgh_visc       : 5.6e-05
+    lentgh_therm      : 0.00011
+
+If you think about your own applications using the poroelastic models a deep study of [All2009]_ is not only recommended. 
+
+The main effect of the coupled formulation, is that there are two compressional waves and one shear wave. 
+The squared wavenumbers and the ration of their amplitudes between air and solid motion are calculated with 
+:meth:`~pyva.properties.materialClasses.PoroElasticMat.wavenumbers`.
+
+.. _fig-biot-compressional-wavenumbers:
+
+.. figure:: ./images/biot_compressional_wavenumbers.*
+   :align: center
+   :width: 60%
+   
+   The compressional wavenumbers of a poroelastic material.
+
+In figure :ref:`fig-biot-compressional-wavenumbers` the wavenumber of the two compressional waves are shown. Note, that the curves are switching. 
+This is due to the numerical implementation of the square root. This does not have an impact on the implementation because both numbers can be 
+interchanged.
+
+The same effect occurs when the characteristic impedances are calculated with :meth:`~pyva.properties.materialClasses.PoroElasticMat.impedances`.
+
+.. _fig-biot-fluid-impedances:
+
+.. figure:: ./images/biot_fluid_impedances.*
+   :align: center
+   :width: 60%
+   
+   The characteristic fluid impedances of a poroelastic material.
+   
+.. _fig-biot-structure-impedances:
+
+.. figure:: ./images/biot_structure_impedances.*
+   :align: center
+   :width: 60%
+   
+   The characteristic structure impedances of a poroelastic material.
+   
+All curves are in perfect agreement with Allards results.
+ 
+
+
+
+
+
 
 
 

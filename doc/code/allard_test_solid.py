@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 #
 # Example with 3 tubes showing the capabilities of DynamicMatrix
+#
+# Simple testing routine to check the global solid functionality
+
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt

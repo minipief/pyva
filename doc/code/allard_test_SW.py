@@ -41,10 +41,7 @@ fibre1 = matC.EquivalentFluid(porosity = 0.98, \
 #alu = matC.IsoMat() 
 alu = matC.IsoMat(E=7.1E10,rho0=2700.,nu=0.34,eta = 0.)
 alu1mm    = stPC.PlateProp(0.001,alu)
-alu0_5mm  = stPC.PlateProp(0.0005,alu)
-alu0_25mm = stPC.PlateProp(0.00025,alu)
-    
-    
+       
 # Thickness
 omega1 = 6000
 k1     = np.real(air.wavenumber(omega1))
@@ -66,15 +63,10 @@ heavy_1kg = iL.MassLayer(0.001, 1000)
 # Plate layer
 iL_alu1mm = iL.PlateLayer(alu1mm)
 iL_alu1mm_solid   = iL.SolidLayer(alu1mm)
-iL_alu05mm_solid  = iL.SolidLayer(alu0_5mm)
-
 
 #heavy_1kg = iL.PlateLayer(alu03mm)
 T_alu              = mds.TMmodel((iL_alu1mm,))
 T_alu_solid        = mds.TMmodel((iL_alu1mm_solid,))
-T_alu_solid2       = mds.TMmodel((iL_alu05mm_solid,iL_alu05mm_solid))
-T_alu_solid_half       = mds.TMmodel((iL_alu05mm_solid,))
-
 
 print('Starting single wall calculation')
 
@@ -89,19 +81,12 @@ z_in_solid_allard = T_alu_solid.impedance_allard(omega,kx,boundary_condition='eq
 # Plane wave
 tau_alu_50 = T_alu.transmission_coefficient(omega,kx,signal = False)
 tau_alu_allard_50 = T_alu.transmission_allard(omega,kx,signal = False)
-# debug
-plt.plot(omega,np.real(p_ref),'r-')
-plt.plot(omega,np.imag(p_ref),'g-')
 tau_alu_solid_50 = T_alu_solid.transmission_allard(omega,kx,signal = False)
-#tau_analytic_50 = 4*z_out**2/(z_p+2*z_out)**2
-
 
 # Diffuse field
-tau_alu = T_alu.transmission_diffuse(omega,signal = False)
-tau_alu_allard = T_alu.transmission_diffuse(omega,signal = False,allard = True)
-tau_alu_solid = T_alu_solid.transmission_diffuse(omega,signal = False,allard = True)
-tau_alu_solid2 = T_alu_solid2.transmission_diffuse(omega,signal = False,allard = True)
-tau_alu_solid_half = T_alu_solid_half.transmission_diffuse(omega,signal = False,allard = True)
+tau_alu = T_alu.transmission_diffuse(omega,theta_step=np.pi/360,signal = False)
+tau_alu_allard = T_alu.transmission_diffuse(omega,theta_step=np.pi/360,signal = False,allard = True)
+tau_alu_solid = T_alu_solid.transmission_diffuse(omega,theta_step=np.pi/360,signal = False,allard = True)
 
 #%% fig1
 plt.figure(1)
@@ -109,7 +94,6 @@ plt.figure(1)
 plt.plot(omega,-10*np.log10(tau_alu_50),label='alu 1mm')
 plt.plot(omega,-10*np.log10(tau_alu_allard_50),label='alu 1mm allard')
 plt.plot(omega,-10*np.log10(tau_alu_solid_50),':',label='alu 1mm solid')
-#plt.plot(omega,-10*np.log10(tau_analytic_50),label='analytic')
 
 plt.xscale('log')
 plt.xlabel('$\omega/$s$^{-1}$')
@@ -122,9 +106,7 @@ plt.figure(2)
 plt.plot(omega,-10*np.log10(tau_alu),label='alu 1mm')
 plt.plot(omega,-10*np.log10(tau_alu_allard),label='alu 1mm allard')
 plt.plot(omega,-10*np.log10(tau_alu_solid),':',label='alu 1mm solid')
-plt.plot(omega,-10*np.log10(tau_alu_solid2),':',label='alu 2*0.5mm solid')
-plt.plot(omega,-10*np.log10(tau_alu_solid_half),':',label='alu 0.5mm solid')
-plt.plot(omega_VA1,TL_alu1mm_VA1,'d',label = 'VAOne')
+#plt.plot(omega_VA1,TL_alu1mm_VA1,'d',label = 'VAOne')
 plt.xscale('log')
 plt.xlabel('$\omega/$s$^{-1}$')
 plt.ylabel('$TL$')
