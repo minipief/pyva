@@ -1885,7 +1885,11 @@ class DataAxis:
     @staticmethod
     def octave_band (f_min=2*np.pi*250, f_max=2*np.pi*4000, bands_per_octave = 3, typeID = 21):
         """
-        Mathod for octave / log space creation
+        Method for octave / log space creation.
+        
+        Depending on the typeID parameter the center frequencies are given Hertz or
+        as angular frequency in sec^-1
+        
         
         Parameters
         ----------
@@ -1900,7 +1904,8 @@ class DataAxis:
 
         Returns
         -------
-        DataAxis with center log spaces center frequencies
+        DataAxis 
+            with center log spaces center frequencies
 
         """
         
@@ -2656,7 +2661,8 @@ class ShapeSignal(Signal):
 
 
         fig = plt.figure(fig)
-        ax = fig.gca(projection='3d')
+        #ax = fig.gca(projection='3d')
+        ax = plt.axes(projection='3d')
 
         X, Y = self._mesh.nodes()
         Z = self.ydata[:,index].reshape(X.shape)

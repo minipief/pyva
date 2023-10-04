@@ -111,7 +111,7 @@ We have collected all input to create the model using the :class:`~pyva.models.H
 
     two_rooms = mds.HybridModel((wall,room1,room2),xdata=omega)
     two_rooms.add_junction({'areaJ_12':J123})
-    two_rooms.add_load('1mWatt',power1Watt)
+    two_rooms.add_load('1mWatt',power1mWatt)
 
 and solve it::
 
@@ -168,8 +168,8 @@ physics of the wall. The coincidence frequency is a method of the
 So, this wall will have critical sound isolation properties at 700 Hz (which is not a good design for buildings).
 For the wall system we can derive the radiation efficiency in two ways::
 
-    sigma        = wall.radiation_efficiency(om_t,fluid = air)
-    sigma_simple = wall.radiation_efficiency_simple(om_t,fluid = air)
+    sigma        = wall.radiation_efficiency(om,fluid = air)
+    sigma_simple = wall.radiation_efficiency_simple(om,fluid = air)
     
 The first method uses Leppingtons simplified approach [Lep1982]_ averaged over the quarter wavenumber circle,
 the second method is an implementation of the ISO EN 12354-1.
@@ -238,6 +238,7 @@ pressure ratio of both rooms. ::
     p1 = two_rooms.result[2].ydata.flatten()
     p2 = two_rooms.result[3].ydata.flatten()
     tau = (p2/p1)**2 
+    TL = -10*np.log10(tau)
     
 The transmission loss in figure :ref:`fig-two-rooms-TL` clearly reveals the coincidence dip.
 

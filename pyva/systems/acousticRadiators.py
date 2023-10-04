@@ -314,13 +314,17 @@ class HalfSpace:
         """
         Class contructor for HalfSpace
         
-        Args:
-            fluid: fluid of half space
-            treatment: treatment between vibrating surface and half space
+        Parameters
+        ----------
+        fluid : Fluid
+            of half space
+        treatment: str, Signal 
+            treatment between vibrating surface and half space
                 
-        Examples:
-            import acousticRadiators as ar
-            myHalfSpace = ar.HalfSpace()
+        Examples
+        --------
+            import acousticRadiators as aR
+            myHalfSpace = aR.HalfSpace()
                         
         """
 

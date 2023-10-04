@@ -124,8 +124,8 @@ The outcome is a VAmodel representation of this tube in the desired frequency ra
     >>> tube_elem
     LinearMatrix of size (2, 2, 11), sym: 1
     DataAxis of 11 samples and type angular frequency in hertz
-    resdof: DOF object with ID [1 2], DOF [1 1] of type [volume flow in meter ** 3 / second]
-    excdof: DOF object with ID [1 2], DOF [0 0] of type [pressure in pascal]
+    resdof: DOF object with ID [1 2], DOF [1 1] of type [DOFtype(typestr='volume flow')]
+    excdof: DOF object with ID [1 2], DOF [0 0] of type [DOFtype(typestr='pressure')]
 
 Lumped acoustic systems
 ***********************
@@ -244,7 +244,7 @@ The porosity of the perforate can be requested. ::
 The important quantity is the transfer impedance can be visualised using the plot method ::
 
     >>> omega = 2*np.pi*np.linspace(1.,1000.)
-    >>> perf.plot(xdata,res='real')
+    >>> perf.plot(omega,res='real')
 
 Leading to the following result
 
@@ -299,8 +299,8 @@ half because the perforate doesn't require an end correction on top. ::
 With a new appropriate frequency range, the results can be calculated using the acoustic_impedance method. ::
 
     >>> omega = 2*np.pi*np.linspace(100.,5000.,200)
-    >>> Za_pure = resPure.radiation_impedance(omega)
-    >>> Za_perf = resPerf.radiation_impedance(omega)
+    >>> Za_pure = myResPure.radiation_impedance(omega)
+    >>> Za_perf = myResPerf.radiation_impedance(omega)
 
 and plotted with matplotlib. ::
 
@@ -311,6 +311,7 @@ and plotted with matplotlib. ::
     >>> plt.plot(omega,np.imag(Za_perf),label = 'Im perf')
     >>> plt.xscale('log')
     >>> plt.legend(loc=4)
+    >>> plt.show()
     
 .. _fig-HR-acoustic-impedance:
 
@@ -339,7 +340,16 @@ The resonator is generated via the following code snipped::
     >>> quarter_perf  = ac1Dsys.QuarterWaveResonator(4*L,R,air,0,end_impedance=perf.radiation_impedance)
     >>> Za_perf = quarter_perf.radiation_impedance(omega)
     
-Leading to the following result:
+Using matplotlib ::
+
+    plt.figure()
+    plt.plot(omega,np.real(Za_perf), label = 'Re perf')
+    plt.plot(omega,np.imag(Za_perf), label = 'Im perf')
+    plt.xscale('log')
+    plt.legend(loc=4)
+    plt.show()
+
+leads to the following result:
 
 .. _fig-QWR-acoustic-impedance:
 
@@ -369,7 +379,7 @@ We use the rectangular room class to present both, the deterministic and random 
     >>> import pyva.properties.materialClasses as matC
 
     >>> # Define default fluid
-    air = matC.Fluid()
+    >>> air = matC.Fluid()
 
     >>> # Cavity Parameters
     >>> Lx = 6.
@@ -570,7 +580,7 @@ Thus, for the trim and mass law tasks this class provides methods that create an
 The plate system can be covered with noise control material, so called trim. The trim must be given as transfer matrix model, as described 
 in the :ref:`sec-infinite-layers` section.
 
-The rectangular plate
+The Rectangular Plate
 *********************
 
 The :class:`pyva.systems.structure2Dsystems.RectangularPlate` class is extension of :class:`pyva.systems.structure2Dsystems.Structure2DSystem`
@@ -585,13 +595,16 @@ The :meth:`pyva.systems.structure2Dsystems.RectangularPlate.w_mode` method provi
 First, the highest mode index for required frequency must be found. This can be done by :meth:`pyva.systems.structure2Dsystems.RectangularPlate.get_modes_index`
 that calculates a sorted mode index an provides the highest index::
 
-    _,Ns = rec_plate.get_modes_index(omega[-1])
-    N_max = Ns[-1]
+    >>> _,Ns = rec_plate.get_modes_index(omega[-1])
+    >>> N_max = Ns[-1]
     >>> N_max
-    array([18., 33.])
+    array([18, 33])
 
-For example the displacement amplitude at the excitation point is calculated as follows::
+For example the displacement amplitude at the excitation point is calculated as follows uswing the same 
+coordinates for excitation and response::
 
+    x0 = 0.71
+    y0 = 1.22
     w0 = rec_plate.w_modal_force(omega, N_max, 1., x0, y0, x0, y0)
  
 For demonstration purpose the infinite plate displacement is also calculated. ::
@@ -620,10 +633,14 @@ We create a thicker and smaller plate to keep calculation time reasonable::
 
     plate_prop  = stPC.PlateProp(h,alu)
     rec_plate   = st2Dsys.RectangularPlate(3, Lx,Ly, prop=plate_prop, eta = 0.05)
+
+A :class_`~pyva.systems.acousticRadiators.HalfSpace` of air must be created ::
+
+    half_air = aR.HalfSpace()
         
 First, we calculate the modal transmission coefficient using the modal hybrid method::
 
-    tau_modal = rec_plate6mm.modal_transmission_coefficient_discrete(omega,(half_air,),)
+    tau_modal = rec_plate.modal_transmission_coefficient_discrete(omega,(half_air,),)
     
 See chapter 11 of [Pei2022]_ for details. In addition (but mainly for demonstration purposes) the
 transmission coefficient can be calculated using the discrete radiation stiffness and the point 
@@ -648,7 +665,7 @@ by simple mapping of the analytical solution to a mesh::
 
     mode_shapes,mesh = rec_plate.normal_modes(5000.)
     
-The result is a ShapeSignal those mode shapes can be potted by::
+The result is a ShapeSignal those mode shapes can be plotted by::
 
     mode_shapes.plot3d(4,1)
     
