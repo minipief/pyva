@@ -24,6 +24,13 @@ variable required to describe the propagation parallel to the layers: the wavenu
 In figure :ref:`fig-infinite-layer` such a set-up is shown. The use and application of the
 :class:`pyva.models.TMmodel` is shown is this section.
 
+In the first version of pyva TMM was restricted to fluid layer, i.e. layers that can be described by fluid state variables
+pressure and velocity. Note, that a this plate can also be described by fluid variable when no friction is considered.
+The current version of pyva has implemented :class:`~pyva.systems.infiniteLayers.SolidLayer` and 
+:class:`~pyva.systems.infiniteLayers.PoroElasticLayer`. In addition, the Allard approach is implemented that 
+allows the combination of multiple layers of different nature. In the last examples of this section 
+the new possibilities will be shown. 
+ 
 Absorber design
 +++++++++++++++
 
@@ -147,6 +154,111 @@ the lower resonance frequencies provide a much better performance in the mid-fre
    :width: 70%
    
    Transmission loss of different single and double wall configurations.
+  
+Absorber Design with Poroelastic Materials
+++++++++++++++++++++++++++++++++++++++++++
+
+With the implementation of Brouards and Allards theory that allows layups of different nature examples for 
+such a set-up are required. 
+We used the carpet-impervious screen-fibre layup of [All2009]_ in section 11.7.2.
+The layup is shown in the following figure.
+
+  .. figure:: ./images/carpet_screen_fibre_layup.*
+   :align: center
+   :width: 70%   
+   
+   Layup from [All2009]_ figure 11.16
+   
+The material parameters and thicknesses are taken from Table 11.7 but with corrected thickness of the fibre layer.
+
++-----------+-----------+--------++---+----------------+-----------------------+-----------------+-----------------+----------------+------+----------------+
+| Material  | :math:`h` | :math:`\Phi`| :math:`\sigma` | :math:`\alpha_\infty` | :math:`\Lambda` | :math:`\Lambda'`| :math:`\rho_1` | E    | :math:`\eta_s` |
+|  Unit     |  mm       |  .          |  Ns/m^4        |  .                    |  µm             |  µm             |  kg/m³         |  kPa |                |
++===========+===========+=============+================+=======================+=================+=================+================+======+================+
+| Carpet 1  |    3.5    |   0.99      |   5000         |   1                   |        23.      |      28.        |    60.         | 20.  |    0.5         |
++-----------+-----------+-------------+----------------+-----------------------+-----------------+-----------------+----------------+------+----------------+
+| Carpet 2  |    3.5    |   0.99      |   5000         |   1                   |        23.      |      28.        |    60.         | 20.  |    0.5         |
++-----------+-----------+-------------+----------------+-----------------------+-----------------+-----------------+----------------+------+----------------+
+| Screen    |    3.0    |             |                |                       |                 |                 |  2000.         | 30.  |                |
++-----------+-----------+-------------+----------------+-----------------------+-----------------+-----------------+----------------+------+----------------+
+| Carpet 1  |   12.5    |   0.98      |  33000         |   1.1                 |        50.      |     110.        |    60.         | 100. |    0.88        |
++-----------+-----------+-------------+----------------+-----------------------+-----------------+-----------------+----------------+------+----------------+
+
+Two carpet layers are mentioned but with similar properties. Thus, the original paper should be checked.
+
+The code is given in :ref:`sec-abs-poro-examples` and explained in detail here. The carpets material is created by ::
+
+    # Carpet as Poroelastic
+    carpet_solid = matC.IsoMat(E=20000.,rho0=60,nu=0.,eta=0.5)
+    carpet_mat   = matC.PoroElasticMat(carpet_solid, \
+                                flow_res = 5000., \
+                                porosity = 0.99, \
+                                tortuosity = 1., \
+                                length_visc = 23.E-6, length_therm = 28.E-6)
+
+The impervious screen uses the plate property ::
+
+    # Impervious scree as PlateProp
+    screen_mat  = matC.IsoMat(E=30000.,rho0 = 2000, nu=0.49)
+    screen_prop = stPC.PlateProp(0.003, screen_mat)
+
+And the fibre material is also defined as poroelastic material. ::
+
+    # Fibre as Poroelastic
+    fibre_solid = matC.IsoMat(E=100000.,rho0=60,nu=0.,eta=0.88)
+    fibre_mat   = matC.PoroElasticMat(fibre_solid, \
+                                flow_res = 33000., \
+                                porosity = 0.98, \
+                                tortuosity = 1.1, \
+                                length_visc = 50.E-6, length_therm = 110.E-6)
+                                
+The single layers are created using the :mod:`~pyva.systems.infiniteLayers` 
+module with the related classes ::
+
+    # Define infiniteLayers
+    carpet1  = iL.PoroElasticLayer(carpet_mat, 0.0035)
+    carpet2  = iL.PoroElasticLayer(carpet_mat, 0.0035)
+    screen   = iL.ImperviousScreenLayer(screen_prop)
+    fibre    = iL.PoroElasticLayer(fibre_mat, 0.0125)
+    
+and are connected as :class:`~pyva.models.TMmodel` object::
+
+    # Create lay-up as TMmodel
+    TMM_layup = mds.TMmodel((carpet1,carpet2,screen,fibre))
+    
+The impedance is calculated using the Allard version of the surface impedance calculation::
+
+    # Calculate normal surface impedance
+    Z          = TMM_layup.impedance_allard(omega,kx=0,signal = False)
+    
+which gives the following result in accordance with [All2009]_ except the frequency unit.
+
+  .. figure:: ./images/carpet_fibre_impedance.*
+   :align: center
+   :width: 70%   
+   
+   Normal impedance of layup from [All2009]_ as in figure 11.17
+   
+With the following command the normal and diffuse absorption can be caluclated ::
+
+    # Calculate normal absorption
+    alpha0     = TMM_layup.absorption(omega,kx=0.0,signal = False,allard=True)
+    # Calculate diffure absorption
+    alpha_diff = TMM_layup.absorption_diffuse(omega,theta_max=np.pi*78/180,theta_step = np.pi/180, signal = False, allard=True)
+    
+Note the ``allard = True`` keyword argument required to use the Allard method of the absorption calculation.
+The figure reveals that there are better absorbers in the world.
+
+  .. figure:: ./images/carpet_fibre_absorption.*
+   :align: center
+   :width: 70%   
+   
+   Normal and diffuse absorption of layup
+
+
+
+
+   
 
 
   

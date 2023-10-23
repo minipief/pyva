@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Allard test example for test of full porous application
-
-Created on Tue Jan 31 23:18:27 2023
+Allard example of section 11.7.2 of [All2009]_ 
+Example with lay-up given in figure 11.16 and table 11.7. 
 
 @author: alexander
 """
@@ -16,25 +15,30 @@ import pyva.properties.structuralPropertyClasses as stPC
 import pyva.data.matrixClasses as mC
 import pyva.properties.materialClasses as matC
 
-# my packages
-
-import pyva.properties.materialClasses as matC
-
 plt.close('all')
 
-wb = pd.read_excel('data/elasto_absorber.xlsx')
-omega_VA1 = 2*np.pi*wb.Frequency.values
-abs_5_VA1 = wb['Foam55 + Alu 3mm 5'].values
-abs_DAF_VA1 = wb['Foam55 + Alu 3mm 78'].values
-
-omega = 2*np.pi*np.logspace(2,4,200)
-omega0 = 2*np.pi*1000
+freq  = np.linspace(200,1400,50)
+omega = 2*np.pi*freq
 
 # default fluid
 air    = matC.Fluid(eta = 0.0)
-foam     = matC.IsoMat(E=55000.,rho0=70,nu=0.4,eta=0.01)
-foam50mm = stPC.PlateProp(0.05, foam)
-alu = matC.IsoMat()
+carpet_solid = matC.IsoMat(E=20000.,rho0=60,nu=0.,eta=0.5)
+carpet = matC.PoroElasticMat(carpet_solid, \
+                            flow_res = 5000., \
+                            porosity = 0.99, \
+                            tortuosity = 1., \
+                            length_visc = 23.E-6, length_therm = 28.E-6)
+    
+screen_mat = matC.IsoMat(E=30000.,rho0 = 2000, nu=0.49)
+screen     = mat
+
+fibre_solid = matC.IsoMat(E=100000.,rho0=60,nu=0.,eta=0.88)
+fibre = matC.PoroElasticMat(fibre_solid, \
+                            flow_res = 33000., \
+                            porosity = 0.98, \
+                            tortuosity = 1.1, \
+                            length_visc = 50.E-6, length_therm = 110.E-6)
+
 alu3mm = stPC.PlateProp(0.003, alu)
 
 angles  = np.linspace(0,np.pi/2)

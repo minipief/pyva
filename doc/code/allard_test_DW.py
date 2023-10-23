@@ -7,9 +7,6 @@ import matplotlib.pyplot as plt
 import pyva.models as mds
 import pyva.systems.infiniteLayers as iL
 import pyva.properties.structuralPropertyClasses as stPC
-
-# my packages
-
 import pyva.properties.materialClasses as matC
 
 plt.close('all')

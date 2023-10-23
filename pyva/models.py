@@ -380,25 +380,8 @@ class FEM:
 class TMmodel:
     
     """
-    The TMmodel class deals with systems that are described best by transfer matrices
-    
-    The TM-method uses cascades of matrices to calculate the propagation through the sequentially 
-    connected 1D subsystems with DOF pressure and velocity/volume velocity
-    
-    The RHS is considered as excitation port, the LHS as response port.  
-    
-    .. math:: 
-        \\begin{Bmatrix} p_1 \\\\ v_1  \\end{Bmatrix} =
-        \\begin{bmatrix} 
-        T_{11} & T_{12} \\\\
-        T_{21} & T_{22} 
-        \\end{bmatrix} 
-        \\begin{Bmatrix} p_2 \\\\ v_2 \\end{Bmatrix}
-        
-    Usally the coefficients :math:`T_{ij}(\\omega)` are functions of frequency 
-    but for infinite layers they are also a function of wavenumber 
-    :math:`T_{ij}(\\omega,k_x)`.
-    
+    The TMmodel class deals with systems that are described best a set of infiniteLayer objects that 
+    are represented by transfer matrices and coupling conditions.
     """
     
     def __init__(self,layers,**kwargs):
@@ -552,10 +535,15 @@ class TMmodel:
         
         So, every change in layer nature require new DOFs.
 
+        Parameters
+        ----------
+        boundary_condition : str
+            str for end condition 'equivalent_fluid' of 'fixed'. The default is 'equivalent_fluid'
+
         Returns
         -------
-        v0 : mC.DOF
-            State variable of multilayer.
+        (v0,v1) : tuple of mC.DOF
+            excitation dof (V0) and the response dofs of the layer set.
 
         """
         ID_  = [0]*2 # we start with 0 for the entry fluid ID
@@ -646,6 +634,12 @@ class TMmodel:
             angular frequency.
         kx : ndarray of float, optional
             wavenumber in x-direction. The default is 0..
+        boundary_condition : str
+            identifier for end condition
+        out_fluid : Fluid
+            Fluid at the end condition. The default is air.
+        reduces : boolean
+            Switch for reduced matrix according to section 11.6.2 of [All2009]_
         **kwargs : TYPE
             DESCRIPTION.
 

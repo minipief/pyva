@@ -6,18 +6,15 @@ https://github.com/minipief/pyva
 
 The related github link of the repository is https://github.com/minipief/pyva.git
 
-Unfortunately the name pyva is already used for a different package in PyPi. 
-But as alternative you can download the pyva wheel from here https://github.com/minipief/pyva/tree/main/dist and install via:
-
-If not already available install the wheel package by
+Unfortunately the name pyva is already used in the Python Package Index and the PyPi name varies from module name. 
 
 .. code-block:: console
 
-   pip install wheel
+   pip install pyva-toolbox
    
-The required package can then be installed via 
+If you would like to install the latest version on the git server you may use:
 
 .. code-block:: console
 
-   pip install pyva-1.0.0-py3-none-any.whl
+   pip install git+https://github.com/minipief/pyva.git
    

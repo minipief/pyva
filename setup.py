@@ -7,8 +7,8 @@ Created on Sun Mar  6 12:01:53 2022
 from setuptools import setup,find_packages
 
 setup(
-    name = "pyva",
-    version = "1.0.0",
+    name = "pyva-toolbox",
+    version = "1.2.1",
     author = 'Dr. Alexander Peiffer',
     author_email = "author@alexanderpeiffer.de",
     py_modules = ["models","useful"],

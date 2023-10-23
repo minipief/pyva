@@ -17,4 +17,12 @@ Material Parameter Determination
 ++++++++++++++++++++++++++++++++
 
 .. literalinclude:: ../code/atalla_biot_parameter_determination.py
+
+.. _sec-abs-poro-examples:
+
+Absorber Design with Poroelastic Materials
+++++++++++++++++++++++++++++++++++++++++++
+
+.. literalinclude:: ../code/allard_carpet_screen_fibre_example.py
+
  

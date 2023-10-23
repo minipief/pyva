@@ -1533,7 +1533,7 @@ class ImperviousScreenLayer(SolidLayer):
     Class for Modelling Impervious screen or thin plate as InfiniteLayer.
     
     The impervious screen formulation consideres the in-plane motion of the plate 
-    in contrast to the PlateLayer the in plane stress and motion is connected the next layer.
+    and in contrast to the PlateLayer the in plane stress and motion is connected the next layer.
     
     However, the layer is considered as thin and the in-plane motion does not lead to 
     moments or bending.

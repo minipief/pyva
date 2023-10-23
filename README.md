@@ -9,7 +9,7 @@ A. Peiffer: Vibroacoustic Simulation: In Introduction to Statistical Energy Anal
 [Order book](http://www.wiley.com/buy/9781119849841)
 
 This toolbox allows the reader to follow the examples in the book. People that are interested in vibroacoustic simulation with a focus on 
-statistical energy analysis (SEA) and hybrid methods (hybrid FEM/SE), to perform SEA simulation without heavy licence costs.
+statistical energy analysis (SEA) and hybrid methods (hybrid FEM/SEA), to perform SEA simulation without heavy licence costs.
 
 # Documentation
 
@@ -43,7 +43,6 @@ However, I am still scanning the options.
 ### Material Module
 
 - Anisotropic materials
-- Porous Absorber Models (Biot - JCA)
 
 ### Structural Property Module
 

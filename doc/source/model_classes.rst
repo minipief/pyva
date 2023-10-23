@@ -133,8 +133,185 @@ The sound transmission of a specific layer set is performed solving a complex ma
 the boundary conditions into account. This is namely the matrix of equation (11.79) of [All2009]_ with the extra lines of equation (11.82) for hard wall termination or (11.84) and (11.85) for the free field.
 The excitation is given by equation (11.86) which makes the final matrix square.
 
-The Allard matrix is implemented as a :class:`~pyva.data.matrixClasses.DynamicMatrix` object. The exc_DOF correspond exactly to the :math:`{\bm V}` vector of Allard, but the res_DOF needs som further explication.
-Allard doesn't consider a response DOF in datail because he is summing up equations into a matrix, but as we need the ...
+.. _fig-allard-layer-config:
+
+.. figure:: ./images/allard_layer_config.*
+   :align: center
+   :width: 90%
+   
+   Logics of response and excitation DOFs of multiple infinite layers.
+
+The Allard matrix is implemented as a :class:`~pyva.data.matrixClasses.DynamicMatrix` object. The exc_DOF correspond exactly to the :math:`{\bm V}` vector of Allard.
+In order to explain the logics of the DynamicMatrix creation we consider the equation that constitute the dynamics for the right degrees of freedom of specific layers, namely (11.69) of [All2009]_.
+
+.. math::
+    :label: TM_interface_cond_2
+    
+    \begin{bmatrix}
+    {I}_{12}
+    \end{bmatrix}
+    \begin{Bmatrix}
+    {\bm V}^{(1)}(2)
+    \end{Bmatrix} + 
+    \begin{bmatrix}
+    {J}_{12}
+    \end{bmatrix}
+    \begin{bmatrix}
+    {\bm T}^{(2)}
+    \end{bmatrix}
+    \begin{Bmatrix}
+    {\bm V}^{(2)}(4)
+    \end{Bmatrix} =
+    \begin{Bmatrix}
+    0
+    \end{Bmatrix}
+ 
+The numbers in the argument parenthesis of :math:`{\bm V}^{(n)}(NID)` are the node ID, the upper index in round parenthesis is the layer.
+The transfer matrix is the reason why only the right node IDs are taken as exc_dof. In contrast to Allards equation we skip the internal node IDs when layers of similar nature are connected.
+In this case (and neglecting the porous-porous connection) the equation would read as:
+ 
+.. math::
+    :label: TM_interface_cond_2
+    
+    \begin{bmatrix}
+    {I}_{12}
+    \end{bmatrix}
+    \begin{Bmatrix}
+    {\bm V}^{(1)}(2)
+    \end{Bmatrix} + 
+    \begin{bmatrix}
+    {J}_{12}
+    \end{bmatrix}
+    \begin{bmatrix}
+    {\bm T}^{(2)}
+    \end{bmatrix}
+    \begin{bmatrix}
+    {\bm T}^{(3)}
+    \end{bmatrix}
+    \begin{bmatrix}
+    {\bm T}^{(4)}
+    \end{bmatrix}
+    \begin{Bmatrix}
+    {\bm V}^{(4)}(8)
+    \end{Bmatrix} =
+    \begin{Bmatrix}
+    0
+    \end{Bmatrix}
+    
+A final matrix might look like. 
+
+.. math::
+    :label: TM_allard
+    
+    \begin{bmatrix}
+    {\bm D}_0
+    \end{bmatrix}
+    \begin{bmatrix}
+    [I_{f1}] & [J_{f1}][T^{(1)}] & [0]                         & \cdots & [0] & [0] \\
+    [0]      & [I_{12}]          & [J_{12}][T^{(2)}][T^{(3)}]  & \cdots & [0] & [0] \\
+    \vdots   & \vdots            & \vdots                      &   & \vdots   &     \\
+    [0]      & [0]               & [0]                         & \cdots & [J_{(M-2)(M-1)}][T^{(M-1)}] & [0] \\
+    [0]      & [0]               & [0]                         & \cdots & [J_{(M-1)(M)}] & [I_{(M-1)(M)}][T^{(M)}] 
+    \end{bmatrix}
+    
+And the exc_dof 
+
+.. math::
+    :label: V0_allard
+   
+    \begin{Bmatrix}
+    {\bm V}_0
+    \end{Bmatrix} =
+    \begin{Bmatrix}
+    {\bm V}^{(0)}(0), {\bm V}^{(1)}(2), {\bm V}^{(3)}(6) \cdots {\bm V}^{(M-1)}(2(M-1)), {\bm V}^{(0)}(2M) 
+    \end{Bmatrix}^T
+    
+The res_dof is vector of response degrees of freedom according to the discussions of section :ref:`sec-coupling-TM`.
+Depending on the end boundary conditoin there may be additoinal degrees of freedom added.
+We check the procedure using an example starting with the import of required libraries.::
+
+    import pyva.models as mds
+    import pyva.systems.infiniteLayers as iL
+    import pyva.properties.structuralPropertyClasses as stPC
+    import pyva.properties.materialClasses as matC
+
+Next we create all materials and properties::
+
+    # Fluids
+    air = matC.Fluid(air)
+    poro_limp = matC.EquivalentFluid(rho_bulk = 30., \
+                                    flow_res = 40000., \
+                                    porosity = 0.94, \
+                                    tortuosity = 1.06, \
+                                    length_visc = 56.E-6, length_therm = 110.E-6,limp=True)
+    # Poroelastic
+    ela_vac = matC.IsoMat(4400000.0,130., 0., 0.1) # Frame in vaccuum    
+    poroela = matC.PoroElasticMat(ela_vac, \
+                                flow_res = 40000., \
+                                porosity = 0.94, \
+                                tortuosity = 1.06, \
+                                length_visc = 56.E-6, length_therm = 110.E-6)
+
+    # Solid
+    alu = matC.IsoMat()
+    alu1mm = stPC.PlateProp(0.001,alu)
+
+and create infinite Layers of them ::
+
+    # Layers
+    il_alu_solid_1mm = iL.SolidLayer(alu1mm,)
+    il_air_10mm      = iL.FluidLayer(0.01,fluid=air)
+    il_fibre_20mm    = iL.FluidLayer(0.02,fluid=poro_limp)
+    il_poro_ela      = iL.PoroElasticLayer(poroela, 0.05)
+
+Finally a :class:`~pyva.models.TMmodel` object is create from these layers::
+
+    TM_all = mds.TMmodel((il_poro_ela,il_air_10mm,il_fibre_20mm,il_alu_solid_1mm))
+
+The configuration fits quite well to figure :ref:`fig-allard-layer-config`. Note that the
+second and third layer are fluid layer so the DOFs in the middle.
+With the :meth:`~pyva.models.TMmodel.V0` method the excitation and response DOFs are derived::
+
+    V0,V1 = TM_all.V0()
+    >>>V0DOF object with ID [0 0 2 2 2 2 2 2 6 6 8 8 8 8 9 9], DOF [0 3 1 3 2 3 5 2 0 3 1 3 3 5 0 3] of type 
+    [DOFtype(typestr='pressure'), DOFtype(typestr='velocity'), DOFtype(typestr='velocity'), ... ]
+    
+See the node IDs 0 2 6 8 and 9 of the exc_DOF. Node 4 is skipped because of the two fluid layers. The 9 comes from the final layer that is assumed as
+fluid or half space end condition. See also the different DOFs of the V0 vector.
+The res_dof is different as discussed before::
+
+    >>>V1
+    DOF object with ID [1 1 1 1 2 2 2 2 7 7 7 8 8 8 9], DOF [1 3 5 2 1 3 5 2 3 3 1 3 3 1 0] of type 
+    [DOFtype(typestr='velocity'), DOFtype(typestr='stress'), DOFtype(typestr='stress'), ... ]
+    
+The res_dof vector has lower size and the node ID is linked to the *complicated* part of the interface. 
+This is node 1 or the first poroelastic layer and node 7 of the lase solid layer.
+
+The full Allard matrix is calculated using the :meth:`~pyva.models.TMmodel.allard_matrix` method::
+
+    D0   = TM_all.allard_matrix(6000., kx = 0.,reduced = False)
+    
+This matrix is solved by setting the excitation pressure at node ID 0 to 1, eliminate the first coloumn and row of the 
+matrix and create a force vector of it. This is requested by the ``reduced = True`` keyword argument::
+
+    D1,F = TM_all.allard_matrix(6000., kx = 0.,reduced = True)
+
+The response in all DOFs can be calculated using the :meth:`pyva.data.matrixClasses.DynamicMatrix.solve` method of
+the DynamicMatrix ::
+
+    Vs = D1.solve(F)
+
+This functionality is used in the :meth:`~pyva.models.TMmodel.transmission_allard` and 
+:meth:`~pyva.models.TMmodel.impedance_allard` method.
+    
+
+
+
+
+
+
+
+
 
 
 
