@@ -172,7 +172,7 @@ class BeamProp:
             bending wavelength.
 
         """
-        return np.pi*2/self.kx(omega)
+        return np.pi*2/self.ky(omega)
             
     def c_phase(self,omega):
         """
