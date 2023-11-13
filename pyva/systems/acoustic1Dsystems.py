@@ -666,13 +666,12 @@ class LumpedAcoustic:
 
         # init
         lDOF = [0,1] # default pressure and velocity DOF 
+        volumeflow = False # velocity is the default variable
         
         for kw in kwargs:
             if kw == 'velocity':
                 if kwargs[kw]=='q':
                     volumeflow = True
-                else:
-                    volumeflow = False
             elif kw == 'DOF':
                 lDOF = kwargs[kw] 
             else:

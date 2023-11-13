@@ -1960,15 +1960,6 @@ class AreaJunction(Junction):
         # diagonal!
         return JM
 
-
-
-
-
-
-
-
-
-
 class HybridAreaJunction(Junction) :
     """ 
     Class for hybrid area junctions between FEM systems and cavities 

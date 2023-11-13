@@ -936,21 +936,24 @@ class FluidLayerHoneyComb(FluidLayer):
     
 class MassLayer(AcousticLayer):
     """
-    The massAcoustic class represents the mass layer 
+    The MassLayer class represents the mass layer 
     
     Attributes
     ----------
     thickness : float
         thickness of the layer
     rho : float
-        Density.    
+        Density.
+    perforation : PerforatedLayer
+        optional additional perforation of the plate 
+    
     ID : list of int
         [left ID, right ID] of MassLayer
     """
     
-    def __init__(self,thickness,rho):
+    def __init__(self,thickness,rho,perforation=None):
         """
-        Constructror of mass layer
+        Constructor of mass layer.
 
         Parameters
         ----------
@@ -958,15 +961,14 @@ class MassLayer(AcousticLayer):
             thickness of the layer.
         rho : float
             Density.
-        ID : list of int
-            [left ID, right ID] of MassLayer
+        perforation : PerforatedLayer
+            optional additional perforation of the plate 
 
         Returns
         -------
         None.
 
         """
-                
         # set DOF according to ID and natural DOF of the layer
         Tdof = ('pressure','velocity')
         _left_dof = dof.DOF([0,0],[0,3],Tdof)
@@ -975,6 +977,7 @@ class MassLayer(AcousticLayer):
         super().__init__(thickness,_left_dof,_right_dof)
         
         self.rho = rho
+        self.perforation = perforation
         
         # create lumped element component
         self._lumped = ac1D.MassStiffness(rho*thickness,0)
@@ -1016,17 +1019,24 @@ class MassLayer(AcousticLayer):
         omega = np.array(omega).flatten()
         
         xdata = self.get_xdata(omega, kx)
+        Zp = self._lumped.impedance(omega)
         
-        if xdata.type.typestr == 'wavenumber':
-            # xdata ,ust be replaced for original mehod. 
-            _T = self._lumped.transfer_impedance(omega,ID,velocity = 'v')
-            # just matrix repetition, there is no wavenumber dependence
-            T_kx = np.tile(_T.data,(xdata.shape))            
-            return mC.DynamicMatrix(T_kx,xdata,rdof,ldof)
-            
-        elif xdata.type.typestr == 'angular frequency':
-            # method from 1Dsystem can be used as is
-            return self._lumped.transfer_impedance(omega,ID,velocity = 'v',DOF=[0,3])
+        if self.perforation != None:
+            Z_perf = self.perforation.impedance(omega)
+            Zp = Zp*Z_perf/(Zp+Z_perf)
+
+
+        data   = np.zeros((2,2,len(xdata)),dtype = np.complex128)
+
+        data[0,0,:] = 1.
+        data[1,1,:] = 1.
+        data[0,1,:] = Zp
+        # data[1,0,:] = 0. 
+                
+        return mC.DynamicMatrix(data,xdata,rdof,ldof)
+
+
+
 
     @property
     def mass_per_area(self):
@@ -1044,6 +1054,8 @@ class MassLayer(AcousticLayer):
     def transmission_coefficient(self,omega,theta = 0.,fluid = mc.Fluid()):
         """
         Mass law transmission coefficient 
+        
+        Note: perforation is not yet considered
         
         Parameters
         ----------
@@ -1069,11 +1081,16 @@ class PlateLayer(AcousticLayer):
     """
     The PlateLayer class represents the infinite plate layer 
     
-    Attributes:
-        plate_prop: of plate
+    Attributes
+    ----------
+        plate_prop : PlateProp
+            plate property of layer
+        perforation : PerforatedLayer
+            optional additional perforation of the plate 
+
     """
     
-    def __init__(self,plate_prop):
+    def __init__(self,plate_prop,perforation = None):
         """
         Class constructor for PlateLayer objects
         
@@ -1081,8 +1098,8 @@ class PlateLayer(AcousticLayer):
         ----------
         plate_prop : PlateProp
             plate property of layer
-        ID : list or tuple
-            node IDs of left and right side
+        perforation : PerforatedLayer
+            optional additional perforation of the plate 
         """                
         # set DOF according to ID and natural DOF of the layer
         Tdof = ('pressure','velocity')
@@ -1092,7 +1109,8 @@ class PlateLayer(AcousticLayer):
         super().__init__(plate_prop.thickness,_left_dof,_right_dof)
         
         self.prop = plate_prop
-    
+        self.perforation = perforation
+        
     def __repr__(self):
         str_ = 'plate layer of thickness {0}'.format(self.thickness)
         return str_
@@ -1136,10 +1154,19 @@ class PlateLayer(AcousticLayer):
         xdata = self.get_xdata(omega, kx)
                        
         data   = np.zeros((2,2,len(xdata)),dtype = np.complex128)
+        
+        Zb = self.prop.transfer_impedance(omega,kx)
+
+        # When the plate is perforated, both impedances are working in parallel
+        if self.perforation != None:
+            Z_perf = self.perforation._lumped.impedance(omega)
+            #por = self.perforation.porosity
+            #Zb_ = self.data[0,1,:]
+            Zb = Z_perf*Zb/(Zb+Z_perf) 
 
         data[0,0,:] = 1.
         data[1,1,:] = 1.
-        data[0,1,:] = self.prop.transfer_impedance(omega,kx)
+        data[0,1,:] = Zb
         #data[1,0,:] = 0.
         
         # Update ID in DOF attribute
@@ -1194,6 +1221,8 @@ class PerforatedLayer(AcousticLayer):
     alpha: float
         correction constant for resistivity correction approx 4.-2. for
         sharp to round edges
+    area mass: float
+        area mass, when > 0 the perforate is considered as limp 
     """
    
     
@@ -1240,6 +1269,7 @@ class PerforatedLayer(AcousticLayer):
          
         # assign attributes of mother classes
         super().__init__(thickness,_left_dof,_right_dof)
+        # Use perforated layer version of the 1D systems
         self._lumped = ac1D.PerforatedLayer(thickness,hole_radius,1.,fluid=fluid, \
                                             pattern = pattern,alpha = alpha,**kwargs)
         
@@ -1279,7 +1309,7 @@ class PerforatedLayer(AcousticLayer):
         xdata = self.get_xdata(omega, kx)
         
         if xdata.type.typestr == 'wavenumber':
-            # xdata ,ust be replaced for original mehod. 
+            # xdata must be replaced for original mehod. 
             _T = self._lumped.transfer_impedance(omega,ID,velocity = 'v')
             # just matrix repetition, there is no wavenumber dependence
             T_kx = np.tile(_T.data,(xdata.shape))            
@@ -1544,9 +1574,12 @@ class ImperviousScreenLayer(SolidLayer):
         thickness of the perforted layer
     prop: PlateProp
         property of plate modelled as 3D layer
+    perforation : PerforatedLayer
+        optional additional perforation of the plate 
+
     """
     
-    def __init__(self,plate_prop):
+    def __init__(self,plate_prop,perforation = None):
         """
         Class contructor for ImperviousScreenLayer objects.
 
@@ -1554,8 +1587,8 @@ class ImperviousScreenLayer(SolidLayer):
         ----------
         plate_prop : PlateProp
             plate property of layer
-        ID : list or tuple
-            node IDs of left and right side
+        perforation : PerforatedLayer
+            optional additional perforation of the plate 
         """
                 
         # set DOF according to ID and natural DOF of the layer
@@ -1566,6 +1599,7 @@ class ImperviousScreenLayer(SolidLayer):
         super().__init__(plate_prop)
         
         self.type = 'solid'
+        self.perforation = perforation
     
     def __repr__(self):
         """
@@ -1611,6 +1645,12 @@ class ImperviousScreenLayer(SolidLayer):
 
         Zb  = self.prop.transfer_impedance(omega,kx)
         Zs  = 1j*omega*m*(1-S*kx*kx/m/omega/omega)
+
+        # When the plate is perforated, both impedances are working in parallel
+        if self.perforation != None:
+            Z_perf = self.perforation._lumped.impedance(omega)
+            #por = self.perforation.porosity
+            Zb = Z_perf*Zb/(Zb+Z_perf) 
         
         T = np.zeros((4,4,len(xdata)),dtype = np.complex128)
             

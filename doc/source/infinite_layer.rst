@@ -158,8 +158,8 @@ the lower resonance frequencies provide a much better performance in the mid-fre
 Absorber Design with Poroelastic Materials
 ++++++++++++++++++++++++++++++++++++++++++
 
-With the implementation of Brouards and Allards theory that allows layups of different nature examples for 
-such a set-up are required. 
+The implementation of Brouards and Allards theory that allows layups of different nature.
+Thus examples for such set-ups are required. 
 We used the carpet-impervious screen-fibre layup of [All2009]_ in section 11.7.2.
 The layup is shown in the following figure.
 
@@ -254,6 +254,100 @@ The figure reveals that there are better absorbers in the world.
    :width: 70%   
    
    Normal and diffuse absorption of layup
+   
+ 
+Acoustic transmission design with poroelastic foam and rubber
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+A practical version double wall systems is a so called mass-spring system. 
+Such layup consist of a soft foam covered by a heavy layer, e.g. rubber.
+With the Allard theory poroelaxtic foams can be investigated in detail.
+An example layup is shown in the following figure.
+
+  .. figure:: ./images/alu_melamin_rubber_layup.*
+   :align: center
+   :width: 70%   
+   
+   Mass-spring layup
+
+In this example the impact of different modelling approaches and assumptions is shown.
+The code is given in :ref:`sec-TL-poro-examples`, please refer to the code for the material details.
+
+The rubber and the Aluminium of the base plate are given as :class:`~pyva.properties.materialClasses.IsoMat`. ::
+
+    # Isotropic materials
+    alu     = matC.IsoMat(eta = 0.1)
+    rubber  = matC.IsoMat(E=2.6e6,rho0=1200,nu=0.49,eta=0.00)
+
+The melamin foam is given by ::
+
+    # Melamin foam paramters
+    melamin_vac = matC.IsoMat(E=3.0e5,rho0=12.0,nu=0.4,eta=0.1) # Frame in vaccuum    E6
+    melamin = matC.PoroElasticMat(melamin_vac, \
+                                flow_res = 30000., \
+                                porosity = 0.99, \
+                                tortuosity = 1.01, \
+                                length_visc = 250.E-6, length_therm = 550.E-6)
+                                
+Every layer is given as plate, so that we can try different options::
+
+    # plate properties
+    alu_1mm        = stPC.PlateProp(0.001, alu)
+    rubber_2mm     = stPC.PlateProp(0.002, rubber)
+    # test the foam as solid
+    foam_3cm_solid = stPC.PlateProp(0.03, melamin_vac) 
+
+We define the melamin foam either as :class:`~pyva.infiniteLayers.PoroElasticLayer` or :class:`~pyva.infiniteLayers.SolidLayer` ::
+
+    # Foam Layers
+    iL_foam_3cm = iL.PoroElasticLayer(melamin, 0.03)
+    iL_foam_3cm_solid = iL.SolidLayer(foam_3cm_solid)
+
+whereas the aluminium plate and the rubber layer are given as :class:`~pyva.infiniteLayers.SolidLayer` or :class:`~pyva.infiniteLayers.ImperviousScreenLayer` ::
+
+    # rubber and alu as solid- and screen layer
+    iL_rubber_solid_2mm = iL.SolidLayer(rubber_2mm)
+    iL_rubber_imper_2mm = iL.ImperviousScreenLayer(rubber_2mm)
+    iL_alu_solid_1mm    = iL.SolidLayer(alu_1mm)
+    iL_alu_imper_1mm    = iL.ImperviousScreenLayer(alu_1mm)
+    
+For the decoupling we create a super thin layer of low mass ::
+
+    # Mass of Fluid as gap
+    iL_nothing    = iL.MassLayer(1e-6,1.)
+
+First we are interested in the impact of the solid or screen layer modelling ::
+
+    # TMmpodel using the solid or impervious screen formulation 
+    alu_melamin_rubber_solid = mds.TMmodel((iL_alu_solid_1mm,iL_foam_3cm,iL_rubber_solid_2mm))
+    alu_melamin_rubber_imper = mds.TMmodel((iL_alu_imper_1mm,iL_foam_3cm,iL_rubber_imper_2mm))
+
+and two other variations that decouple the alu plate of model the melamin foam as solid - neglecting the fluid waves. ::
+
+    alu_melamin_rubber_decoup = mds.TMmodel((iL_alu_imper_1mm,iL_nothing,iL_foam_3cm,iL_rubber_imper_2mm))
+    alu_melamin_rubber_foam_as_solid = mds.TMmodel((iL_alu_imper_1mm,iL_foam_3cm_solid,iL_rubber_imper_2mm))
+    
+Calculating the transmission loss of all options is done by::
+
+    tau_imper = alu_melamin_rubber_imper.transmission_diffuse(omega,theta_max=78/180*np.pi,allard=True,signal=False)
+    tau_solid = alu_melamin_rubber_solid.transmission_diffuse(omega,theta_max=78/180*np.pi,allard=True,signal=False)
+    tau_decoup = alu_melamin_rubber_decoup.transmission_diffuse(omega,theta_max=78/180*np.pi,allard=True,signal=False)
+    tau_foam_as_solid = alu_melamin_rubber_foam_as_solid.transmission_diffuse(omega,theta_max=78/180*np.pi,allard=True,signal=False)
+
+The results are shown in the following figure.
+
+  .. figure:: ./images/allard_DW_TL.*
+   :align: center
+   :width: 70%   
+   
+   Transmission loss of alu + mass-spring system using different modelling options
+   
+First, the difference between the versions modelling both skins as solid or screen is low.
+Second, decoupling the alu from the foam leads to very different results. As a consequence this means that the 
+connection iof the noise control treatment must be exactly known to get correct results. This is also true for 
+experiments where the treatment must be carefully glued to the plate to get correct results.
+Third, when the foam is modelled as solid the result is different, but the difference is lower than compared to the decoupling
+effect.
 
 
 

@@ -26,3 +26,9 @@ Absorber Design with Poroelastic Materials
 .. literalinclude:: ../code/allard_carpet_screen_fibre_example.py
 
  
+.. _sec-TL-poro-examples:
+ 
+Acoustic transmission design with poroelastic foam and rubber
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+.. literalinclude:: ../code/allard_carpet_screen_fibre_example.py
