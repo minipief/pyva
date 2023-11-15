@@ -566,7 +566,7 @@ class LumpedAcoustic:
 
         Parameters
         ----------
-        impedance : function 
+        impedance : function (of omega)
             transfer impedance function with omega as argument.
         area : float, optional
             cross section area. The default is 1.
@@ -994,7 +994,7 @@ class PerforatedLayer(LumpedAcoustic):
             else:
                 raise ValueError('Unkown keyword {0}'.format(kw))
         
-        # Define impedance funtion for attribue
+        # Define impedance funtion for attribute
         def impedance_(omega):  
             _val = self.transfer_resistivity(omega)+ \
                    1j*self.transfer_reactance(omega)

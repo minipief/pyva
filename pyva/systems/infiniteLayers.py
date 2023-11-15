@@ -638,7 +638,7 @@ def porous_fluid_res_dof(ID):
 
 class AcousticLayer:
     """
-    Base class for all acoustic infinite layer
+    Base class for all acoustic infinite layer.
     
     This class constitutes the system properties, of one layer or element 
     of acoustic networks or layer models
@@ -1200,61 +1200,38 @@ class PlateLayer(AcousticLayer):
         
         return 1/(1+(self.mass_per_area*omega/2/fluid.z0*((ka*np.sin(theta)/kB)**4-1)*np.cos(theta))**2)
     
-class PerforatedLayer(AcousticLayer):
+class ResistiveLayer(AcousticLayer):
     """
-    The PerforatedLayer class deals perforated layers in acoustic networks
+    The ResistiveLayer class deals lumped acoustic infinite layers.
     
-    The behaviour is calculated using flow throught the holes and radiation be the disk radiator pattern
+    In most cases this is a resistive sheet with measures resistivity
     
     Attributes
     ----------
-    thickness: float
-        thickness of the perforted layer
-    pattern: str
-        identifier for hole pattern (quadradic, triangular, )
-    hole_radius: float
-        radius of the holes in the membrane
-    porosity: float 
-        area ratio of holes to totalsurface
-    fluid: fluid
-        fluid in the hole
-    alpha: float
-        correction constant for resistivity correction approx 4.-2. for
-        sharp to round edges
-    area mass: float
-        area mass, when > 0 the perforate is considered as limp 
+    left_dof : DOF
+        degrees of freedom of left connection 
+    right_dof : DOF
+        degrees of freedom of left connection 
+    thickness : float
+        thickness of the layer
+    impedance : function (of omega)
+        transfer impedance function with omega as argument.    
     """
    
     
     # Model is based on fluid viscosity
     visc_air = mc.Fluid(damping_model='viscous')
         
-    def __init__(self,thickness,hole_radius,fluid=visc_air,pattern='square',alpha=2.,**kwargs):
+    def __init__(self,thickness,impedance):
         """
-        Class contructor for PerforatedLayer
+        Class contructor Resistivelayer.
         
-
         Parameters
         ----------
-        thickness: float
-            thickness of the perforted layer
-        hole_radius: float
-            radius of the holes in the membrane
-        fluid: fluid
-            fluid in the hole. The default is visc_air.
-        ID : TYPE, optional
-            DESCRIPTION. The default is [1,2].
-        pattern: str
-            identifier for hole pattern ('square',triangular'',). The default is 'square'.
-        alpha: float
-            correction constant for resistivity correction approx 4.-2. for
-            sharp to round edges: The default is 2.
-        **kwargs : dict
-            arbitrary keyword parameter list
-        distance: float
-            distance between holes
-        porosity:  float 
-            surface porosity of perforate
+        thickness : float
+            thickness of the layer
+        impedance : function (of omega)
+            transfer impedance function with omega as argument.    
 
         Returns
         -------
@@ -1269,9 +1246,8 @@ class PerforatedLayer(AcousticLayer):
          
         # assign attributes of mother classes
         super().__init__(thickness,_left_dof,_right_dof)
-        # Use perforated layer version of the 1D systems
-        self._lumped = ac1D.PerforatedLayer(thickness,hole_radius,1.,fluid=fluid, \
-                                            pattern = pattern,alpha = alpha,**kwargs)
+        # Use lumped acoustic version of the 1D systems
+        self._lumped = ac1D.LumpedAcoustic(impedance)
         
     def transfer_impedance(self,omega,kx = 0,ID=[1,2]):
         """
@@ -1340,6 +1316,76 @@ class PerforatedLayer(AcousticLayer):
                 
         self._lumped.plot(omega,**kwargs)
         
+class PerforatedLayer(ResistiveLayer):
+    """
+    The PerforatedLayer class deals perforated layers in acoustic networks
+    
+    The behaviour is calculated using flow throught the holes and radiation be the disk radiator pattern
+    
+    Attributes
+    ----------
+    thickness: float
+        thickness of the perforted layer
+    pattern: str
+        identifier for hole pattern (quadradic, triangular, )
+    hole_radius: float
+        radius of the holes in the membrane
+    porosity: float 
+        area ratio of holes to totalsurface
+    fluid: fluid
+        fluid in the hole
+    alpha: float
+        correction constant for resistivity correction approx 4.-2. for
+        sharp to round edges
+    area mass: float
+        area mass, when > 0 the perforate is considered as limp 
+    """
+   
+    
+    # Model is based on fluid viscosity
+    visc_air = mc.Fluid(damping_model='viscous')
+        
+    def __init__(self,thickness,hole_radius,fluid=visc_air,pattern='square',alpha=2.,**kwargs):
+        """
+        Class contructor for PerforatedLayer
+        
+
+        Parameters
+        ----------
+        thickness: float
+            thickness of the perforted layer
+        hole_radius: float
+            radius of the holes in the membrane
+        fluid: fluid
+            fluid in the hole. The default is visc_air.
+        pattern: str
+            identifier for hole pattern ('square',triangular'',). The default is 'square'.
+        alpha: float
+            correction constant for resistivity correction approx 4.-2. for
+            sharp to round edges: The default is 2.
+        **kwargs : dict
+            arbitrary keyword parameter list
+        distance: float
+            distance between holes
+        porosity:  float 
+            surface porosity of perforate
+
+        Returns
+        -------
+        None.
+                        
+        """
+ 
+         
+        # Use perforated layer version of the 1D systems
+        self.perf_ = ac1D.PerforatedLayer(thickness,hole_radius,1.,fluid=fluid, \
+                                            pattern = pattern,alpha = alpha,**kwargs)
+        # assign attributes of mother classes
+        super().__init__(thickness,self.perf_.impedance)
+
+            
+
+        
     @property
     def porosity(self):
         """
@@ -1351,7 +1397,7 @@ class PerforatedLayer(AcousticLayer):
 
         """
         
-        return self._lumped.porosity
+        return self.perf_.porosity
         
                     
 class SolidLayer(AcousticLayer):
