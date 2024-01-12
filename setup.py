@@ -8,11 +8,10 @@ from setuptools import setup,find_packages
 
 setup(
     name = "pyva-toolbox",
-    version = "1.2.1",
+    version = "1.2.2",
     author = 'Dr. Alexander Peiffer',
     author_email = "author@alexanderpeiffer.de",
     py_modules = ["models","useful"],
-    packages = find_packages(),
-    install_requires = ['pint>=0.17','numpy>=1.20.2','matplotlib>=3.3.4','scipy>=1.6.2','pandas>=1.2.5']
+    packages = find_packages()
     )
 

@@ -30,6 +30,8 @@ The current version of pyva has implemented :class:`~pyva.systems.infiniteLayers
 :class:`~pyva.systems.infiniteLayers.PoroElasticLayer`. In addition, the Allard approach is implemented that 
 allows the combination of multiple layers of different nature. In the last examples of this section 
 the new possibilities will be shown. 
+
+.. _sec-absorber-design:
  
 Absorber design
 +++++++++++++++
@@ -348,6 +350,56 @@ connection iof the noise control treatment must be exactly known to get correct 
 experiments where the treatment must be carefully glued to the plate to get correct results.
 Third, when the foam is modelled as solid the result is different, but the difference is lower than compared to the decoupling
 effect.
+
+Add perforation to plates and impervious screens
+++++++++++++++++++++++++++++++++++++++++++++++++
+
+In order to show the influence of perforation, we slightly modify our 10mm fibre example of :ref:`sec-absorber-design`.
+
+We create an additional steel plate of 5mm thickness that is perforated as given in the example.
+We use the plate and the impervious screen model::
+
+    steel    = matC.IsoMat(E=15.E10,rho0=7800.,nu=0.27)
+    steel5mm = stPC.PlateProp(0.005, steel)
+    il_steel_5mm_perf = iL.PlateLayer(steel5mm,perforation = il_perforate)
+    il_steel_5mm_s_perf = iL.ImperviousScreenLayer(steel5mm,perforation = il_perforate)
+    
+As a further test we create a one micron thin::
+
+    nothing  = stPC.PlateProp(0.000001, steel)
+    il_nothing_perf  = iL.PlateLayer(nothing,perforation = il_perforate)
+    
+With these additional layers we create the following layups::
+
+    TMM_steel_perf_fibre_10   = mds.TMmodel((il_steel_5mm_perf, il_fibre_10cm,))
+    TMM_steel_s_perf_fibre_10   = mds.TMmodel((il_steel_5mm_s_perf, il_fibre_10cm,))
+    TMM_nothing_perf_fibre_10   = mds.TMmodel((il_nothing_perf, il_fibre_10cm,))
+    
+Calculating the diffuse field absorption coefficient and plotting the results gives the following figure:
+
+.. figure:: ./images/TMM_perforate_test_abs_diffuse.*
+   :align: center
+   :width: 70%   
+
+   Effect of plates that are perforated and allow bending dynamics
+    
+We see that due to the high mass of the steel plate the absorption is very similar except some small
+coincidence effects at :math:`\omega\approx 15000 s^{-1}`.
+The thin micron foil has nearly no impact as it moved with the flow and therefore there is no flow through the 
+perforation. There is only a minor impact at high frequencies.
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

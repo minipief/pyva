@@ -24,7 +24,7 @@ fibre1 = matC.EquivalentFluid(porosity = 0.98, \
                                rho0 = 1.208, \
                                dynamic_viscosity = 1.81e-5 )
 
-steel = matC.IsoMat(E=15.E10,rho0=7800.,nu=0.27)
+steel    = matC.IsoMat(E=15.E10,rho0=7800.,nu=0.27)
 steel5mm = stPC.PlateProp(0.005, steel)
 nothing  = stPC.PlateProp(0.000001, steel)
     
@@ -41,10 +41,6 @@ il_steel_5mm   = iL.PlateLayer(steel5mm)
 il_nothing_perf  = iL.PlateLayer(nothing,perforation = il_perforate)
 il_steel_5mm_perf = iL.PlateLayer(steel5mm,perforation = il_perforate)
 il_steel_5mm_s_perf = iL.ImperviousScreenLayer(steel5mm,perforation = il_perforate)
-
- 
-
-
 
 TMM_fibre_10         = mds.TMmodel((il_fibre_10cm,))
 TMM_perf_fibre_10    = mds.TMmodel((il_perforate, il_fibre_10cm,))
@@ -70,16 +66,17 @@ alpha_steel_fibre_10 = TMM_steel_fibre_10.absorption_diffuse(omega,theta_max=np.
 # plot impedance of fibre results for publishing
 plt.figure(1)
 plt.plot(omega,alpha_fibre_10,label='10cm fibre')
+plt.plot(omega,alpha_nothing_perf_fibre_10,':',label='1µm perforated nothing + 10cm fibre' )
 plt.plot(omega,alpha_perf_fibre_10,label='perforate + 10cm fibre' )
-plt.plot(omega,alpha_steel_fibre_10,label='5mm steel + 10cm fibre' )
-plt.plot(omega,alpha_steel_perf_fibre_10,':',label='5mm perforated steel  + 10cm fibre' )
-plt.plot(omega,alpha_nothing_perf_fibre_10,':',label='5mm perforated nothing :) + 10cm fibre' )
-plt.plot(omega,alpha_steel_s_perf_fibre_10,'-.',label='5mm perforated solid steel  + ...' )
+#plt.plot(omega,alpha_steel_fibre_10,label='5mm steel + 10cm fibre' )
+plt.plot(omega,alpha_steel_perf_fibre_10,'<',label='5mm perforated steel  + 10cm fibre' )
+plt.plot(omega,alpha_steel_s_perf_fibre_10,'.',label='5mm perforated solid steel  + ...' )
 
 plt.xscale('log')
+plt.ylim((0,1.4))
 plt.xlabel('$\omega/$s$^{-1}$')
 plt.ylabel('absorption')
-plt.legend()
+plt.legend(loc=2)
 
 plt.savefig('../source/images/TMM_perforate_test_abs_diffuse.png')
 

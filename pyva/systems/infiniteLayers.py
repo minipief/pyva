@@ -1022,7 +1022,7 @@ class MassLayer(AcousticLayer):
         Zp = self._lumped.impedance(omega)
         
         if self.perforation != None:
-            Z_perf = self.perforation.impedance(omega)
+            Z_perf = self.perforation._lumped.impedance(omega)
             Zp = Zp*Z_perf/(Zp+Z_perf)
 
 
@@ -1202,9 +1202,9 @@ class PlateLayer(AcousticLayer):
     
 class ResistiveLayer(AcousticLayer):
     """
-    The ResistiveLayer class deals lumped acoustic infinite layers.
+    The ResistiveLayer class deals with lumped acoustic infinite layers.
     
-    In most cases this is a resistive sheet with measures resistivity
+    In most cases this is a resistive sheet with measured resistivity
     
     Attributes
     ----------

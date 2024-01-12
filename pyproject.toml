@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "pyva-toolbox"
+version = "1.2.2"
+authors = [
+  { name="Alexander Peiffer", email="author@alexanderpeiffer.de" },
+]
+description = "Python toolbox for vibroacoustic simulation"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "pint>=0.17",
+    "numpy>=1.20.2",
+    "matplotlib>=3.3.4",
+    "scipy>=1.6.2",
+    "pandas>=1.2.5"
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU Lesser General Public License v2 or later (LGPLv2+)",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/minipief/pyva"
+"Bug Tracker" = "https://github.com/minipief/pyva/issues"
