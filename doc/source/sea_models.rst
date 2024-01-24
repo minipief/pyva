@@ -297,7 +297,7 @@ The 'T'-connection of both floor plates and the wall is a :class:`~pyva.coupling
     
 Instead of the power source in room1 a force excitation at floor1 is used ::
 
-    force10Nrms = lC.Load(omega, 10*np.ones(omega.shape), dof.DOF(4,3,dof.DOFtype(typestr = 'force'), name = '10N')
+    force10Nrms = lC.Load(omega, 10*np.ones(omega.shape), dof.DOF(4,3,dof.DOFtype(typestr = 'force')), name = '10N')
     
 The DOF instance determines the excitation at system ID=4 (floor1) and wave_DOF=3 (bending).
 The model is created by ::
@@ -485,7 +485,7 @@ All junctions are here created as dictionary from scratch. ::
                 
 Not to forget the power source in the room (ID = 6) ::
 
-    power1W = lC.Load(omega, np.ones(omega.shape), dof.DOF(6,0,dof.DOFtype(typestr = 'power'), name = '1Watt')
+    power1W = lC.Load(omega, np.ones(omega.shape), dof.DOF(6,0,dof.DOFtype(typestr = 'power')), name = '1Watt')
     
 Finally we create the model and put things together ::
 
