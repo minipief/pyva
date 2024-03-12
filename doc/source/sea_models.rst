@@ -80,7 +80,7 @@ Due to the fact that the setup is rectangular we use the rectangular versions of
     As2  = 10.
     
     wall  = st2Dsys.RectangularPlate(2, Ly,Lz,prop=concrete_5cm, eta = 0.03)
-    room1 = ac3Dsys.RectangularRoom(1, Lx1, Ly, Lz, air, absorption_area = As1, damping_type= ['surface'] )
+    room1 = ac3Dsys.RectangularRoom(1, Lx1, Ly, Lz, air, absorption_area = As1, damping_type= ['surface'])
     room2 = ac3Dsys.RectangularRoom(3, Lx2, Ly, Lz, air, absorption_area = As2, damping_type= ['surface'])
 
 The ``damping_type`` argument assures that the air damping is not used but only damping from surface absorption.
@@ -104,8 +104,8 @@ Helper variables are created in addition for easier plotting of the frequency ax
 One source is assumed to introduce power into the first room. 
 This load is defined by::
     
-    pow_dof     = dof.DOF(1,0,dof.DOFtype(typestr = 'power')
-    power1mWatt = lC.Load(omega, 0.001*np.ones(omega.shape), pow_dof), name = '1mWatt')
+    pow_dof     = dof.DOF(1,0,dof.DOFtype(typestr = 'power'))
+    power1mWatt = lC.Load(omega, 0.001*np.ones(omega.shape), pow_dof, name = '1mWatt')
     
 We have collected all input to create the model using the :class:`~pyva.models.HybridModel` class but without FEM systems included ::
 
@@ -485,7 +485,7 @@ All junctions are here created as dictionary from scratch. ::
                 
 Not to forget the power source in the room (ID = 6) ::
 
-    power1mW = lC.Load(omega, np.ones(omega.shape), dof.DOF(6,0,dof.DOFtype(typestr = 'power')), name = '1Watt')
+    power1W = lC.Load(omega, np.ones(omega.shape), dof.DOF(6,0,dof.DOFtype(typestr = 'power')), name = '1Watt')
     
 Finally we create the model and put things together ::
 
