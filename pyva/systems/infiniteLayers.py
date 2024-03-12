@@ -944,7 +944,7 @@ class MassLayer(AcousticLayer):
         thickness of the layer
     rho : float
         Density.
-    perforation : PerforatedLayer
+    perforation : ResistiveLayer
         optional additional perforation of the plate 
     
     ID : list of int
@@ -961,7 +961,7 @@ class MassLayer(AcousticLayer):
             thickness of the layer.
         rho : float
             Density.
-        perforation : PerforatedLayer
+        perforation : ResistiveLayer
             optional additional perforation of the plate 
 
         Returns
@@ -1085,7 +1085,7 @@ class PlateLayer(AcousticLayer):
     ----------
         plate_prop : PlateProp
             plate property of layer
-        perforation : PerforatedLayer
+        perforation : ResistiveLayer
             optional additional perforation of the plate 
 
     """
@@ -1098,7 +1098,7 @@ class PlateLayer(AcousticLayer):
         ----------
         plate_prop : PlateProp
             plate property of layer
-        perforation : PerforatedLayer
+        perforation : ResistiveLayer
             optional additional perforation of the plate 
         """                
         # set DOF according to ID and natural DOF of the layer
@@ -1620,7 +1620,7 @@ class ImperviousScreenLayer(SolidLayer):
         thickness of the perforted layer
     prop: PlateProp
         property of plate modelled as 3D layer
-    perforation : PerforatedLayer
+    perforation : ResistiveLayer
         optional additional perforation of the plate 
 
     """
@@ -1633,7 +1633,7 @@ class ImperviousScreenLayer(SolidLayer):
         ----------
         plate_prop : PlateProp
             plate property of layer
-        perforation : PerforatedLayer
+        perforation : ResistiveLayer
             optional additional perforation of the plate 
         """
                 

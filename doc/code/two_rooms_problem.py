@@ -29,7 +29,7 @@ mycolors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#
 fc,fclabels = uf.get_3rd_oct_axis_labels(range='SEA')
 # Print option
 printsw = True
-printsw = False
+#printsw = False
 figpath = '../source/images/'
 plt.close('all')
 
@@ -185,29 +185,16 @@ if printsw:
     plt.savefig(figpath+'two_rooms_radiation_efficiency.png')
 
 
-#%% plot4
-def mass_law(omega,theta=0):
-    z0 = air.z0
-    m  = wall.prop.mass_per_area
-    return 1/(1+(m*omega/2/z0)**2)
-
-def eta_f(omega,V,area):
-    c0 = air.c0
-    return c0*area/4/V/omega*mass_law(omega)
-
+#%% Plot CLFs
+plt.close(5)
 plt.figure(5)
 eta_13.plot(5,yscale = 'log',fulllegstr = ['$\eta_{13}$'],ls='-')
 eta_31.plot(5,yscale = 'log',fulllegstr = ['$\eta_{31}$'],cs=[mycolors[1]],ls = '--')
-#plt.loglog(om_VA1,eta_13_VA1,':',label = '13 VA1')
-#plt.loglog(om_VA1,eta_31_VA1,':',label = '31 VA1')
-# #%% plot5
-#eta_12.plot(4,yscale = 'log',fulllegstr = ['$\eta_{1,2B}$'],cs=[mycolors[2]],ls = ':',marker = [' '])
-#eta_21.plot(4,yscale = 'log',fulllegstr = ['$\eta_{2B,1}$'],cs=[mycolors[3]],ls = '-.',marker = [' '])
-#plt.loglog(om_VA1,eta_12_VA1,':',label = '13 VA1')
-#plt.loglog(om_VA1,eta_21_VA1,':',label = '31 VA1')
+eta_12.plot(5,yscale = 'log',fulllegstr = ['$\eta_{1,2B}$'],cs=[mycolors[2]],ls = ':',marker = [' '])
+eta_21.plot(5,yscale = 'log',fulllegstr = ['$\eta_{2B,1}$'],cs=[mycolors[3]],ls = '-.',marker = [' '])
 plt.xlabel('$f_c/$Hz')
 plt.ylabel('$\eta$')
-#plt.ylim(0,0.005)
+plt.ylim(1E-8,1E-2)
 ax = plt.gca()
 ax.axes.xaxis.set_ticks([])
 plt.xscale('log')
@@ -226,7 +213,7 @@ two_rooms.solve()
 # Derive paths of power input
 pow_in_room2 = two_rooms.power_input(3)
 
-#%% Enrgry result plots
+#%% Energry result plots
 two_rooms.energy.plot(20,xscale = 'log',yscale = 'log',ls = ['-','--',':','-.'],
                        fulllegstr = ('wall B','wall LS','room1','room2'))
 plt.xlabel('$f_c/$Hz')
@@ -306,9 +293,7 @@ if printsw:
 
 #%% Plot input power
     
-pow_in_room2.plot(33,yscale = 'log',xscale = 'log')
-#plt.loglog(om_VA1,pow_wall,':')
-#plt.loglog(om_VA1,pow_room1,':')
+pow_in_room2.plot(33,yscale = 'log',fulllegstr = ['$\Pi_{room1}$','$\Pi_{wall}$'],xscale = 'log')
 plt.xticks(2*np.pi*fc,fclabels)
 plt.xlabel('$f_c/$Hz')
 plt.ylabel('$\Pi_{in}/$W')

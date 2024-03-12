@@ -133,7 +133,43 @@ def get_3rd_oct_axis_labels(range = 'SEA'):
         
     return (fc,fclabels)
     
+def get_n_th_oct_frequencies(f_min,f_max,N=3):
+    """
+    Method for octave / log space creation.
+ 
 
+    Parameters
+    ----------
+    f_min : float
+        lower frequency limit
+    f_max : float
+        upper frequency limit
+    N : integer, optional
+        bands_per_octave. The default is 3.
+ 
+    Returns
+    -------
+    fc,flim : ndarray
+        center and limit frequencies - limit freqs have one more member
+ 
+    """
+ 
+    fa1 = 2**(1/N)
+ 
+    pi_fac = 1
+ 
+    f_min = f_min/pi_fac
+    f_max = f_max/pi_fac
+ 
+    # first index
+    i0 = np.round(np.log10(f_min/1000)/np.log10(fa1)) # -3 from log10(1000)
+    # number of lines
+    NN  = np.round((np.log10(f_max)-3)/np.log10(fa1))-i0+1
+    ix = np.arange(0,NN)
+    freqc = pi_fac*1000*(fa1**(i0+ix)) 
+    freql = freqc/np.sqrt(fa1)
+ 
+    return freqc,np.append(freql,freqc[-1]*np.sqrt(fa1))
 
 
 

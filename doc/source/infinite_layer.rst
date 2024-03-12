@@ -355,6 +355,7 @@ Add perforation to plates and impervious screens
 ++++++++++++++++++++++++++++++++++++++++++++++++
 
 In order to show the influence of perforation, we slightly modify our 10mm fibre example of :ref:`sec-absorber-design`.
+The full code can be found in :ref:`sec-perforated-plate-examples`.
 
 We create an additional steel plate of 5mm thickness that is perforated as given in the example.
 We use the plate and the impervious screen model::

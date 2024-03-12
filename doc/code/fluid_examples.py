@@ -52,21 +52,39 @@ fibre_rigid = matC.EquivalentFluid(porosity = 0.98, \
                                rho0 = 1.208, \
                                dynamic_viscosity = 1.81e-5 )
 
+fibre_delany = matC.DelanyBazley(flow_res = 25000.,\
+                               rho0 = 1.208, \
+                               dynamic_viscosity = 1.81e-5 )
+
+fibre_miki = matC.DelanyBazley(flow_res = 25000.,\
+                               rho0 = 1.208, \
+                               dynamic_viscosity = 1.81e-5,miki = True )
+
+    
 omega = np.geomspace(100,10000,100)
 
 c_limp  = fibre_limp.c_freq(omega)
 c_rigid = fibre_rigid.c_freq(omega)
+c_delany = fibre_delany.c_freq(omega)
+c_miki  = fibre_miki.c_freq(omega)
 
 rho_limp  = fibre_limp.rho_freq(omega)
 rho_rigid = fibre_rigid.rho_freq(omega)
+rho_delany = fibre_delany.rho_freq(omega)
+rho_miki  = fibre_miki.rho_freq(omega)
+
 
 #%% plot sound speed
-
+plt.close(1)
 plt.figure(1)
-plt.plot(omega,np.real(c_limp),'-',label='Re limp')
-plt.plot(omega,np.imag(c_limp),':',label='Im limp')
-plt.plot(omega,np.real(c_rigid),'.-',label='Re rigid')
-plt.plot(omega,np.imag(c_rigid),'--',label='Im rigid')
+plt.plot(omega,np.real(c_limp),'-',label='Re limp',color = 'C0')
+plt.plot(omega,np.imag(c_limp),'--',label='Im limp',color = 'C0')
+plt.plot(omega,np.real(c_rigid),'-',label='Re rigid',color = 'C1')
+plt.plot(omega,np.imag(c_rigid),'--',label='Im rigid',color = 'C1')
+plt.plot(omega,np.real(c_delany),'-',label='Re Delany',color = 'C2')
+plt.plot(omega,np.imag(c_delany),'--',label='Im Delany',color = 'C2')
+plt.plot(omega,np.real(c_miki),'-',label='Re Miki',color = 'C3')
+plt.plot(omega,np.imag(c_miki),'--',label='Im Miki',color = 'C3')
 plt.xlabel('$\omega/$s$^{-1}$')
 plt.ylabel('$c/$m s$^{-1}$')
 plt.legend()
@@ -74,12 +92,16 @@ plt.legend()
 plt.savefig('../source/images/equiv_sound_speed.png')
 
 #%% plot density
-
+plt.close(2)
 plt.figure(2)
-plt.plot(omega,np.real(rho_limp),'-',label='Re limp')
-plt.plot(omega,np.imag(rho_limp),':',label='Im limp')
-plt.plot(omega,np.real(rho_rigid),'.-',label='Re rigid')
-plt.plot(omega,np.imag(rho_rigid),'--',label='Im rigid')
+plt.plot(omega,np.real(rho_limp),'-',label='Re limp',color = 'C0')
+plt.plot(omega,np.imag(rho_limp),'--',label='Im limp',color = 'C0')
+plt.plot(omega,np.real(rho_rigid),'-',label='Re rigid',color = 'C1')
+plt.plot(omega,np.imag(rho_rigid),'--',label='Im rigid',color = 'C1')
+plt.plot(omega,np.real(rho_delany),'-',label='Re Delany',color = 'C2')
+plt.plot(omega,np.imag(rho_delany),'--',label='Im Delany',color = 'C2')
+plt.plot(omega,np.real(rho_miki),'-',label='Re Miki',color = 'C3')
+plt.plot(omega,np.imag(rho_miki),'--',label='Im Miki',color = 'C3')
 plt.xlabel('$\omega/$s$^{-1}$')
 plt.ylabel('$\\rho/$kg m$^{-3}$')
 plt.ylim(-50,50 )

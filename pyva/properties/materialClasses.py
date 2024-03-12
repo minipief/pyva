@@ -888,6 +888,8 @@ class EquivalentFluid(Fluid):
     length_therm:  thermal characteristic length
     limp: Switch for use of limp model, false means rigid frame
     
+    all original attributes of fluid
+    
     See [All2005]_ for details of the theory
 
     """
@@ -957,12 +959,12 @@ class EquivalentFluid(Fluid):
    
     def __str__(self):
         """
-        str for EquivalentFluids
+        str for EquivalentFluid
 
         Returns
         -------
         _str : str
-            Fluid description.
+            EquivalentFluid description.
 
         """
         _str  = super().__str__()
@@ -1114,6 +1116,180 @@ class EquivalentFluid(Fluid):
         """
          
         return 1j*omega/self.propagation_constant(omega)
+    
+class DelanyBazley(Fluid):
+    """
+    This class implements the empirical model of DelanyBazly or the revised Miki expressions
+    
+    This class is a doughter class of fluid.
+    
+    Attributes
+    ----------
+    flow_res: flow resistivity
+    miki: Switch for use Delaney Bazley or Miki model. True means Miki model
+    
+    """
+    def __init__(self,flow_res,c0=343.,rho0=1.23,eta=0.0,dynamic_viscosity=1.84e-5,kappa = 1.4, \
+                     Cp=1005.1, heat_conductivity = 0.0257673,miki=False):
+        """
+        Construcutor of DelanyBazely class
+        
+        The Delany Bazely model is an empirical model for fibre material, further 
+        refined and modified by Miki.
+    
+        Parameters
+        ----------
+        flow_res : float
+            flow resistivity
+        miki : bool, optional
+            Switch for use of Miki model. The default is False.
+        c0 : complex, optional
+            Speed of sound. The default is 343..
+        rho0 : complex, optional
+            density. The default is 1.23.
+        eta : float, optional
+            Damping loss. The default is 0.01.
+        dynamic_viscosity : float, optional
+            Dynamic viscosity. The default is 1.84e-5.
+        kappa : float, optional
+            ratio of specific heat capacities. The default is 1.4.
+        Pr : float, optional
+            Prandtl number. The default is 0.71.
+
+        Returns
+        -------
+        None.
+
+        """
+    
+        super().__init__(c0,rho0,eta,dynamic_viscosity,kappa,Cp,heat_conductivity)
+    
+        self.flow_res   = flow_res
+        self.miki       = miki
+        
+    def __repr__(self):
+        _str = 'DelaneyBazley(flow_res={0},miki={1},'.\
+            format(self.flow_res, self.miki)
+        _str += 'c0={0},rho0={1},eta={2})'.format(self.c0, self.rho0,self.eta)
+        return _str
+   
+    def __str__(self):
+        """
+        str for DelanyBazley
+
+        Returns
+        -------
+        _str : str
+            DelanyBazley description.
+
+        """
+        _str  = super().__str__()
+        _str += "flow_res          : {0}\n".format(self.flow_res)
+        
+        return _str
+    
+    def impedance(self,omega):
+        """
+        Complex characteristic impedance including damping
+        
+
+        Parameters
+        ----------
+        omega : float or ndarray
+            angular frequency.
+
+        Returns
+        -------
+        complex
+            characteristic impedance.
+
+        """
+        
+        f = omega/2/np.pi
+        X = f/self.flow_res
+        f_min = 0.01*self.flow_res
+        f_max = 1.00*self.flow_res
+        
+        if np.min(f)<f_min or np.max(f)>f_max:
+            Warning("frequency out of range of the DelanyBazley model")
+            
+        if self.miki:
+            Z = self.rho0*self.c0*( 1 + 5.50*(X*1000)**(-0.632)
+                            - 8.43j*(X*1000)**(-0.632) )
+        else:
+            Z = self.rho0*self.c0*( 1 + 9.08*(X*1000)**(-0.75) 
+                     - 11.9j*(X*1000)**(-0.73) )
+            
+        return Z
+    
+    def wavenumber(self,omega):
+        """
+        Wavenumber including damping
+        
+        Parameters
+        ----------
+        omega : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        complex
+            Complex wavenumber
+            
+        """
+
+        f = omega/2/np.pi
+        X = f/self.flow_res
+        f_min = 0.01*self.flow_res
+        f_max = 1.00*self.flow_res
+        
+        if np.min(f)<f_min or np.max(f)>f_max:
+            Warning("frequency out of range of the DelanyBazley model")
+            
+        if self.miki:
+            k = omega/self.c0 * (-1j) * ( 11.41*(X*1000)**(-0.618)
+                                      + 1j* (1 + 7.81*(X*1000)**(-0.618) ) )
+        else:
+            k = omega/self.c0 * (-1j) * ( 10.3*(X*1000)**(-0.59)
+                                            + 1j* ( 1 + 10.8*(X*1000)**(-0.70) ) )
+            
+        return k
+
+    def c_freq(self,omega = 0.):
+        """
+        Complex, frequency dependent speed of sound
+
+        Parameters
+        ----------
+        omega : float
+            Angular frequency.
+
+        Returns
+        -------
+        complex
+            speed of sound.
+
+        """
+        
+        return omega/self.wavenumber(omega)
+        
+    def rho_freq(self,omega):
+        """
+        frequency dependend density of fluid
+                
+        Parameters
+        ----------
+        omega : float
+            Angular frequency.         
+        
+        Returns
+        -------
+        complex
+            density
+            
+        """
+        
+        return self.impedance(omega)*self.wavenumber(omega)/omega
 
 class PoroElasticMat(EquivalentFluid):
     """
