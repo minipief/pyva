@@ -12,7 +12,41 @@ from cycler import cycler
 from pathlib import Path
 import sys
  
-def set_vascript_graphics(bw = True,cycler_sw = True):
+def set_vascript_graphics(bw = True,cycler_sw = True,form = 'lecture'):
+    """
+    
+
+    Parameters
+    ----------
+    bw : boolean, optional
+        Switch for black and white output. The default is True.
+    cycler_sw : boolean, optional
+        Swith for setting a new linestyle cyler. The default is True.
+    form : str, optional
+        'book' or 'lecture'. The default is 'book'.
+
+    Returns
+    -------
+    figpath : TYPE
+        DESCRIPTION.
+    aprop : TYPE
+        DESCRIPTION.
+    aprop2 : TYPE
+        DESCRIPTION.
+    tlfz : TYPE
+        DESCRIPTION.
+    alfz : TYPE
+        DESCRIPTION.
+    lst : TYPE
+        DESCRIPTION.
+    pst : TYPE
+        DESCRIPTION.
+    lst2nd : TYPE
+        DESCRIPTION.
+    lst3rd : TYPE
+        DESCRIPTION.
+
+    """
 
     #plt.close('all')
 
@@ -25,25 +59,30 @@ def set_vascript_graphics(bw = True,cycler_sw = True):
         #figpath = str(Path.home())+'//Documents//VA_script//'
         figpath = str(Path.home())+'//Documents//python_VA_lib//VAScript//scripts//figs//'
 
-
     # display constant
         
     #global tlfz,alfz  
-    tlfz = 14
-    alfz = 16
-
-    #global aprop, aprop2  
-    aprop  = dict(facecolor='black', shrink=0.01, width=1 )
-    aprop2 = dict(arrowstyle="<->", facecolor='black' , lw=2 )
+    if form=='lecture':
+        tlfz = 14
+        alfz = 16
     
-    #font = {'family' : 'sans-serif',
-    #        'size'   : 16}
-      
-    font = {'family': 'sans-serif', 'sans-serif': ['DejaVu Sans'], 'size'   : 16}
-            
-    plt.rc('font',**font)
-    plt.rc('text', usetex=True)
-    plt.rcParams['text.latex.preamble'] = r'\usepackage{bm}'
+        #global aprop, aprop2  
+        aprop  = dict(facecolor='black', shrink=0.01, width=1 )
+        aprop2 = dict(arrowstyle="<->", facecolor='black' , lw=2 )
+              
+        font = {'family': 'sans-serif', 'sans-serif': ['DejaVu Sans'], 'size'   : 18}
+                
+    else:
+        tlfz = 14
+        alfz = 16
+    
+        #global aprop, aprop2  
+        aprop  = dict(facecolor='black', shrink=0.01, width=1 )
+        aprop2 = dict(arrowstyle="<->", facecolor='black' , lw=2 )
+              
+        font = {'family': 'sans-serif', 'sans-serif': ['DejaVu Sans'], 'size'   : 16}
+                
+
     
     if bw:
         color_c = cycler('color', ['k'])
@@ -56,19 +95,21 @@ def set_vascript_graphics(bw = True,cycler_sw = True):
         color_c = cycler('color', mycolors)
         style_c = cycler('linestyle', ['-', '--', ':', '-.'])
         markr_c = cycler('marker', ['', '.', 'o'])
+        
+    if form == 'lecture':
+        c_cms = style_c * color_c 
+    else:
         c_ms = markr_c * style_c
         c_cms = color_c + c_ms
             
+    plt.rc('font',**font)
+    plt.rc('text', usetex=True)
+    # Set parameter to use boldmath package bm
+    plt.rcParams['text.latex.preamble'] = r'\usepackage{bm}'
+
     if cycler_sw:
         plt.rc('axes',prop_cycle = c_cms )
-    
-    
-    
-    
-    
-
-    
-            
+                
     #global lst,pst    
     lst = ('r-','b-','m-','g-','c-','k-')
     pst = ('d','o','x','<','>','+')

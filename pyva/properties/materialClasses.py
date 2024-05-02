@@ -953,10 +953,10 @@ class EquivalentFluid(Fluid):
         
     def __repr__(self):
         _str = 'EquivalentFluid(flow_res={0},porosity={1},tortuosity={2},rho_bulk={3},length_visc={4},length_visc={5},limp={6},'.\
-            format(self.flow_res, self.porosity,self.tortuosity,self.rho_bulk,self.length_visc,self.length_visc,self.limp)
+            format(self.flow_res, self.porosity,self.tortuosity,self.rho_bulk,self.length_visc,self.length_therm,self.limp)
         _str += 'c0={0},rho0={1},eta={2})'.format(self.c0, self.rho0,self.eta)
         return _str
-   
+    
     def __str__(self):
         """
         str for EquivalentFluid
@@ -1117,6 +1117,64 @@ class EquivalentFluid(Fluid):
          
         return 1j*omega/self.propagation_constant(omega)
     
+    @staticmethod
+    def inverse_parameter_derivation(flow_res,porosity,rho_bulk,fluid,rho_eq,K_eq,omega,limp=True):
+        """
+        Create EquivalentFluid object from test paramters
+ 
+        Parameters
+        ----------
+        flow_res : float
+            flow resistivity
+        porosity : float
+            volume porosity.
+        rho_bulk : float
+            apearant density of fluid and matrix.
+        fluid : Fluid
+            fluid during test in the fluid phase of the absorber.
+        rho_eq : complex nd.array of size (N,) or complex
+            Equivalent density of absorber material under test.
+        K_eq : complex nd.array of size (N,) or complex
+            Equivalent bulk modulus of absorber material under test.
+        omega : ndarray of size (N,) or float
+            Upper and lower limit for averaging
+        limp : bool, optional
+            Switch for use of limp model. The default is True.
+ 
+ 
+        Returns
+        -------
+        EquivalentFluid
+            LMS extimation of the materail due to test results.
+ 
+        """
+ 
+        # Helpers
+        kappa_P0 = fluid.rho0*fluid.c0**2
+        buf_ = ((kappa_P0-porosity*K_eq)/(kappa_P0-fluid.kappa*porosity*K_eq))**2
+ 
+        # Tortuosity Eq (23) of PV3982 #*
+        tortuosity = porosity/fluid.rho0*\
+            (np.real(rho_eq)-np.sqrt(np.imag(rho_eq)**2-flow_res**2/omega**2))
+ 
+        # Characteristic viscous lenght Eq (24) of PV3982
+        length_visc = tortuosity/porosity*np.sqrt(2*fluid.dynamic_viscosity*fluid.rho0/omega/np.imag(rho_eq)/(tortuosity*fluid.rho0/porosity-np.real(rho_eq)))
+ 
+ 
+        # Static thermal permeability Eq (25) of PV9382
+        # not used because it is not part of the JCA Modell
+        static_thermal_permeability = porosity*fluid.heat_conductivity/fluid.Cp/fluid.rho0/omega/\
+            np.sqrt(-np.real(buf_))
+ 
+        # Static thermal permeability Eq (26) of PV9382
+        length_therm = 2*np.sqrt(fluid.heat_conductivity/fluid.Cp/fluid.rho0/omega/(-np.imag(buf_)))
+ 
+ 
+        return EquivalentFluid(flow_res, porosity, tortuosity, rho_bulk, length_visc, length_therm,
+                               limp = limp,c0=fluid.c0,rho0=fluid.rho0,
+                               dynamic_viscosity=fluid.dynamic_viscosity,kappa = fluid.kappa,
+                               Cp=fluid.Cp,heat_conductivity=fluid.heat_conductivity)
+    
 class DelanyBazley(Fluid):
     """
     This class implements the empirical model of DelanyBazly or the revised Miki expressions
@@ -1240,8 +1298,7 @@ class DelanyBazley(Fluid):
 
         f = omega/2/np.pi
         X = f/self.flow_res
-        f_min = 0.01*self.flow_res
-        f_max = 1.00*self.flow_res
+        f_min,f_max = self.frequency_limits
         
         if np.min(f)<f_min or np.max(f)>f_max:
             Warning("frequency out of range of the DelanyBazley model")
@@ -1254,7 +1311,24 @@ class DelanyBazley(Fluid):
                                             + 1j* ( 1 + 10.8*(X*1000)**(-0.70) ) )
             
         return k
+    
+    @property
+    def frequency_limits(self):
+        """
+        Frequency limits of Delany validity range.
 
+        Returns
+        -------
+        f_min : float
+            minimum allowed frequency.
+        f_max : float
+            maximum allowed frequency.
+
+        """
+        f_min = 0.01*self.flow_res
+        f_max = 1.00*self.flow_res
+        return (f_min,f_max)
+        
     def c_freq(self,omega = 0.):
         """
         Complex, frequency dependent speed of sound

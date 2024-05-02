@@ -252,9 +252,107 @@ class Sphere:
             radiation impedance of sphere         
         
         """
-        kr = self.fluid.wavenumber(omega)*self.radius
-        return 1j*self.fluid.impedance(omega)*kr/(1+1j*kr)
+        area = 4*np.pi*self.radius**2
+        return self.acoustic_impedance(omega,self.radius)/area
     
+    def velocity_potential(self,omega,dist,Q=1.):
+        """
+        Velocity potential of breathing sphere
+
+        Parameters
+        ----------
+        omega : float
+            angular frequency.
+        dist : float
+            distance to sphere center.
+        Q : complex or nd.array of complex, optional
+            Source streng in volume flow rate, volume per time. The default is 1. .
+
+        Returns
+        -------
+        complex or nd.array of complex
+            velocity potential.
+
+        """
+
+        k = self.fluid.wavenumber(omega)
+        c_1 = -Q/4/np.pi/dist / (1 + 1j*k*self.radius)
+        
+        return c_1*np.exp(-1j*k*(dist-self.radius)) 
+    
+    
+    def pressure(self,omega,dist,Q=1.):
+        """
+        Pressure of breathing sphere
+
+        Parameters
+        ----------
+        omega : float
+            angular frequency.
+        dist : float
+            distance to sphere center.
+        Q : complex or nd.array of complex, optional
+            Source streng in volume flow rate, volume per time. The default is 1. .
+
+        Returns
+        -------
+        complex or nd.array of complex
+            pressure of breathing sphere.
+
+        """
+        
+        k = self.fluid.wavenumber(omega)
+        z0 = self.fluid.impedance(omega)
+        return -1j*k*z0*self.velocity_potential(omega,dist)
+    
+    def velocity(self,omega,dist,Q=1.):
+        """
+        Velocity of breathing sphere
+
+        Parameters
+        ----------
+        omega : float
+            angular frequency.
+        dist : float
+            distance to sphere center.
+        Q : complex or nd.array of complex, optional
+            Source streng in volume flow rate, volume per time. The default is 1. .
+
+        Returns
+        -------
+        complex or nd.array of complex
+            velocity of breathing sphere.
+
+        """
+        
+        k   = self.fluid.wavenumber(omega)
+        c_1 = -(1+1j*k*dist)/dist
+        return c_1*self.velocity_potential(omega,dist)
+    
+    def acoustic_impedance(self,omega,dist):
+        """
+        Acoustic impedance of breathing sphere
+
+        Parameters
+        ----------
+        omega : float
+            angular frequency.
+        dist : float
+            distance to sphere center.
+
+        Returns
+        -------
+        complex or nd.array of complex
+            acoustic impedance of sphere soud field.
+
+        """
+        kr = self.fluid.wavenumber(omega)*dist
+        z0 = self.fluid.impedance(omega)
+        
+        return 1j*z0*kr/(1+1j*kr)
+        
+        
+                
 class Monopole:
     """
     The Monopole class defines an acoustic momopole

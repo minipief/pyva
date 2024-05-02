@@ -8,7 +8,7 @@ from setuptools import setup,find_packages
 
 setup(
     name = "pyva-toolbox",
-    version = "1.2.2",
+    version = "1.2.3",
     author = 'Dr. Alexander Peiffer',
     author_email = "author@alexanderpeiffer.de",
     py_modules = ["models","useful"],
