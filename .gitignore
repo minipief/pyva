@@ -1,0 +1,6 @@
+# Python files
+*pyc
+__pycache__
+
+# General
+.directory
