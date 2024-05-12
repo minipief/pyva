@@ -1158,9 +1158,14 @@ class LineJunction(Junction) :
             return _ydata
     
     
-    def transmission_wavenumber_diffuse(self,omega,i_sys = (0,1),i_in_wave = (5,5),i_out_wave = (5,3), N_step = 100,method = 'diffuse',Signal = True):
+    def transmission_wavenumber_diffuse(self,omega,i_sys = (0,1),i_in_wave = (5,5),i_out_wave = (5,3), \
+                                        N_step = 100,CLF_sw = False, method = 'diffuse',Signal = True):
         """
-        diffuse transmission coefficient for line junctions
+        Diffuse transmission coefficient for line junctions.
+        
+        When this method is used for calculating Equation (8.160) we don't need the diffuse field transmission coeffcient
+        <tau> but the pure wavenumber integral that is NOT divided by k_v^(m). For this purpose a switch in intgrated 
+        that sets k_in = 1.
         
 
         Parameters
@@ -1175,6 +1180,8 @@ class LineJunction(Junction) :
             transmissted wave_DOF. The default is (5,3).
         N_step : int, optional
             Number of wavenumber integration steps. The default is 100.
+        CLF_sw : bool, otional
+            Sets the incoming wavenumber to 1 if True for use in line junctin matrix Eq. (8.160). The default is False.
         method : str, optional
             Mewthod seclector 'diffuse' for diffuse field reciprocity, 'langley' for wave transmission. The default is 'diffuse'.
         Signal : bool, optional
@@ -1184,9 +1191,7 @@ class LineJunction(Junction) :
         -------
         ndarray (Signal = False) or Signal
             diffuse field transmission coefficient.
-        """
-
-                
+        """       
         # convert to np.array to become independent from tupels
         i_sys,i_in_wave,i_out_wave = all2array(i_sys,i_in_wave,i_out_wave)
 
@@ -1196,13 +1201,18 @@ class LineJunction(Junction) :
         
         for ifreq,om in enumerate(omega):
             
-            kx   = self.kx(om,i_sys,i_in_wave[0],i_out_wave,N_step,method = 'in-plane')     
-            k_in = self.systems[i_sys[0]].plate_wavenumber(om,i_in_wave[0])
+            kx   = self.kx(om,i_sys,i_in_wave[0],i_out_wave,N_step,method = 'in-plane')
+            if CLF_sw:
+                k_in = 1
+            else: 
+                k_in = self.systems[i_sys[0]].plate_wavenumber(om,i_in_wave[0])
+                
             if method == 'diffuse':
                 taus = self.transmission_wavenumber(om,kx,i_sys,i_in_wave,i_out_wave,Signal=False)#.ydata # check late with Signal option
             elif method == 'langley':
                 taus = self.transmission_wavenumber_langley(om,kx,i_sys,i_in_wave,i_out_wave,Signal=False)#.ydata
             
+            #Integral in wavenumber space instead of angle requires the division be the in-field wavenumber
             for i_wave,i_type in enumerate(i_out_wave):
                 tau[i_wave,ifreq] = integrate.trapz(taus[i_wave,:],kx)/k_in
 
@@ -1371,7 +1381,8 @@ class LineJunction(Junction) :
             kx   = self.kx(om,i_sys,i_in_wave[0],i_out_wave,N_step,method = 'in-plane')
             
             if method == 'diffuse':
-                taus = self.transmission_wavenumber_LM(om,kx,i_sys,i_in_wave,i_out_wave,Signal=False) # check late with Signal option
+                taus = self.transmission_wavenumber(om,kx,i_sys,i_in_wave,i_out_wave,Signal=False) # check late with Signal option
+                #taus = self.transmission_wavenumber_LM(om,kx,i_sys,i_in_wave,i_out_wave,Signal=False) # check late with Signal option
             elif method == 'langley':
                 taus = self.transmission_wavenumber_langley(om,kx,i_sys,i_in_wave,i_out_wave,Signal=False)
                         
@@ -1465,7 +1476,7 @@ class LineJunction(Junction) :
         else:
             return etas
         
-    def junction_matrix(self,omega,N_step = 90, method = 'diffuse'):
+    def junction_matrix(self,omega,N_step = 200, method = 'diffuse'):
         """
         Creates junction matrix for LineJunction (all upper triangular)
         
@@ -1489,11 +1500,11 @@ class LineJunction(Junction) :
 
         """
                 
-        mod_dens = self.modal_density(omega)
+        #mod_dens = self.modal_density(omega)
 
         # prepare relevant wave_DOFs of junction only 3,4 couples to the fluid!          
-        j_wave_DOF = self.wave_DOF
-        Nw         = self.N_wave
+        j_wave_DOF = self.wave_DOF # DOF of this junction 
+        Nw         = self.N_wave   
 
     
         # .. indexes into upper triangular
@@ -1504,50 +1515,51 @@ class LineJunction(Junction) :
         fak = self.length/2/np.pi**2/omega
         
         
-        #buffer for h_buf
+        # Buffer for column of CLFs
         h_buf = np.zeros((Nw-1,len(omega)))
         
 
         
-        # loop over upper triangular
-        # For plates it is better to use the lower triangulat coefficient, because in this
+        # loop over lower triangular matrix !!!!!
+        # For plates it is better to use the lower triangular coefficients, because in this
         # case the exciting wave field remains constant and the total stiffness matrix can be reused much better
         # ir_start = 0
            
         for ic in range(Nw-1): # loop over coloums
 
            # irows = i_row[ir_start:ir_start+self.N-ixc]  # take all row indexes of this coloums
-           irows = np.arange(ic+1,Nw)         # take all row indexes of this coloums
+           irows = np.arange(ic+1,Nw)          # the row indexes of current column ic
            sys_ = self.wave_sys[ic]
-           i_in_sys = self.systems.index(sys_)
-           Nr = Nw-1-ic # number of rows
+           i_in_sys = self.systems.index(sys_) # physical system index (not wave system)
+           Nr = Nw-1-ic                        # number of rows in current column
            
            # transmission call must be seperated into case of two same systems and
            # different systmes
            
-           # get list of respose systems
+           # get list of respose systems (not wave index)
            sys_IDs = self.wave_DOF[irows].ID
            # prepare input arguments of transmission_wavenumber for each system ID configuraiion
            out_IDs,ix_out,Ns_out= np.unique(sys_IDs, return_index = True,return_counts=True)
            
            #i0 = 0       
-           # loop over system configurations
+           # loop over physical system index
            for ii,ix_sys in enumerate(ix_out):
-               Nr = Ns_out[ii]
-               i0 = ix_out[ii] # the sort option requires this i0 may be jumping
+               Nr = Ns_out[ii] # Number of rows (output wave systems) for this phsysical system
+               i0 = ix_sys # the sort option requires this i0 may be jumping
                irows_ = np.arange(i0,(i0+Nr)) # row index with unique system combination
-               i_out_sys=self.systems.index(self.wave_sys[ix_sys])
+               i_out_sys=self.index(sys_IDs[ix_sys]) # self.index(self.wave_sys[ix_sys]) # gives wrong output system in secon loop
+               # Old index irows_
                h_buf[irows_,:] = -fak*self.transmission_wavenumber_diffuse(omega, (i_in_sys,i_out_sys), \
                                                                       np.tile(self.wave_DOF[ic].dof,(Nr,)), \
-                                                                      self.wave_DOF[irows[irows_]].dof,Signal=False)
+                                                                      self.wave_DOF[irows[irows_]].dof, CLF_sw=True, \
+                                                                      N_step=N_step, Signal=False)
                #i0 += Nr
            
            # And fill the lower tri and diagonal entries
            for ix,ir in enumerate(irows):
                JM[ir,ic,:] = h_buf[ix,:]    
-               JM[ir,ir,:] = JM[ir,ir,:].data - JM[ir,ic,:].data
-               JM[ic,ic,:] = JM[ic,ic,:].data - JM[ir,ic,:].data
-        
+               JM[ir,ir,:] = JM[ir,ir,:].data - h_buf[ix,:] # JM[ir,ic,:].data
+               JM[ic,ic,:] = JM[ic,ic,:].data - h_buf[ix,:] # JM[ir,ic,:].data
             
         # diagonal!
         return JM

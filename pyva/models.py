@@ -1961,7 +1961,7 @@ class HybridModel:
         Returns
         -------
         int
-            DESCRIPTION.
+            Status code.
 
         """
         
