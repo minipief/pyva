@@ -667,22 +667,25 @@ class Structure2DSystem(SEAsys.SEA_system):
     
     def w_random(self,omega,F):
         """
-        Single SEA plate subsystem response to rms force
+        Single SEA plate subsystem average squared displacement response to force
+
+        Output and input have similat scaling. Amplitude forces gived squared average amplitude.
 
         Parameters
         ----------
         omega : nd.arreay
             angular frequency
         F : float
-            rms force
+            force
 
         Returns
         -------
         float
-            random rms displacement.
+            random squared displacement.
 
         """
-        return F**2/(8.*self.area*np.sqrt(self.prop.B*self.prop.mass_per_area**3)*omega**3*self.prop.material.eta)
+        return F**2/(8.*self.area*np.sqrt(self.prop.B*self.prop.mass_per_area**3)\
+                     *omega**3*self.prop.material.eta)
     
 
 

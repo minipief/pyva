@@ -83,7 +83,7 @@ it is implemented for this class. ::
     tau_mass0  = heavy_2kg7.transmission_coefficient(omega,0.)
     tau_mass30 = heavy_2kg7.transmission_coefficient(omega,30.*np.pi/180)
     
-.. _sec_plate_layer
+.. _sec_plate_layer:
     
 Plate Layer
 +++++++++++
@@ -152,7 +152,7 @@ and given :math:`k_x`. Details of the derivation are given in section 9.3.3 of [
 Fluid Layer Honeycomb
 +++++++++++++++++++++
 
-The honeycomb channels restrict the direction of propagation to pure z-propagation. Thus, in case of a honeycomb layer equation :ref:`fluid-transfer-matrix` is used with :math:`k_x=0`.
+The honeycomb channels restrict the direction of propagation to pure z-propagation. Thus, in case of a honeycomb layer equation :eq:`fluid-transfer-matrix` is used with :math:`k_x=0`.
 
 Solid Layer
 -----------
@@ -206,7 +206,7 @@ The transfer matrix reads:
       -{\bm Z}_s & 0 & 0 & 1 
     \end{bmatrix}
     
-Here, :math:`{\bm Z}_p` is the same as in equation :ref:`plate-transfer-matrix`.
+Here, :math:`{\bm Z}_p` is the same as in equation :eq:`plate-transfer-matrix`.
 :math:`{\bm Z}_s` is the in-plane impedance and read as. 
  
 .. math::

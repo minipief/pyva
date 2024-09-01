@@ -11,7 +11,7 @@ The SEA reverberant fields create an additional diffuse field excitation to the 
 cause additional wave motion in the FEM systems.
 
 The topic is too complex for the pyva documentation. Details are given in the original paper from Langley
-[Lan2005]_  or in [Pei2022]_.
+[Lan2005]_  or in [Pei2022]_. A motivation for hybrid method is also given on my author website at `hybrid FEM/SEA introduction <https://docpeiffer.com/hybrid-fem-sea/>`_.
 
 The first example is similar to the two rooms example, but with a smaller plate as FEM system. In this case the impact of the 
 FEM system is just a change of the coupling dynamics. The second example deals with a deterministic force excitation on the

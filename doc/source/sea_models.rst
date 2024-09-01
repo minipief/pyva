@@ -2,7 +2,7 @@ SEA models
 ----------
 
 In Statistical Energy Analysis the vibroacoustic system is modelled as systems of coupled reverberant wave fields 
-that exchange energy. The method is described in in [Lyo1995]_ and [Pei2022]_.
+that exchange energy. The method is described in in [Lyo1995]_ and [Pei2022]_ in detail or briefly in `SEA introduction <https://docpeiffer.com/statistical-energy-analysis-sea/>`_.
 For the set-up of such models the database must be populated with system properties namely the geometry, the property determining
 the wave motion, the coupling physics and the sources. 
 

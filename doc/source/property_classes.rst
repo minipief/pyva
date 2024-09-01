@@ -344,8 +344,8 @@ Poroelastic materials are a combination of porous materials (here implemented as
 :class:`~pyva.properties.materialClasses.IsoMat` class is a subclass of this class.
 
 The theory of poroelastic material was established in the late 50ties by M.A. Biot. This is the reason why many people talk
-about Biot materials instead of poroelastics. It is worth mentioning that the main achievements where made on new models ans descriptions of porous materials where made recently.
-Whereas the theory for the coupled dynamics was established by Biot much earlier.
+about Biot materials instead of poroelastics. It is worth mentioning that the main achievements on new models and descriptions of porous materials where made recently.
+In contrast6 to this the theory for the coupled dynamics was established by Biot much earlier.
 A comprising description of most models and theories are given by Allard ([All2009]_).
 
 Due to the fact that both models are implemented there are no additional parameters required for this type of material. 
