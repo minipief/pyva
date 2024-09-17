@@ -575,7 +575,7 @@ class Structure2DSystem(SEAsys.SEA_system):
             k_x  = k_B[ifreq]*np.sin(phi)
             sigs = ar.radiation_efficiency_leppington(om, k_x, k_y, self.Lx, self.Ly,simple_muGT1=simple_muGT1) 
                 
-            sigma[ifreq] = 2/np.pi*integrate.trapz(sigs,phi)
+            sigma[ifreq] = 2/np.pi*integrate.trapezoid(sigs,phi)
             
         return sigma
             

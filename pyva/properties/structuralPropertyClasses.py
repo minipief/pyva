@@ -938,7 +938,7 @@ class PlateProp:
             tau_kx[tau_kx<0] = 0.
 
             #tau[ifreq],prec = integrate.quad(f, 0, theta_max)
-            tau[ifreq] = integrate.trapz(tau_kx*np.sin(theta_)*np.cos(theta_), theta_)/denom
+            tau[ifreq] = integrate.trapezoid(tau_kx*np.sin(theta_)*np.cos(theta_), theta_)/denom
 
         return tau  
         
