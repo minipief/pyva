@@ -1214,7 +1214,7 @@ class LineJunction(Junction) :
             
             #Integral in wavenumber space instead of angle requires the division be the in-field wavenumber
             for i_wave,i_type in enumerate(i_out_wave):
-                tau[i_wave,ifreq] = integrate.trapz(taus[i_wave,:],kx)/k_in
+                tau[i_wave,ifreq] = integrate.trapezoid(taus[i_wave,:],kx)/k_in
 
         if Signal:
                         
@@ -1387,7 +1387,7 @@ class LineJunction(Junction) :
                 taus = self.transmission_wavenumber_langley(om,kx,i_sys,i_in_wave,i_out_wave,Signal=False)
                         
             for i_o_wave,i_type in enumerate(i_out_wave):
-                etas[i_o_wave,ifreq] = fak1[ifreq]/modal_dens*integrate.trapz(taus[i_o_wave,:],kx)
+                etas[i_o_wave,ifreq] = fak1[ifreq]/modal_dens*integrate.trapezoid(taus[i_o_wave,:],kx)
                 
                 
 
@@ -2395,5 +2395,3 @@ class SemiInfiniteFluid(AreaJunction):
         """
         eta = self.CLF_fluid_fluid(omega)
         return eta
-
-    

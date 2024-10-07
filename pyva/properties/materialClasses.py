@@ -1392,7 +1392,7 @@ class PoroElasticMat(EquivalentFluid):
     def __init__(self,solid_mat,\
                       flow_res,porosity,tortuosity,length_visc,length_therm,limp = False,\
                       c0=343.,rho0=1.23,dynamic_viscosity=1.84e-5,kappa = 1.4, \
-                      Cp=1005.1, heat_conductivity = 0.0257673 , Ks = np.Inf):
+                      Cp=1005.1, heat_conductivity = 0.0257673 , Ks = np.inf):
         """
         Construcutor of equivalent fluid class.
         
@@ -1774,5 +1774,3 @@ class PoroElasticMat(EquivalentFluid):
         Z = -1j*(Zs1*Zf2*mu2-Zs2*Zf1*mu1)/D
         
         return Z
-
-    

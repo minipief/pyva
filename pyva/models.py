@@ -1007,9 +1007,9 @@ class TMmodel:
         
         # create besselmatrix with rows for distance and coloums for kx 
         J0 = scl.j0(distances.reshape(-1,1) @ kx.reshape(1,-1) )
-        D11 = fak*integrate.trapz(_D[0,0,:].data.flatten()*J0*kx,kx)
-        D12 = fak*integrate.trapz(_D[0,1,:].data.flatten()*J0*kx,kx)
-        D22 = fak*integrate.trapz(_D[1,1,:].data.flatten()*J0*kx,kx) # ,axis = 1
+        D11 = fak*integrate.trapezoid(_D[0,0,:].data.flatten()*J0*kx,kx)
+        D12 = fak*integrate.trapezoid(_D[0,1,:].data.flatten()*J0*kx,kx)
+        D22 = fak*integrate.trapezoid(_D[1,1,:].data.flatten()*J0*kx,kx) # ,axis = 1
         
         return (D11,D12,D22)
         
@@ -1371,7 +1371,7 @@ class TMmodel:
                 tau_kx = self.transmission_coefficient(om,kx_,fluids).ydata
             #remove nans
             tau_kx[np.isnan(tau_kx)] = 0.
-            tau_diffuse[ix] = 2*integrate.trapz(tau_kx*np.sin(theta_)*np.cos(theta_), theta_)/denom
+            tau_diffuse[ix] = 2*integrate.trapezoid(tau_kx*np.sin(theta_)*np.cos(theta_), theta_)/denom
 
         if uf.isscalar(omega):
             return tau_diffuse[0]
