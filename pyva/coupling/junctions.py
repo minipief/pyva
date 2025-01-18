@@ -873,8 +873,9 @@ class LineJunction(Junction) :
 
     def transmission_wavenumber_wave(self,omega,wavenumber,i_sys = (0,1),i_in_wave = (1,)*3+(2,)*3+(3,)*3,i_out_wave = (1,2,3)*3,matrix = False):
         """
-        transmission coefficient assuming wave transformations for radiation stiffness 
-        calculations of blocked forces from langley are used
+        Transmission coefficient assuming wave transformations for radiation stiffness.
+        
+        New try to use the wave amplidute base to allow separate treatment of L,S and B waves.
         
 
         Parameters
@@ -898,141 +899,67 @@ class LineJunction(Junction) :
 
         """
         
-        print("DON'T USE! FOR DEMONSTRATION PURPOSE ONLY!")
         
-        D_tot = self.total_radiation_stiffness_wavenumber(omega,wavenumber)
-        #D_tot_inv = D_tot.inv()        
+        D_tot = self.total_radiation_stiffness_wavenumber_LM(omega,wavenumber)
         
-        #T_wave_1 = self.systems[i_sys[0]].wave_transform(omega,wavenumber)
-        T_wave_2 = self.systems[i_sys[1]].wave_transform(omega,wavenumber)
-        #T_wave_1_inv = T_wave_1.inv()
-        T_wave_2_inv = self.systems[i_sys[1]].wave_transform(omega,wavenumber,inv=True)
+        # Input wave 
+        T_wave_1 = self.systems[i_sys[0]].wave_transformation_matrix_LM(omega,wavenumber)
+        T_wave_1_inv = self.systems[i_sys[0]].wave_transformation_matrix_LM(omega,wavenumber,inv=True)
+        # Output wave
+        T_wave_2 = self.systems[i_sys[1]].wave_transformation_matrix_LM(omega,wavenumber)
+        T_wave_2_inv = self.systems[i_sys[1]].wave_transformation_matrix_LM(omega,wavenumber,inv=True)
         
-        #D_dir_1_edge = self.systems[i_sys[0]].radiation_stiffness_wavenumber(omega,wavenumber)
-        #D_dir_2_edge = self.systems[i_sys[1]].radiation_stiffness_wavenumber(omega,wavenumber)
-        #D_dir_1_wave = T_wave_1_inv.dot(D_dir_1_edge).dot(T_wave_1)
-        #D_dir_2_wave = T_wave_2_inv.dot(D_dir_2_edge).dot(T_wave_2)
+        D_dir_1_edge = self.systems[i_sys[0]].edge_skew_radiation_stiffness_wavenumber_LM(omega,wavenumber)
+        D_dir_2_edge = self.systems[i_sys[1]].edge_skew_radiation_stiffness_wavenumber_LM(omega,wavenumber)
+        D_dir_1_wave = T_wave_1_inv.H().dot(D_dir_1_edge).dot(T_wave_1_inv)
+        # D_dir_2_wave = T_wave_2_inv.dot(D_dir_2_edge).dot(T_wave_2)
             
         
-        T_rot_1  = edge_transform(self.thetas[i_sys[0]])
+        T_rot_1  = edge_transform_LM(self.thetas[i_sys[0]])
         T_rot_1_T = T_rot_1.H() #transpose()
-        T_rot_2  = edge_transform(self.thetas[i_sys[1]])
-        T_rot_2_T = T_rot_2.H() #transpose()
+        T_rot_2  = edge_transform_LM(self.thetas[i_sys[1]])
+        #T_rot_2_T = T_rot_2.H() #transpose()
         
-
-        # Again radiation in wave coordinates
-        #Dtot_interim = T_rot_1_T.dot(D_tot).dot(T_rot_2)
-        #Dtot_interim0 = T_rot_1_T.dot(D_tot)
-        #Dtot_        = Dtot_interim0.dot(T_rot_2).dot(T_wave_2)
-
-        #D_mn_wave = D_mn
-
+        #D_mn_wave = T_rot_1_T.dot(D_tot).dot(T_rot_2).dot(T_wave_1.H()) 
+        D_mn_wave = T_rot_1_T.dot(D_tot).dot(T_rot_2)
 
         Nin   = len(i_in_wave)
-        Nout  = len(i_out_wave)
-        Nsig  = Nin*Nout
+        #Nout  = len(i_out_wave)
+        Nsig  = Nin
         
         _ydata= np.zeros((Nsig,np.size(wavenumber) ))
         
         _tdof = dof.DOFtype(typestr='transmission')
         xdata = mC.DataAxis(wavenumber,typestr='wavenumber')
 
-        plate1 = self.systems[i_sys[0]] 
-        plate2 = self.systems[i_sys[1]] 
-        rho_area = plate1.prop.mass_per_area
+        # plate1 = self.systems[i_sys[0]] 
+        # plate2 = self.systems[i_sys[1]] 
+        # rho_area = plate1.prop.mass_per_area
         
         
         for i_in in range(Nin):
 
             ii_wave = i_in_wave[i_in]
             if ii_wave == 2:
-                    ii_wave = 3            
-
-
-
-
-            Sff    = plate1.wave_excitation_force_cross_correlation(omega,wavenumber,ii_wave,matrix)
+                    ii_wave = 3   
             
-            # Plate forces in global coordinates
-            Sff0   = T_rot_1.dot(Sff).dot(T_rot_1_T)
-            # The use of D_tot_inv is not precise enough, so we switch to soilve
-            #Sqq0   = D_tot.solve(Sff0)
-            #Sqq0   = D_tot_inv.dot(Sff0).dot(D_tot_inv.H())
-            Sqq0 = Sff0.HDH(D_tot)
-            
-            # Remove incoming motion if same system
-            if i_sys[0]==i_sys[1]:
-                # Here the single result is required
-                f_in  = self.systems[i_sys[0]].wave_excitation_force(omega,wavenumber,ii_wave,matrix)
-                q0    = D_tot.solve(T_rot_1.dot(f_in))
-                q_in = self.systems[i_sys[0]].wave_excitation_displacement(omega,wavenumber,ii_wave)
-                q_in = T_rot_1.dot(q_in)
+            # Prepare D_dir wave for single wave input -> finally a scalar
+            D_dir_1_wave_single = mC.LinearMatrix.zeros(3,(4,4,np.size(wavenumber)))
+            D_dir_1_wave_single.data[ii_wave-1,ii_wave-1,:] = D_dir_1_wave.data[ii_wave-1,ii_wave-1,:]
+            # Prepare 
 
-                # Reflexion means coherent wave that must be removed
-                Sqq0 += -(q_in.dot(q0.H()))-(q0.dot(q_in.H()))+(q_in.dot(q_in.H()))  # evtl wegen der -nomenklatur 
-            #Sqq0   = D_tot_inv.dot(Sff0).dot(D_tot_inv.H())
-            #Sqq0  = D_mn_interim0.dot(Sff).dot(D_mn_interim0.H())
-            #Sqqe  = D_mn_interim.dot(Sff).dot(D_mn_interim.H())
-            Sqqe  = T_rot_2_T.dot(Sqq0).dot(T_rot_2)
-            #SqqPsi2 = T_wave_2_inv.dot(Sqqe).dot(T_wave_2_inv.H())
-            SqqPsi = T_wave_2_inv.dot(Sqqe).dot(T_wave_2_inv.H())
+            # Set up full trace matrix
+            res_ = (T_wave_1.dot(D_dir_1_wave_single).dot(T_wave_1.H())).HDH(D_mn_wave)
+            res_ = 4*T_wave_2_inv.dot(D_dir_2_edge).dot(res_).dot(T_wave_2_inv.H())
 
-            #i_test = 30
-            
-            if debug_sw in (3,5):
-                plt.figure(100+ii_wave)
-                
-            for i_out in range(Nout):
-                
-
-                io_wave = i_out_wave[i_out]
-                if io_wave == 2:
-                    io_wave = 3
+            io_wave = i_out_wave[i_in]
+            if io_wave == 2:
+                io_wave = 3
                     
-                Psi     = SqqPsi.data[io_wave,io_wave,:]    
-                #Psi      = np.abs(buf).flatten()
-                Psi_comp = np.abs(Psi).flatten()
-                
-                pow_unit = plate2.wave_amplitude_radiated_power(np.sqrt(Psi_comp),omega,wavenumber,io_wave).flatten()
-                
-                if debug_sw == 6:
-                    #plt.figure(300+ii_wave)
-                    plt.plot(wavenumber,pow_unit,label = 'Pow in DOF:{0}'.format(io_wave))
-                elif debug_sw == 3: 
-                    plt.plot(wavenumber,Psi, label = 'Re {0}to{1}plate{2}'.format(ii_wave,io_wave,i_sys[1]))
-#                    plt.plot(wavenumber,np.real(Psi), label = 'Re {0}to{1}plate{2}'.format(ii_wave,io_wave,i_sys[1]))
-#                    plt.plot(wavenumber,np.imag(Psi), label = 'Im {0}to{1}plate{2}'.format(ii_wave,io_wave,i_sys[1]))
+            _ydata[i_in,:] = res_.data[io_wave,io_wave,:]
 
 
-                if ii_wave == 0:
-                    k_plate = np.real(plate1.prop.wavenumber_L(omega))
-                    c_gr    = plate1.prop.c_L()
-                elif ii_wave == 1:
-                    k_plate = np.real(plate1.prop.wavenumber_T(omega))
-                    c_gr = plate1.prop.c_T()
-                elif ii_wave in (2,3):
-                    k_plate = np.real(plate1.prop.wavenumber_B(omega))
-                    c_gr = plate1.prop.c_B_group(omega)
-                else:
-                    raise ValueError('i_wave argument must be in [0,1,2]')
-
-                phi = np.arccos(wavenumber/k_plate)
-                sinphi = np.sin(phi)
-
-                if ii_wave in (0,1):
-                    _ydata[i_in*Nout+i_out,:] = 2*pow_unit/(k_plate**2*rho_area*c_gr*omega**2*sinphi)
-                elif ii_wave in (2,3):
-                    _ydata[i_in*Nout+i_out,:] = 2*pow_unit/(rho_area*c_gr*omega**2*sinphi)
-
-            plt.legend()
-            if debug_sw == 3:
-                plt.title('Amplitude due to excitation from {0}'.format(ii_wave))
-            if debug_sw == 6:
-                plt.title('Out power due to wave {0}'.format(ii_wave))
-
-
-        return mC.Signal(xdata,_ydata,dof.DOF(np.array(i_out_wave),np.zeros((1,Nsig)),_tdof))
-     
+        return mC.Signal(xdata,_ydata,dof.DOF(np.array(i_out_wave),np.zeros((1,Nsig)),_tdof))     
                 
    
                 

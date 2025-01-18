@@ -723,14 +723,15 @@ class PlateProp:
         return uS
 
     def muT(self,omega,kx):
-        kT = self.wavenumber_T(omega)
-        uT = -np.sqrt(kx*kx-np.complex128(kT)**2)
-        return uT
+        """
+        depreacted
+        """
+        return self.muS(omega,kx)
 
              
     def w_inf(self,omega,r,Fz):
         """
-        Displacement due to normal point force excitatoin 
+        Displacement due to normal point force excitatoin.
 
         Parameters
         ----------
@@ -747,7 +748,6 @@ class PlateProp:
             Displacement.
 
         """
-        
         k = self.wavenumber_B(omega)
         B = self.B
         return np.where(r==0,\
@@ -757,7 +757,7 @@ class PlateProp:
     @property    
     def point_impedance(self):
         """
-        Normal force point impedance
+        Normal force point impedance.
 
         Returns
         -------
@@ -765,7 +765,6 @@ class PlateProp:
             mechanical impedance.
 
         """
-        
         return 8*np.sqrt(self.B*self.mass_per_area)
 
     def force_excitation_power(self,omega,force=1.):
@@ -1313,8 +1312,9 @@ class PlateProp:
         """
         Structural edge radiation stiffness for specific wave types
         
-        Due to special relationships there are different formulations of the
-        imaginary radiation stiffness as following directly from the 
+        Due to the complex wavenumber base the
+        imaginary pf the radiation stiffness must be replaced be 
+        the -j D_AH where D_AH us the Antihermitian of the radiation stiffness D. 
         radation_stiffness_wavenumber except for bendig waves where both
         expressions are similar. See [Pei2022]_ for details
                 

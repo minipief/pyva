@@ -1392,7 +1392,7 @@ class PoroElasticMat(EquivalentFluid):
     def __init__(self,solid_mat,\
                       flow_res,porosity,tortuosity,length_visc,length_therm,limp = False,\
                       c0=343.,rho0=1.23,dynamic_viscosity=1.84e-5,kappa = 1.4, \
-                      Cp=1005.1, heat_conductivity = 0.0257673 , Ks = np.inf):
+                      Cp=1005.1, heat_conductivity = 0.0257673): #, Ks = np.inf
         """
         Construcutor of equivalent fluid class.
         
@@ -1426,8 +1426,11 @@ class PoroElasticMat(EquivalentFluid):
             Dynamic viscosity. The default is 1.84e-5.
         kappa : float, optional
             ratio of specific heat capacities. The default is 1.4.
-        Pr : float, optional
-            Prandtl number. The default is 0.71.
+        Cp : float, optional
+            Heat capacity at constant pressure. The default is 1.0051.
+        heat_conductivity : float, optional
+            Heat conductivity. The default is 0.0257673.
+        
 
         Returns
         -------
