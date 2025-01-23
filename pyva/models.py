@@ -1260,7 +1260,7 @@ class TMmodel:
             #remove nans
             abs_kx[np.isnan(abs_kx)] = 0.
             denom = np.sin(theta_max)**2
-            abs_diffuse[ix] = 2*integrate.simps(abs_kx*np.sin(theta_)*np.cos(theta_), theta_)/denom
+            abs_diffuse[ix] = 2*integrate.simpson(abs_kx*np.sin(theta_)*np.cos(theta_), theta_)/denom
 
         if uf.isscalar(omega):
             return abs_diffuse[0]
