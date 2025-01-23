@@ -522,14 +522,14 @@ class Fluid:
                 abs_theta = self.absorption(omega,z,theta_)
                 #remove nans
                 abs_theta[np.isnan(abs_theta)] = 0.
-                alpha = 2*integrate.simps(abs_theta*np.sin(theta_)*np.cos(theta_), theta_)/denom
+                alpha = 2*integrate.simpson(abs_theta*np.sin(theta_)*np.cos(theta_), theta_)/denom
         else:
             alpha = np.zeros(omega.shape)
             for i_,om_ in enumerate(omega):
                 abs_theta = self.absorption(om_,z,theta_)
                 #remove nans
                 abs_theta[np.isnan(abs_theta)] = 0.
-                alpha[i_] = 2*integrate.simps(abs_theta*np.sin(theta_)*np.cos(theta_), theta_)/denom
+                alpha[i_] = 2*integrate.simpson(abs_theta*np.sin(theta_)*np.cos(theta_), theta_)/denom
         
         return alpha
     
