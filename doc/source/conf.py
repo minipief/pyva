@@ -22,11 +22,11 @@ sys.path.insert(0, os.path.abspath('../..'))
 # -- Project information -----------------------------------------------------
 
 project = 'pyva - python toolbox for vibroacoustics'
-copyright = '2022, Dr. Alexander Peiffer'
+copyright = '2025, Dr. Alexander Peiffer'
 author = 'Dr. Alexander Peiffer'
 
 # The full version, including alpha/beta/rc tags
-release = '1.0'
+release = '1.3.0'
 
 html_baseurl = 'https://pyva.eu'
 

@@ -158,9 +158,10 @@ p1 = RPR_SEA_exc.result[0].ydata.flatten()
 p2 = RPR_SEA_exc.result[1].ydata.flatten()
 
 tau = (p2/p1)**2
-
+plt.close(7)
 plt.figure(7)
 plt.semilogx(freq,-10*np.log10(tau),label = 'plate TL')
+#plt.semilogx(freq,-10*np.log10(tau_from_eta),label = 'plate TL fron tau')
 ax = plt.gca()
 ax.axes.xaxis.set_ticks([])
 plt.xticks(fc,fclabels)

@@ -1958,7 +1958,7 @@ class HybridAreaJunction(Junction) :
             for ix in enumerate(systems):
                 self.coupling.append(fem.mesh)
                 
-    def CLF(self,omega,trim = None, force = None):
+    def CLF(self,omega,trim = None, force = None, method='piston'):
         """
         coupling loss factor for hybrid area junction
         
@@ -1977,8 +1977,8 @@ class HybridAreaJunction(Junction) :
             trim as layers. The default is None.
         force : Load, optional
             force defined on nodes and DOFs. The default is None.
-        Signal : bool, optional
-            switch for Signal output. The default is True.
+        method : string, optional
+            'piston' or 'wavelet' method for mesh radiation stiffness used. The default is 'wavelet'.
 
         Returns
         -------
@@ -2009,7 +2009,7 @@ class HybridAreaJunction(Junction) :
         i_row,i_col = np.triu_indices(self.N_wave,1)
         
            
-        # prepare soluion arrays (type double)    0
+        # prepare solution arrays (type double)    0
         #_tdof = dof.DOFtype(typestr='general')
         etas       = np.zeros((self.N_wave*(self.N_wave-1)//2,omega.size))
         etas_alpha = np.zeros((self.N_wave,omega.size))
@@ -2060,10 +2060,10 @@ class HybridAreaJunction(Junction) :
         for i_om,om in enumerate(omega):
             print("\r","Dealing with omega = {0:>8.1f} Hz\r".format(om), end="")
 
-            # onvert radiation stiffness to modal space
+            # convert radiation stiffness to modal space
             for idir,hs_ in enumerate(HS):
                 if idir < 1:
-                    D_ = HS[idir].radiation_stiffness_mesh([om], self.fem.mesh,method = 'wavelet').Dindex(0) # only one freq calc.
+                    D_ = HS[idir].radiation_stiffness_mesh([om], self.fem.mesh,method = method).Dindex(0) # only one freq calc.
                     Ddir[idir] = np.conj(MM.T).dot(D_).dot(MM)
                     # Check for trim and calculate Reduced stiffness
                         
@@ -2071,7 +2071,7 @@ class HybridAreaJunction(Junction) :
                     if D_equal[idir-1]:
                         Ddir[idir] = Ddir[0]
                     else:
-                        D_ = HS[idir].radiation_stiffness_mesh([om], self.fem.mesh,method = 'wavelet').Dindex(0)
+                        D_ = HS[idir].radiation_stiffness_mesh([om], self.fem.mesh,method = method).Dindex(0)
                         Ddir[idir] = np.conj(MM.T).dot(D_).dot(MM)
 
             # deal with trim

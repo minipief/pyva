@@ -1371,7 +1371,8 @@ class TMmodel:
                 tau_kx = self.transmission_coefficient(om,kx_,fluids).ydata
             #remove nans
             tau_kx[np.isnan(tau_kx)] = 0.
-            tau_diffuse[ix] = 2*integrate.trapezoid(tau_kx*np.sin(theta_)*np.cos(theta_), theta_)/denom
+            tau_diffuse[ix] = 2*integrate.simpson(tau_kx*np.sin(theta_)*np.cos(theta_), x=theta_)/denom
+            #tau_diffuse[ix] = 2*integrate.trapezoid(tau_kx*np.sin(theta_)*np.cos(theta_), theta_)/denom
 
         if uf.isscalar(omega):
             return tau_diffuse[0]

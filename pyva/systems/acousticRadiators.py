@@ -568,7 +568,7 @@ class HalfSpace:
         dist : ndarray or float
             distance between radiating elments.
         ks : float
-            wavenumber paramter.
+            wavenumber parameter.
 
         Returns
         -------
