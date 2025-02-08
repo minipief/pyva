@@ -577,8 +577,10 @@ class HalfSpace:
 
         """
 
+        # Workaround for itj0y0 using Section 6.511 Eq. 6 of I.S. Gradshteyn and I.M. Ryzhik, Tables of intgrals
+        def itj0(x):
+            return x*spl.j0(x)+np.pi*x/2*(spl.j1(x)*spl.struve(0,x)-spl.j0(x)*spl.struve(1,x))
 
-        
         if uf.isscalar(omega):
     
             dist = np.array(dist).flatten()
@@ -589,7 +591,10 @@ class HalfSpace:
             kr = ka*dist[ix]
             
             fak = 2*np.pi**3*omega**3*self.fluid.rho0/(ks**4*self.fluid.c0)
-            bes,_ = spl.itj0y0(dist[ix]*ks)
+            
+            # @todo The current itj0y0 does not work - reuse when issue soves
+            #bes,_ = spl.itj0y0(dist[ix]*ks)
+            bes = itj0(dist[ix]*ks)
             res = np.zeros(dist.shape,dtype=np.complex128)
             
             res[ix]    = fak*(1j*np.sinc(kr/np.pi)-(np.cos(kr)-1+bes)/kr)
@@ -601,7 +606,9 @@ class HalfSpace:
             kr = ka*dist
             
             fak = 2*np.pi**3*omega**3*self.fluid.rho0/(ks**4*self.fluid.c0)
-            bes,_ = spl.itj0y0(dist*ks)
+            # @todo The current itj0y0 does not work - reuse when issue soves
+            #bes,_ = spl.itj0y0(dist[ix]*ks)
+            bes = itj0(dist[ix]*ks)
             res = np.zeros(omega.shape,dtype=np.complex128)
             
             if dist != 0:
@@ -645,7 +652,7 @@ class HalfSpace:
         
         return mesh
         
-    def radiation_stiffness_mesh(self,omega,mesh,method='piston'):
+    def radiation_stiffness_mesh(self,omega,mesh,method='wavelet'):
         """
         Acoustic radiation stiffness matrix of a regular mesh
                         
