@@ -799,7 +799,7 @@ class LinearMatrix:
             other: NOT inverted matrix D 
                                
         Returns:
-            D^-1 . self . D^-H
+            other^-1 . self . other^-H
 
         """
 
@@ -899,6 +899,19 @@ class LinearMatrix:
         
         for iz in range(self.Ndepth):
             _sumdata[iz] = np.sum(self.Dindex(iz))
+            
+        return _sumdata
+    
+    def trace(self):
+        
+        """ 
+        Calculates the trace of the matrix
+        """
+        
+        _sumdata = np.zeros((self.Ndepth,))
+        
+        for iz in range(self.Ndepth):
+            _sumdata[iz] = np.trace(self.Dindex(iz))
             
         return _sumdata
     

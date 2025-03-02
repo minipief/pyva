@@ -721,7 +721,9 @@ class LineJunction(Junction) :
             if rad_sw == 'im_dir': # just for presentation purpose works for Bending or SL i_in = 5 for k<= kL but not for kL < k < kS
                 D_out = self.systems[i_sys[1]].edge_skew_radiation_stiffness_wavenumber_LM(omega,wavenumber,io_wave)   
                     
-                _ydata[i_in,:] = (4*D_out*Sqqe).real().sum() 
+                #_ydata[i_in,:] = (4*D_out*Sqqe).real().sum()  
+                # AP finally the trace option is working perfectly!
+                _ydata[i_in,:] = (4*D_out.dot(Sqqe)).trace()
                 #_ydata[i_in,:] = (4*D_out*Sqqe).imag().sum() 
                 #_ydata[i_in,:] = (4*D_out.imag()*Sqqe).sum() 
                 #_ydata[i_in,:] = (4*D_out.real()*Sqqe).sum() 
@@ -912,16 +914,18 @@ class LineJunction(Junction) :
         D_dir_1_edge = self.systems[i_sys[0]].edge_skew_radiation_stiffness_wavenumber_LM(omega,wavenumber)
         D_dir_2_edge = self.systems[i_sys[1]].edge_skew_radiation_stiffness_wavenumber_LM(omega,wavenumber)
         D_dir_1_wave = T_wave_1_inv.H().dot(D_dir_1_edge).dot(T_wave_1_inv)
-        # D_dir_2_wave = T_wave_2_inv.dot(D_dir_2_edge).dot(T_wave_2)
+        D_dir_2_wave = T_wave_2_inv.H().dot(D_dir_2_edge).dot(T_wave_2_inv)
             
         
         T_rot_1  = edge_transform_LM(self.thetas[i_sys[0]])
         T_rot_1_T = T_rot_1.H() #transpose()
         T_rot_2  = edge_transform_LM(self.thetas[i_sys[1]])
         #T_rot_2_T = T_rot_2.H() #transpose()
-        
-        #D_mn_wave = T_rot_1_T.dot(D_tot).dot(T_rot_2).dot(T_wave_1.H()) 
-        D_mn_wave = T_rot_1_T.dot(D_tot).dot(T_rot_2)
+
+        # Original [D_tot,mn] ftom bölock matrix clf
+        D_tot_mn   = T_rot_1_T.dot(D_tot).dot(T_rot_2)
+        # New total stiffness matrix in wave3 coordinates
+        D_tot_wave =T_wave_1_inv.H().dot(D_tot_mn).dot(T_wave_2_inv)
 
         Nin   = len(i_in_wave)
         #Nout  = len(i_out_wave)
@@ -949,8 +953,8 @@ class LineJunction(Junction) :
             # Prepare 
 
             # Set up full trace matrix
-            res_ = (T_wave_1.dot(D_dir_1_wave_single).dot(T_wave_1.H())).HDH(D_mn_wave)
-            res_ = 4*T_wave_2_inv.dot(D_dir_2_edge).dot(res_).dot(T_wave_2_inv.H())
+            res_ = D_dir_1_wave_single.HDH(D_tot_wave)
+            res_ = (4*D_dir_2_wave.dot(res_)) # no trace - single wave required
 
             io_wave = i_out_wave[i_in]
             if io_wave == 2:
