@@ -475,7 +475,7 @@ class Structure2DSystem(SEAsys.SEA_system):
         """
         return self.prop.wave_transformation_matrix(omega,wavenumber,inv)           
 
-    def wave_transformation_matrix_LM(self,omega,wavenumber,inv=False):
+    def wave_transformation_matrix_LM(self,omega,wavenumber,inv=False,in_sw=False):
         """
         wave_transform taken from property method.
 
@@ -483,7 +483,17 @@ class Structure2DSystem(SEAsys.SEA_system):
         --------
         :meth:`pyva.properties.structuralPropertyClasses.PlateProp.wave_transformation_matrix`
         """
-        return self.prop.wave_transformation_matrix_LM(omega,wavenumber,inv)  
+        return self.prop.wave_transformation_matrix_LM(omega,wavenumber,inv,in_sw)  
+    
+    def wave_amp_transformation_matrix_LM(self,omega,wavenumber):
+        """
+        wave_amp_transform taken from property method.
+
+        See also
+        --------
+        :meth:`pyva.properties.structuralPropertyClasses.PlateProp.wave_amp_transformation_matrix`
+        """
+        return self.prop.wave_amp_transformation_matrix_LM(omega,wavenumber)  
     
     def edge_wave_amplitude_radiation_stiffness(self,omega,wavenumber,wave_DOF):
         """

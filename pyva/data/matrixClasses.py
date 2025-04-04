@@ -1026,6 +1026,18 @@ class LinearMatrix:
                 _data[:,:,iz] = self.Dindex(iz).conj().transpose()
   
             return LinearMatrix(_data)     
+        
+    def AH(self):
+        """
+        Antihermitian of linear matrix
+        
+
+        Returns
+        -------
+        -1j/2.(LM-LM^H).
+
+        """
+        return 0.5*(self-self.H())
 
     def cond(self,p=None):
         """ 

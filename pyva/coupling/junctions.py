@@ -65,7 +65,7 @@ def edge_transform_LM(theta):
     return mC.LinearMatrix(np.array([[1., 0.,  0., 0.],
                                      [0., cs, -sn, 0.],
                                      [0., sn,  cs, 0.],
-                                     [0., 0.,  0., 1.]],dtype = np.complex128))
+                                     [0., 0.,  0., 1.]],dtype = np.float64)) #complex128))
 
 def edge_transform(theta):
     """
@@ -901,20 +901,21 @@ class LineJunction(Junction) :
 
         """
         
-        
+     
         D_tot = self.total_radiation_stiffness_wavenumber_LM(omega,wavenumber)
         
         # Input wave 
-        T_wave_1 = self.systems[i_sys[0]].wave_transformation_matrix_LM(omega,wavenumber)
-        T_wave_1_inv = self.systems[i_sys[0]].wave_transformation_matrix_LM(omega,wavenumber,inv=True)
-        # Output wave
-        T_wave_2 = self.systems[i_sys[1]].wave_transformation_matrix_LM(omega,wavenumber)
-        T_wave_2_inv = self.systems[i_sys[1]].wave_transformation_matrix_LM(omega,wavenumber,inv=True)
+        #T_wave_1 = self.systems[i_sys[0]].wave_transformation_matrix_LM(omega,wavenumber,in_sw = True)
+        #T_wave_1_inv = T_wave_1.inv() #self.systems[i_sys[0]].wave_transformation_matrix_LM(omega,wavenumber,inv=True)
         
-        D_dir_1_edge = self.systems[i_sys[0]].edge_skew_radiation_stiffness_wavenumber_LM(omega,wavenumber)
+        # Output wave
+        T_wave_2 = self.systems[i_sys[1]].wave_transformation_matrix_LM(omega,wavenumber, in_sw = False )
+        #T_wave_2_inv = T_wave_2.inv() #self.systems[i_sys[1]].wave_transformation_matrix_LM(omega,wavenumber,inv=True)
+        
+        #D_dir_1_edge = self.systems[i_sys[0]].edge_skew_radiation_stiffness_wavenumber_LM(omega,wavenumber)
         D_dir_2_edge = self.systems[i_sys[1]].edge_skew_radiation_stiffness_wavenumber_LM(omega,wavenumber)
-        D_dir_1_wave = T_wave_1_inv.H().dot(D_dir_1_edge).dot(T_wave_1_inv)
-        D_dir_2_wave = T_wave_2_inv.H().dot(D_dir_2_edge).dot(T_wave_2_inv)
+        #D_dir_1_wave = (T_wave_1.H().dot(D_dir_1_edge).dot(T_wave_1))
+        D_dir_2_wave = (T_wave_2.H().dot(D_dir_2_edge).dot(T_wave_2))
             
         
         T_rot_1  = edge_transform_LM(self.thetas[i_sys[0]])
@@ -922,10 +923,12 @@ class LineJunction(Junction) :
         T_rot_2  = edge_transform_LM(self.thetas[i_sys[1]])
         #T_rot_2_T = T_rot_2.H() #transpose()
 
-        # Original [D_tot,mn] ftom bölock matrix clf
+        # Original [D_tot,mn] ftom block matrix clf
         D_tot_mn   = T_rot_1_T.dot(D_tot).dot(T_rot_2)
         # New total stiffness matrix in wave3 coordinates
-        D_tot_wave =T_wave_1_inv.H().dot(D_tot_mn).dot(T_wave_2_inv)
+        #D_tot_wave = T_wave_1.H().dot(D_tot_mn).dot(T_wave_2)
+        # Version requiered when RLs input matrix is requires
+        D_tot_wave = D_tot_mn.dot(T_wave_2)
 
         Nin   = len(i_in_wave)
         #Nout  = len(i_out_wave)
@@ -944,23 +947,31 @@ class LineJunction(Junction) :
         for i_in in range(Nin):
 
             ii_wave = i_in_wave[i_in]
-            if ii_wave == 2:
-                    ii_wave = 3   
+            if ii_wave == 3:
+                    ii_wave = 4   
             
-            # Prepare D_dir wave for single wave input -> finally a scalar
-            D_dir_1_wave_single = mC.LinearMatrix.zeros(3,(4,4,np.size(wavenumber)))
-            D_dir_1_wave_single.data[ii_wave-1,ii_wave-1,:] = D_dir_1_wave.data[ii_wave-1,ii_wave-1,:]
-            # Prepare 
+            # Former version 
+            # # Prepare D_dir wave for single wave input -> finally a scalar
+            # D_dir_1_wave_single = mC.LinearMatrix.zeros(1,(4,4,np.size(wavenumber)))
+            # buf_ = D_dir_1_wave_single.data
+            # # Workaround because index writing doesn't work
+            # buf_[ii_wave-1,ii_wave-1,:] = D_dir_1_wave.data[ii_wave-1,ii_wave-1,:] 
+            # D_dir_1_wave_single = mC.LinearMatrix(buf_)
+            # # Prepare 
+
+            # RL version
+            D_dir_1_wave_single = self.systems[i_sys[0]].edge_skew_radiation_stiffness_wavenumber_LM(omega,wavenumber,wave_DOF = ii_wave)
 
             # Set up full trace matrix
-            res_ = D_dir_1_wave_single.HDH(D_tot_wave)
-            res_ = (4*D_dir_2_wave.dot(res_)) # no trace - single wave required
+            #res_ = D_dir_1_wave_single.HDH(D_tot_wave)
+            D = D_tot_wave.inv()
+            res_ = (4.*D_dir_2_wave.dot(D).dot(D_dir_1_wave_single).dot(D.H())) # no trace - single wave required
 
             io_wave = i_out_wave[i_in]
-            if io_wave == 2:
-                io_wave = 3
+            if io_wave == 3:
+                io_wave = 4
                     
-            _ydata[i_in,:] = res_.data[io_wave,io_wave,:]
+            _ydata[i_in,:] = np.real(res_.data[io_wave-1,io_wave-1,:])
 
 
         return mC.Signal(xdata,_ydata,dof.DOF(np.array(i_out_wave),np.zeros((1,Nsig)),_tdof))     
