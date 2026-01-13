@@ -518,7 +518,7 @@ class LineJunction(Junction) :
         """
         return self.__str__()
                 
-    def total_radiation_stiffness_wavenumber_LM(self,omega,wavenumber):
+    def total_radiation_stiffness_wavenumber_LM(self,omega,wavenumber,i_in_sys = -1):
         """
         Calculate the total radiation stiffness of line junctions.
         
@@ -555,7 +555,7 @@ class LineJunction(Junction) :
         T_rot = edge_transform_LM(self.thetas[0])
         # Transform to global system
         D_tot = (T_rot.dot(D_tot)).dot(T_rot.transpose())
-        
+                
         for i_sys in range(1,self.N):
             _D_buf = self.systems[i_sys].edge_radiation_stiffness_wavenumber_LM(omega,wavenumber)
             # Rotation matrix from egde coordniate transformation
@@ -564,9 +564,16 @@ class LineJunction(Junction) :
             _T_buf = (T_rot.dot(_D_buf)).dot(T_rot.transpose())
             
             D_tot += _T_buf
+        
+        # subtract if it is the same plate 
+        # if i_in_sys > -0.5:
+        #     _D_buf = self.systems[i_in_sys].edge_radiation_stiffness_wavenumber_LM(omega,wavenumber)
+        #     # Rotation matrix from egde coordniate transformation
+        #     T_rot = edge_transform_LM(self.thetas[i_in_sys])
             
-        #self._wavenumber.update({omega : wavenumber})
-        #self._D_tot.update({omega : D_tot})
+        #     _T_buf = (T_rot.dot(_D_buf)).dot(T_rot.transpose())
+            
+        #     D_tot += _T_buf
         
         return(D_tot)
     
@@ -901,20 +908,23 @@ class LineJunction(Junction) :
 
         """
         
-     
+        # Try if it works to remove the incoming stiffness matrix
+        if i_sys[0]==i_sys[1]:
+            in_corr= 1.
+        
         D_tot = self.total_radiation_stiffness_wavenumber_LM(omega,wavenumber)
         
         # Input wave 
-        #T_wave_1 = self.systems[i_sys[0]].wave_transformation_matrix_LM(omega,wavenumber,in_sw = True)
+        T_wave_1 = self.systems[i_sys[0]].wave_transformation_matrix_LM(omega,wavenumber,in_sw = True)
         #T_wave_1_inv = T_wave_1.inv() #self.systems[i_sys[0]].wave_transformation_matrix_LM(omega,wavenumber,inv=True)
         
         # Output wave
         T_wave_2 = self.systems[i_sys[1]].wave_transformation_matrix_LM(omega,wavenumber, in_sw = False )
         #T_wave_2_inv = T_wave_2.inv() #self.systems[i_sys[1]].wave_transformation_matrix_LM(omega,wavenumber,inv=True)
         
-        #D_dir_1_edge = self.systems[i_sys[0]].edge_skew_radiation_stiffness_wavenumber_LM(omega,wavenumber)
+        D_dir_1_edge = self.systems[i_sys[0]].edge_skew_radiation_stiffness_wavenumber_LM(omega,wavenumber)
         D_dir_2_edge = self.systems[i_sys[1]].edge_skew_radiation_stiffness_wavenumber_LM(omega,wavenumber)
-        #D_dir_1_wave = (T_wave_1.H().dot(D_dir_1_edge).dot(T_wave_1))
+        D_dir_1_wave = (T_wave_1.H().dot(D_dir_1_edge).dot(T_wave_1))
         D_dir_2_wave = (T_wave_2.H().dot(D_dir_2_edge).dot(T_wave_2))
             
         
@@ -923,12 +933,12 @@ class LineJunction(Junction) :
         T_rot_2  = edge_transform_LM(self.thetas[i_sys[1]])
         #T_rot_2_T = T_rot_2.H() #transpose()
 
-        # Original [D_tot,mn] ftom block matrix clf
+        # Original [D_tot,mn] from block matrix clf
         D_tot_mn   = T_rot_1_T.dot(D_tot).dot(T_rot_2)
         # New total stiffness matrix in wave3 coordinates
-        #D_tot_wave = T_wave_1.H().dot(D_tot_mn).dot(T_wave_2)
+        D_tot_wave = T_wave_1.H().dot(D_tot_mn).dot(T_wave_2)
         # Version requiered when RLs input matrix is requires
-        D_tot_wave = D_tot_mn.dot(T_wave_2)
+        #D_tot_wave = D_tot_mn.dot(T_wave_2)
 
         Nin   = len(i_in_wave)
         #Nout  = len(i_out_wave)
@@ -944,6 +954,8 @@ class LineJunction(Junction) :
         # rho_area = plate1.prop.mass_per_area
         
         
+        
+        
         for i_in in range(Nin):
 
             ii_wave = i_in_wave[i_in]
@@ -951,21 +963,23 @@ class LineJunction(Junction) :
                     ii_wave = 4   
             
             # Former version 
-            # # Prepare D_dir wave for single wave input -> finally a scalar
-            # D_dir_1_wave_single = mC.LinearMatrix.zeros(1,(4,4,np.size(wavenumber)))
-            # buf_ = D_dir_1_wave_single.data
-            # # Workaround because index writing doesn't work
-            # buf_[ii_wave-1,ii_wave-1,:] = D_dir_1_wave.data[ii_wave-1,ii_wave-1,:] 
-            # D_dir_1_wave_single = mC.LinearMatrix(buf_)
-            # # Prepare 
+            # Prepare D_dir wave for single wave input -> finally a scalar
+            # D_dir_1_wave_single = mC.LinearMatrix.zeros(0,(4,4,np.size(wavenumber)))
+            buf_ = np.zeros((4,4,np.size(wavenumber)),dtype=np.complex128)
+            # Workaround because index writing doesn't work
+            buf_[ii_wave-1,ii_wave-1,:] = D_dir_1_wave.data[ii_wave-1,ii_wave-1,:] 
+            D_dir_1_wave_single = mC.LinearMatrix(buf_)
+            # Prepare 
 
             # RL version
-            D_dir_1_wave_single = self.systems[i_sys[0]].edge_skew_radiation_stiffness_wavenumber_LM(omega,wavenumber,wave_DOF = ii_wave)
+            #D_dir_1_wave_single = self.systems[i_sys[0]].edge_skew_radiation_stiffness_wavenumber_LM(omega,wavenumber,wave_DOF = ii_wave)
 
             # Set up full trace matrix
-            #res_ = D_dir_1_wave_single.HDH(D_tot_wave)
-            D = D_tot_wave.inv()
-            res_ = (4.*D_dir_2_wave.dot(D).dot(D_dir_1_wave_single).dot(D.H())) # no trace - single wave required
+            
+            res_ = D_dir_1_wave_single.HDH(D_tot_wave)# -in_corr 20112025 too simple q must be subtracted non \Psi 
+            #D = D_tot_wave.inv()
+            #res_ = (4.*D_dir_2_wave.dot(D).dot(D_dir_1_wave_single).dot(D.H())) # no trace - single wave required
+            res_ = 4.*D_dir_2_wave.dot(res_) # no trace - single wave required
 
             io_wave = i_out_wave[i_in]
             if io_wave == 3:
@@ -1575,7 +1589,7 @@ class AreaJunction(Junction):
         elif self.N == 2: # all combinations are possible
             # in any case no non_res system
             self.non_res = mds.TMmodel((iL.MassLayer(1, 0.), ))
-            if systems[0].iscavity:
+            if systems[0].iscavity():
                 self.cavity1 = systems[0]
                 if systems[1].iscavity():
                     self.cavity2 = systems[1]
@@ -1734,9 +1748,14 @@ class AreaJunction(Junction):
         
         return eta_non_res
 
-    def CLF_structure_fluid(self,omega,ix_cavity = 0,pos_dir=True):
+    def CLF_structure_fluid(self,omega,ix_cavity = 0,pos_dir=True):#,double_wall_cavity = False):
         """
         Calculates the coupling loss factors of plate to fluid junctions
+        
+        [1] A. J. Price and M. J. Crocker, 
+        “Sound Transmission through Double Panels Using Statistical Energy Analysis,”
+        JASA, vol. 47, no. 3A, pp. 683–693, Mar. 1970.
+
 
         Parameters
         ----------
@@ -1745,7 +1764,9 @@ class AreaJunction(Junction):
         ix_cavity : int, optional
             index of cavity. The default is 0.
         pos_dir : bool, optional
-            swith for direction. True means from plate to cavity. The default is True.
+            switch for direction. True means from plate to cavity. The default is True.
+        #double_wall_cavity : bool, optionl
+        #    switch for double wall cavity correction [1]. The default is False    
 
         Returns
         -------
@@ -1757,8 +1778,8 @@ class AreaJunction(Junction):
         
         if ix_cavity < 1:
             cavity = self.cavity1
-        else: # 1 and 2 means secont cavity is taken 
-            cavity = self.cavity2 # to b echanges later
+        else: # 1 and 2 means second cavity is taken 
+            cavity = self.cavity2 # to be echanged later
         
         # check which side of plate must be considered for trim
         if ix_cavity < self.ix_plate: 
@@ -1767,9 +1788,17 @@ class AreaJunction(Junction):
             ix_trim = 1
             
         z = np.real(cavity.fluid.impedance(omega))
-        sigma = self.plate.radiation_efficiency(omega,cavity.fluid,Nstep = 90)
-         
+        sigma = self.plate.radiation_efficiency(omega,cavity.fluid,Nstep = 90,)
+        
         eta_s_fluid = z/omega/self.plate.prop.mass_per_area*sigma
+
+        if cavity.flat_cavity_sw:
+            # coincidence
+            #print("Radiation into DW considered from system {}".format(self.plate.ID))
+            omega_c = self.plate.prop.coincidence_frequency(c0 = cavity.fluid.c0)
+            index = omega <= omega_c 
+            # Change sigma for radiation into dwc to 3*sigma below coincidence
+            eta_s_fluid[index] += 2*z[index]/omega[index]/self.plate.prop.mass_per_area*sigma[index]
         
         if pos_dir:
             if self.plate.trim_sw[ix_trim]:
@@ -2265,12 +2294,12 @@ class SemiInfiniteFluid(AreaJunction):
 
     def __init__(self,systems, fluid, area = 0.):
         """
-        Constructor of simi infinite fluids
+        Constructor of semi infinite fluids
 
         Parameters
         ----------
         systems : tuple of list of SEA systems
-            connected SEA systems.
+            connected SIFs.
         fluid : fluid
             DESCRIPTION.
         area : float, optional
@@ -2286,7 +2315,7 @@ class SemiInfiniteFluid(AreaJunction):
         super().__init__(systems,area)
         
         self.fluid = fluid
-        # create stange cavity to allow for non resonent methods of mother class
+        # create strange cavity to allow for non resonent methods of mother class
         self.cavity2 = ac3Dsys.Acoustic3DSystem(0,0,0,0,fluid)
         # in case of 2 connected systems the non_res attribute is not set correctly in the 
         # mother class constructor 
@@ -2302,7 +2331,7 @@ class SemiInfiniteFluid(AreaJunction):
     
     def resonant_dampingloss(self,omega):
         """
-        resonant DLF of connected plates
+        resonant DLF of connected plates to SIF
 
         Parameters
         ----------
