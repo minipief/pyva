@@ -15,9 +15,6 @@ import pyva.systems.infiniteLayers as iL
 import pyva.systems.acousticRadiators as aR
 import pyva.useful as uf
 
-import copy
-
-
 class FEM:
     
     """
@@ -660,6 +657,11 @@ class TMmodel:
         # The current DOF 1 is the DOF just left of the next interface
         #current_left_ID = 0
         
+        # Dummy declaration
+        I12= None
+        J12= None
+        
+        
         #SIF_in  = aR.HalfSpace(fluids[0])
         SIF_out = aR.HalfSpace(out_fluid)
         
@@ -1034,7 +1036,7 @@ class TMmodel:
         
         distances, index = mesh.distance()
         
-        Ndist  = len(distances)
+        #Ndist  = len(distances)
         Nx     = len(omega)
         Nmesh  = mesh.Nmesh
         dA     = mesh.dA
@@ -1256,11 +1258,11 @@ class TMmodel:
 
             k  = np.real(in_fluid.wavenumber(om))
             kx_    = np.sin(theta_)*k
-            abs_kx = self.absorption(om,kx_,in_fluid,ID,boundary_condition,allard = allard,out_fluid = matC.Fluid()).ydata
+            abs_kx = self.absorption(om,kx_,in_fluid,ID,boundary_condition,allard = allard,out_fluid = matC.Fluid()).ydata.flatten()
             #remove nans
             abs_kx[np.isnan(abs_kx)] = 0.
             denom = np.sin(theta_max)**2
-            abs_diffuse[ix] = 2*integrate.simpson(abs_kx*np.sin(theta_)*np.cos(theta_), theta_)/denom
+            abs_diffuse[ix] = 2*integrate.simpson(abs_kx*np.sin(theta_)*np.cos(theta_), x=theta_)/denom
 
         if uf.isscalar(omega):
             return abs_diffuse[0]
@@ -1366,9 +1368,9 @@ class TMmodel:
             k  = np.real(fluids[0].wavenumber(om))
             kx_    = np.sin(theta_)*k
             if allard:
-                tau_kx = self.transmission_allard(om,kx_,fluids).ydata
+                tau_kx = self.transmission_allard(om,kx_,fluids).ydata.flatten()
             else:
-                tau_kx = self.transmission_coefficient(om,kx_,fluids).ydata
+                tau_kx = self.transmission_coefficient(om,kx_,fluids).ydata.flatten()
             #remove nans
             tau_kx[np.isnan(tau_kx)] = 0.
             tau_diffuse[ix] = 2*integrate.simpson(tau_kx*np.sin(theta_)*np.cos(theta_), x=theta_)/denom
