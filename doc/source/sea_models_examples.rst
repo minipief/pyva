@@ -19,3 +19,13 @@ Box cover with noise control treatment
 ++++++++++++++++++++++++++++++++++++++
 
 .. literalinclude:: ../code/box_isolated.py 
+
+.. _sec-sea-price-example:
+
+Price and Crocker double panel transmission loss using SEA
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+.. literalinclude:: ../code/price_and_crocker_transmission_double_panels.py
+
+
+

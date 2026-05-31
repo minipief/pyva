@@ -30,8 +30,8 @@ sum of squared differences of the measured and simulated surface impedance .
    e({\bf a}) = \sum_{i=0}^N \left|\boldsymbol{Z}_{test}(\omega_i)-\boldsymbol{Z}_{sim}(\omega_i,{\bf a})\right|^2
     
 where :math:`{\bf a} = (\alpha_\infty,\Lambda,\Lambda')` was determined from impedance tube tests in [Ata2005]_.
-However, even more variables can be derived by Atallas method, but one should keep in mind that the sensitity to errors is getting
-larger the more parameters are derived form the minimisation of the costfunction. 
+However, even more variables can be derived by Atallas method, but one should keep in mind that the sensitivity to errors is getting
+larger the more parameters are derived form the minimisation of the cost function. 
 
 The SciPy package provides many methods for curve fitting and minimisation. 
 Thus, pyva in combination with the capabilities of 

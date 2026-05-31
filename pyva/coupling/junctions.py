@@ -621,7 +621,7 @@ class LineJunction(Junction) :
         return(D_tot)
     
     def transmission_wavenumber_LM(self,omega,wavenumber,i_sys = (0,1),i_in_wave = (1,2,3),\
-                                                i_out_wave = (1,2,3),rad_sw = 'wave',\
+                                                i_out_wave = (1,2,3), rad_sw = 'wave',\
                                                 Signal = True):
         """
         Calculate the transmission coefficient of line junctions (LinearMatrix Version).
@@ -731,11 +731,7 @@ class LineJunction(Junction) :
                 #_ydata[i_in,:] = (4*D_out*Sqqe).real().sum()  
                 # AP finally the trace option is working perfectly!
                 _ydata[i_in,:] = (4*D_out.dot(Sqqe)).trace()
-                #_ydata[i_in,:] = (4*D_out*Sqqe).imag().sum() 
-                #_ydata[i_in,:] = (4*D_out.imag()*Sqqe).sum() 
-                #_ydata[i_in,:] = (4*D_out.real()*Sqqe).sum() 
-                #_ydata[i_in,:] = (4*D_out*Sqqe).sum()
-                    
+                                    
             else: # rad_sw == 'wave'
 
                 if io_wave == 5: # all
@@ -778,9 +774,9 @@ class LineJunction(Junction) :
         i_sys : tuple or list, optional
             incident and radiating system index vector. The default is (0,1).
         i_in_wave : tuple or list, optional
-            incident wave type. The default is (1,2,3).
+            incident wave type. The default is (3,3).
         i_out_wave : tuple or list, optional
-            radiating wave type. The default is (1,2,3).
+            radiating wave type. The default is (5,5).
         Signal : bool, optional
             switch for Signal output. The default is True.
 
@@ -880,13 +876,18 @@ class LineJunction(Junction) :
             return _ydata
 
 
-    def transmission_wavenumber_wave(self,omega,wavenumber,i_sys = (0,1),i_in_wave = (1,)*3+(2,)*3+(3,)*3,i_out_wave = (1,2,3)*3,matrix = False):
+    def transmission_wavenumber_wave(self,omega,wavenumber,i_sys = (0,1),\
+                                     i_in_wave = (1,)*3+(2,)*3+(3,)*3,i_out_wave = (1,2,3)*3,\
+                                     no_single = False):
         """
         Transmission coefficient assuming wave transformations for radiation stiffness.
         
-        New try to use the wave amplidute base to allow separate treatment of L,S and B waves.
+        This method allows the individual treatment of L,S and B waves by implementing the specific wavetransforms
+        for incoming and outgoind waves.
         
-
+        This method is used for academic reasons because the seperation of in-planes waves does not make sense due to 
+        their low contribution to the modal energy because of much higher wavelength.
+        
         Parameters
         ----------
         omega : TYPE
@@ -899,8 +900,8 @@ class LineJunction(Junction) :
             DESCRIPTION. The default is (1,)*3+(2,)*3+(3,)*3.
         i_out_wave : TYPE, optional
             DESCRIPTION. The default is (1,2,3)*3.
-        matrix : TYPE, optional
-            DESCRIPTION. The default is False.
+        no_single : boolens, optional
+            Switch for removing single system correction. The default is False.
 
         Returns
         -------
@@ -908,10 +909,8 @@ class LineJunction(Junction) :
 
         """
         
-        # Try if it works to remove the incoming stiffness matrix
-        if i_sys[0]==i_sys[1]:
-            in_corr= 1.
         
+        # In global coordinates
         D_tot = self.total_radiation_stiffness_wavenumber_LM(omega,wavenumber)
         
         # Input wave 
@@ -920,9 +919,11 @@ class LineJunction(Junction) :
         
         # Output wave
         T_wave_2 = self.systems[i_sys[1]].wave_transformation_matrix_LM(omega,wavenumber, in_sw = False )
-        #T_wave_2_inv = T_wave_2.inv() #self.systems[i_sys[1]].wave_transformation_matrix_LM(omega,wavenumber,inv=True)
+        T_wave_2_inv = T_wave_2.inv() 
+        #T_wave_2_inv = self.systems[i_sys[1]].wave_transformation_matrix_LM(omega,wavenumber,inv=True)
         
         D_dir_1_edge = self.systems[i_sys[0]].edge_skew_radiation_stiffness_wavenumber_LM(omega,wavenumber)
+        D_dir_1      = self.systems[i_sys[0]].edge_radiation_stiffness_wavenumber_LM(omega,wavenumber)
         D_dir_2_edge = self.systems[i_sys[1]].edge_skew_radiation_stiffness_wavenumber_LM(omega,wavenumber)
         D_dir_1_wave = (T_wave_1.H().dot(D_dir_1_edge).dot(T_wave_1))
         D_dir_2_wave = (T_wave_2.H().dot(D_dir_2_edge).dot(T_wave_2))
@@ -935,9 +936,16 @@ class LineJunction(Junction) :
 
         # Original [D_tot,mn] from block matrix clf
         D_tot_mn   = T_rot_1_T.dot(D_tot).dot(T_rot_2)
-        # New total stiffness matrix in wave3 coordinates
+                
+        # New total stiffness matrix in wave3 coordinates 
         D_tot_wave = T_wave_1.H().dot(D_tot_mn).dot(T_wave_2)
+                
+        if i_sys[0]==i_sys[1]:
+            print('Same plate identified')
+
+
         # Version requiered when RLs input matrix is requires
+
         #D_tot_wave = D_tot_mn.dot(T_wave_2)
 
         Nin   = len(i_in_wave)
@@ -953,7 +961,8 @@ class LineJunction(Junction) :
         # plate2 = self.systems[i_sys[1]] 
         # rho_area = plate1.prop.mass_per_area
         
-        
+        #ser res1_ to 0 to keep two system equations correct
+        res1_ = 0.
         
         
         for i_in in range(Nin):
@@ -966,9 +975,19 @@ class LineJunction(Junction) :
             # Prepare D_dir wave for single wave input -> finally a scalar
             # D_dir_1_wave_single = mC.LinearMatrix.zeros(0,(4,4,np.size(wavenumber)))
             buf_ = np.zeros((4,4,np.size(wavenumber)),dtype=np.complex128)
+            buf_inv = np.zeros((4,4,np.size(wavenumber)),dtype=np.complex128)
+            buf_div = np.zeros((4,4,np.size(wavenumber)),dtype=np.complex128)
+            
+            
             # Workaround because index writing doesn't work
             buf_[ii_wave-1,ii_wave-1,:] = D_dir_1_wave.data[ii_wave-1,ii_wave-1,:] 
+            buf_inv[ii_wave-1,ii_wave-1,:] = 1/D_dir_1_wave.data[ii_wave-1,ii_wave-1,:]
+            #cross corr scalar
+            buf_div[ii_wave-1,ii_wave-1,:] = 1.#bbb_
+            
             D_dir_1_wave_single = mC.LinearMatrix(buf_)
+            D_dir_1_wave_single_inv = mC.LinearMatrix(buf_inv)
+            D_dir_1_wave_single_div = mC.LinearMatrix(buf_div)
             # Prepare 
 
             # RL version
@@ -976,16 +995,39 @@ class LineJunction(Junction) :
 
             # Set up full trace matrix
             
-            res_ = D_dir_1_wave_single.HDH(D_tot_wave)# -in_corr 20112025 too simple q must be subtracted non \Psi 
-            #D = D_tot_wave.inv()
-            #res_ = (4.*D_dir_2_wave.dot(D).dot(D_dir_1_wave_single).dot(D.H())) # no trace - single wave required
+            res_ = D_dir_1_wave_single.HDH(D_tot_wave)
+            
+            # Correction of same system situation
+            if i_sys[0]==i_sys[1] and not(no_single):
+                print('Single system identified')
+                fac1 = 0.25
+                fac2 = 0.5j
+                res1_ = T_wave_2_inv.dot(T_wave_1).dot(D_dir_1_wave_single_inv).dot(T_wave_1.H()).dot(T_wave_2_inv.H())
+                # Cross correlation correction
+                res2_ = fac2*D_tot_wave.inv().dot(D_dir_1_wave_single_div).dot(T_wave_1.H()).dot(T_wave_2_inv.H()) # dot(D_dir_1_wave_single) weg
+                res2_ = res2_ + res2_.H()
+                
+                #res1_ = 4.*D_dir_2_wave.dot(res1_*fac)
+                res_ += res1_*fac1
+                res_ -= res2_
+                
+                # Res from different force
+                #H_ = T_wave_2_inv.dot(D_tot_mn.inv()).dot(D_dir_1).dot(T_wave_1)
+                #res_ = fac*H_.dot(D_dir_1_wave_single_inv).dot(H_.H())
+                
+                
+                        
             res_ = 4.*D_dir_2_wave.dot(res_) # no trace - single wave required
+
+            #res_ = res_ - res1_
 
             io_wave = i_out_wave[i_in]
             if io_wave == 3:
                 io_wave = 4
-                    
+
             _ydata[i_in,:] = np.real(res_.data[io_wave-1,io_wave-1,:])
+            
+            
 
 
         return mC.Signal(xdata,_ydata,dof.DOF(np.array(i_out_wave),np.zeros((1,Nsig)),_tdof))     
@@ -1083,7 +1125,7 @@ class LineJunction(Junction) :
             # Remove incoming motion if same system
             if i_sys[0]==i_sys[1]:
                 _q = self.systems[i_sys[0]].edge_wave_excitation_displacement(omega,wavenumber,ii_wave)
-                _buf -= T_rot_1.dot(_q) # evtl wegen der -nomenklatur 
+                _buf -= T_rot_1.dot(_q) 
 
             Pow_in   = self.systems[i_sys[0]].edge_wave_amplitude_radiated_power(1.,omega,wavenumber,ii_wave)
             

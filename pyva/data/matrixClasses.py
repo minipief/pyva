@@ -792,18 +792,18 @@ class LinearMatrix:
             
     def HDH(self,other):
         """
-        HDH performt the left and right matrix multiplication by the inverse of other from
+        HDH performs the left and right matrix multiplication by the inverse of other from
         left and right in a numerical stable way using solve 
         
         Args:
-            other: NOT inverted matrix D 
+            other: NOT inverted matrix H 
                                
         Returns:
             other^-1 . self . other^-H
 
         """
 
-        out = other.solve(self) # Solve D . X = self => out = D^-1 . self 
+        out = other.solve(self) # Solve H . X = self => out = D^-1 . self 
         return other.solve(out.H()).H()
 
             
@@ -1047,7 +1047,7 @@ class LinearMatrix:
         _ydata = np.zeros((1,self.Ndepth))
         
         for iz in range(self.Ndepth):
-            _ydata[0,iz] = linalg.cond(self.Dindex(iz),p)
+            _ydata[0,iz] = np.False_linalg.cond(self.Dindex(iz),p)
 
         return _ydata
 
@@ -1847,12 +1847,12 @@ class DataAxis:
     @property
     def typeID(self):
         """
-        
+        Type ID of DataAxis.
 
         Returns
         -------
-        TYPE
-            DESCRIPTION.
+        typeID
+            ID integer of DatAxis.
 
         """
         
@@ -2453,7 +2453,16 @@ class Signal:
             markerstyle
         ls : list or tuple
             line_styles
-            
+        xlabel : str
+            xlabel text
+        ylabel : str
+            ylabel text
+        xticks : ndarray
+            xtick values
+        xticklabels : array of size(xticks)
+            xticklabels
+        grid : bool or kwargs
+            Argument for plt.grid command of matplotlib
         Raises
         ------
         ValueError
@@ -2479,16 +2488,28 @@ class Signal:
 
         leg_auto_sw = True
         label_sw = True      # false if no label should be used
+        xtick_sw = False
+        grid_sw = False
+        markevery = 1
+        
         # Default line styles applied in the cycler definition
         line_styles = ['-', '--', ':', '-.']
         marker_styles = ['', '.', 'o']
         color_styles = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', \
                         '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', \
                         '#bcbd22', '#17becf', '#17becf', '#17becf']
-                
-        plt.figure(nfig)
+        
+        xlabel = None
+        ylabel = None
+        xticks = None 
+        
+        # Defauls function for scaling
+        pfun = lambda x: x
+            
+            
+        fig = plt.figure(nfig)
         ax = plt.gca()
-                
+                        
         for kw in kwargs:
             if kw == 'ID':
                 IDs = kwargs[kw]
@@ -2523,8 +2544,23 @@ class Signal:
                 _lw = kwargs[kw]
             elif kw =='DX':
                 DX = kwargs[kw]
+            elif kw == 'xlabel':
+                xlabel = kwargs[kw]
+            elif kw == 'ylabel':
+                ylabel = kwargs[kw]
+            elif kw == 'xticks':
+                xticks = kwargs[kw]
+                xticklabels = xticks
+                xtick_sw = True
+            elif kw == 'xticklabels':
+                xticklabels = kwargs[kw]    
+            elif kw == 'grid':
+                grid_sw = True
+                grid_arg = kwargs[kw]
+            elif kw == 'markevery':
+                markevery = kwargs[kw]
             else:
-                 raise ValueError('Unkown keyword {0}'.format(kw))
+                raise ValueError('Unkown keyword {0}'.format(kw))
                  
         # create cycler from parameters
         if style_sw:
@@ -2565,35 +2601,37 @@ class Signal:
                 
 
         # Manage y-axis scaling and labeling
-        ylabel = self.dof[iDOF[0]].type[0].qlabel()        
-        if np.iscomplexobj(self._ydata):
-            if res == 'mag':
-                pfun = lambda x: np.abs(x)
-                ylabel = '|{0}/{1}|'.format(ylabel,self._dof.type[0].ulabel())
-            elif res == 'dB':
-                dBref,dBpot,refstr = self.dof.dBref
-                pfun = lambda x: dBpot*10*np.log10(np.abs(x)/dBref)
-                ylabel = 'dB re {0}'.format(refstr)
-            elif res == 'real':
-                pfun = lambda x: np.real(x)
-                ylabel = 'real({0}/{1})'.format(ylabel,self._dof.type[0].ulabel())
-            elif res == 'imag':
-                pfun = lambda x: np.imag(x)
-                ylabel = 'imag({0}/{1})'.format(ylabel,self._dof.type[0].ulabel())
-            elif res == 'phase':
-                pfun = lambda x: np.angle(x)
-                ylabel = 'phase({0})/deg'.format(ylabel)
+        if ylabel == None:
+            ylabel = self.dof[iDOF[0]].type[0].qlabel()        
+            if np.iscomplexobj(self._ydata):
+                if res == 'mag':
+                    pfun = lambda x: np.abs(x)
+                    ylabel = '|{0}/{1}|'.format(ylabel,self._dof.type[0].ulabel())
+                elif res == 'dB':
+                    dBref,dBpot,refstr = self.dof.dBref
+                    pfun = lambda x: dBpot*10*np.log10(np.abs(x)/dBref)
+                    ylabel = 'dB re {0}'.format(refstr)
+                elif res == 'real':
+                    pfun = lambda x: np.real(x)
+                    ylabel = 'real({0}/{1})'.format(ylabel,self._dof.type[0].ulabel())
+                elif res == 'imag':
+                    pfun = lambda x: np.imag(x)
+                    ylabel = 'imag({0}/{1})'.format(ylabel,self._dof.type[0].ulabel())
+                elif res == 'phase':
+                    pfun = lambda x: np.angle(x)
+                    ylabel = 'phase({0})/deg'.format(ylabel)
+                else:
+                    raise ValueError('Wrong res parameter {0}'.format(res))
             else:
-                raise ValueError('Wrong res parameter {0}'.format(res))
-        else:
-            if res == 'dB':
-                dBref,dBpot,refstr = self.dof.dBref
-                pfun = lambda x: dBpot*10*np.log10(np.abs(x)/dBref)
-                ylabel = 'dB re {0}'.format(refstr)
-            else:
-                pfun = lambda x: x
-                #ylabel = self._dof.type[iDOF[0]].label()
-                ylabel = self.dof[iDOF[0]].type[0].label()
+                if res == 'dB':
+                    dBref,dBpot,refstr = self.dof.dBref
+                    pfun = lambda x: dBpot*10*np.log10(np.abs(x)/dBref)
+                    ylabel = 'dB re {0}'.format(refstr)
+                else:
+                    pfun = lambda x: x
+                    #ylabel = self._dof.type[iDOF[0]].label()
+                    ylabel = self.dof[iDOF[0]].type[0].label()
+            
             
         i_leg = 0
         
@@ -2605,7 +2643,7 @@ class Signal:
             else:
                  _label = leg_str[i_leg]
                 
-            line, = plt.plot(self._xdata.data[::DX],pfun(self._ydata[idof,::DX].flatten()), lw=_lw)
+            line, = plt.plot(self._xdata.data[::DX],pfun(self._ydata[idof,::DX].flatten()), lw=_lw, markevery = markevery)
 
             if label_sw:
                 line.set_label(_label)
@@ -2616,15 +2654,31 @@ class Signal:
         plt.plot([self._xdata.data[0],self._xdata.data[-1]],[0,0],'k-',lw=0.5)
 
         
-        plt.xlabel(self._xdata.label())
+        if xlabel == None:
+            plt.xlabel(self._xdata.label())
+        else:
+            plt.xlabel(xlabel)
+                
         plt.ylabel(ylabel)
+        
+       
         
         plt.gca().set_yscale(yscale)
         plt.gca().set_xscale(xscale)
         
         plt.legend(loc=loc)
+        
+        if xtick_sw:
+            ax.axes.xaxis.set_ticks([])
+            ax.set_xticks(xticks,xticklabels)   
+            
+        if grid_sw:
+            ax.plot(grid_arg)
+        
         plt.tight_layout
         plt.show()
+        
+        return (fig,ax)
         
 class ShapeSignal(Signal):
     """

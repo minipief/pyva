@@ -24,7 +24,6 @@ Absorber Design with Poroelastic Materials
 ++++++++++++++++++++++++++++++++++++++++++
 
 .. literalinclude:: ../code/allard_carpet_screen_fibre_example.py
-
  
 .. _sec-TL-poro-examples:
  
@@ -39,3 +38,4 @@ Perforated Absorber created with plates with bending wave motion
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 .. literalinclude:: ../code/perforate_test_absorber.py
+

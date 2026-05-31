@@ -28,7 +28,10 @@ References
    Aug. 1982
 .. [Lyo1995] R. H. Lyon and R. G. DeJong, Theory and Application of Statistical Energy Analysis, Second Edition, 
    2nd ed. Butterworth Heinemann, 1995.
-.. [Ras1997] K. Rasmussen, “Calculation methods for the physical properties of air used in the calibration of microphones,” Technical University of Denmark, Denmark, PL-11b, 1997, 1997.
+.. [Ras1997] K. Rasmussen, Calculation methods for the physical properties of air used in the calibration of microphones, 
+   Technical University of Denmark, Denmark, PL-11b, 1997, 1997.
+.. [Pri1970] J. Price, M. J. Crocker, Sound Transmission through Double Panels Using Statistical Energy Analysis, 
+   The Journal of the Acoustical Society of America, vol. 47, no. 3A, pp. 683–693, 1970.
 
 .. _Vibroacoustic Simulation: https://www.wiley.com/en-us/Vibroacoustic+Simulation%3A+An+Introduction+to+Statistical+Energy+Analysis+and+Hybrid+Methods-p-9781119849841
 

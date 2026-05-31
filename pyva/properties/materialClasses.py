@@ -422,7 +422,7 @@ class Fluid:
 
     def damping(self,omega):
         """
-        Damping loss
+        Damping denominator for complex wavenumber of impedanze
 
         Parameters
         ----------
@@ -432,14 +432,19 @@ class Fluid:
         Returns
         -------
         float or ndarray
-            damping loss.
+            damping factor (1-0.5j*eta(omega)).
 
         """
         
-        if isscalar(omega):
-            eta = self.eta
-        else:
-            eta = np.ones(np.size(omega))*self.eta
+        if isscalar(self.eta):
+            if isscalar(omega):
+                eta = self.eta
+            else:
+                eta = np.ones(np.size(omega))*self.eta
+            
+        elif isinstance(self.eta,mC.Signal):
+            eta = self.eta.interp(omega)
+            
         return 1-0.5j*eta
         
     def reflection_factor(self,omega,impedance,theta=0,area=1.):
@@ -1063,6 +1068,26 @@ class EquivalentFluid(Fluid):
             (1+8*eta0*np.sqrt(1+(1j*self.rho0*omega*self.Pr*self.length_therm**2)/(16*eta0))/\
             (1j*self.rho0*omega*self.Pr*self.length_therm**2)))
 
+    def damping(self,omega):
+        """
+        Damping loss calculated from wavenumber and material properties
+ 
+        Parameters
+        ----------
+        omega : float or ndarray
+            angular frequency.
+ 
+        Returns
+        -------
+        float
+            damping loss.
+ 
+        """
+ 
+        k = self.wavenumber(omega)
+        return 2*np.imag(k)
+    
+    
     def impedance(self,omega):
         """
         Complex characteristic impedance of the equivalent fluid

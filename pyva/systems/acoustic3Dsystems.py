@@ -13,6 +13,7 @@ import numpy as np
 import pyva.properties.materialClasses as mc
 import pyva.systems.SEA_system as SEAsys
 import pyva.coupling.junctions as con
+import pyva.data.matrixClasses as mC
 
 import pyva.useful as uf
 
@@ -37,7 +38,9 @@ class Acoustic3DSystem(SEAsys.SEA_system):
         identifier for damping type
     """
 
-    def __init__(self,ID,volume,surface,perimeter,fluid,absorption_area = 0.,damping_type = ['eta',]): 
+    def __init__(self,ID,volume,surface,perimeter,fluid,\
+                 absorption_area = 0.,damping_type = ['eta',],eta = 0.01,\
+                 flat_cavity_sw = False): 
         """
         Constructor for Acoustic3DSystem
 
@@ -57,6 +60,10 @@ class Acoustic3DSystem(SEAsys.SEA_system):
             absorption area of cavity. The default is 0..
         damping_type : list of str, optional
             identifyer for dampping method. The default is ['eta',].
+        eta : float or Signal
+            damping loss
+        flat_cavity_sw : bool
+            switch for 2D radation correction from [1] for area junctions
 
         Returns
         -------
@@ -64,8 +71,9 @@ class Acoustic3DSystem(SEAsys.SEA_system):
 
         """
 
-               
-        super().__init__(ID,[0],typestr='pressure',eta=fluid.eta)
+                     
+  
+        super().__init__(ID,[0],typestr='pressure',eta=eta)
 
 
         self.volume = volume
@@ -75,6 +83,7 @@ class Acoustic3DSystem(SEAsys.SEA_system):
         self.damping_type = damping_type
         # Potentialy frequency dependent parameters 
         self._absorption_area = absorption_area
+        self.flat_cavity_sw = flat_cavity_sw
         
     def __repr__(self):
         _str = 'Acoutic3DSystem({0},{1},{2},{3},{4})'.format(self.ID,self.volume,self.surface,self.perimeter,repr(self.fluid))
@@ -87,6 +96,7 @@ class Acoustic3DSystem(SEAsys.SEA_system):
         _str += 'perimeter       : {}\n'.format(self.perimeter)
         _str += 'fluid:\n------\n{}------\n'.format(self.fluid)
         _str += 'damping_type    : {}\n'.format(self.damping_type)
+        _str += 'flat_cavity_sw  : {}\n'.format(self.flat_cavity_sw)
         return _str
         
 
@@ -157,13 +167,17 @@ class Acoustic3DSystem(SEAsys.SEA_system):
             
         """
         
-        eta = np.zeros(np.shape(omega))
+        #eta = np.zeros(np.shape(omega))
+        eta = 0
         
         for it,dtype in enumerate(self.damping_type):
             if dtype == 'eta':
-                eta[:] += self.eta
+                if uf.isscalar(self.eta):
+                    eta += self.eta
+                elif type(self.eta)==mC.Signal:
+                    eta += self.eta.interp(omega)
             elif dtype == 'surface':
-                eta[:] += self.absorption_area(omega)*np.real(self.fluid.c_freq(omega))/4/self.volume/omega
+                eta += self.absorption_area(omega)*np.real(self.fluid.c_freq(omega))/4/self.volume/omega
         return eta
     
     def physical_unit(self,omega,energy):
@@ -221,7 +235,8 @@ class RectangularRoom(Acoustic3DSystem):
         fluid in the room
     """
     
-    def __init__(self,ID,Lx,Ly,Lz,fluid,absorption_area = 0.,damping_type = ['eta',]):
+    def __init__(self,ID,Lx,Ly,Lz,fluid,absorption_area = 0.,damping_type = ['eta',],
+                 eta = 0.01, **kwargs):
         """
         Class contructor for acoustic tube
         
@@ -246,8 +261,31 @@ class RectangularRoom(Acoustic3DSystem):
         self.Lz = Lz
         
         super().__init__(ID,Lx*Ly*Lz,2*(Lx*Ly+Ly*Lz+Lx*Lz),4*(Lx+Ly+Lz),fluid,\
-                         absorption_area=absorption_area,damping_type=damping_type)
+                         absorption_area=absorption_area,damping_type=damping_type,eta = eta,**kwargs)
                 
+    def update(self):
+        """
+        Updates mother class attributes
+
+        Returns
+        -------
+        None.
+
+        """
+        
+        Lx = self.Lx
+        Ly = self.Ly
+        Lz = self.Lz
+        ID = self.ID
+        fluid = self.fluid
+        absorption_area = self.absorption_area
+        damping_type = self.damping_type,
+        eta = self.eta
+        
+        self.volume = Lx*Ly*Lz
+        self.surface = 2*(Lx*Ly+Ly*Lz+Lx*Lz)
+        self.perimeter = 4*(Lx+Ly+Lz)        
+        
     def p_mode(self,r,n):
         """
         Modal pressure shape for room with rigid walls
@@ -428,7 +466,9 @@ class RectangularRoom(Acoustic3DSystem):
                
     def estimated_mode_count(self,omega):
         """
-        Number of mode estimation
+        Number of mode estimation.
+        
+        Used 
                 
         Parameters
         ----------
@@ -467,7 +507,7 @@ class RectangularRoom(Acoustic3DSystem):
         maxOmega = np.max(omegaVec);
         klim = np.real(self.fluid.wavenumber(maxOmega))**2
         
-        Nest   = round(1.3*self.estimated_mode_count(maxOmega))
+        Nest   = round(1.5*self.estimated_mode_count(maxOmega))
         omegas = np.tile(maxOmega+1.,Nest)
         N      = np.zeros(len(omegaVec))
         while self.k_mode_square((nx,ny,nz))<=klim:
@@ -476,7 +516,7 @@ class RectangularRoom(Acoustic3DSystem):
                     omegas[iN] = self.omega_mode((nx,ny,nz))
                     nz+=1        
                     iN+=1
-                    print(iN,omegas[iN-1])
+                    #print(iN,omegas[iN-1])
                 ny+=1
                 nz =0
             nx +=1
@@ -508,6 +548,42 @@ class RectangularRoom(Acoustic3DSystem):
         Ns    = self.mode_count(omega)
         Ns    = Ns[1:]-Ns[:-1]
         return Ns/delta, omega[0:-1]+delta/2
+    
+    def modal_density(self, omega, wave_DOF = 0, method='Maa'):
+        """ 
+        Modal density of RectangularRoom
+        
+        This method derives the modal density by using the knowledge of a clear 
+        rectangular shape.
+                
+        Parameters
+        ----------
+        omega : ndarray
+            angular frequency vector
+                
+        Returns
+        -------
+        Modal density vector
+        """
+        
+        if method=='Maa':
+            return super().modal_density(omega,wave_DOF = wave_DOF )
+        elif method=='Price' and self.flat_cavity_sw:
+            Ls = np.array((self.Lx,self.Ly,self.Lz))
+            i_min = np.argmin(Ls)
+            index = np.arange(3)
+            #index = index != i_min
+            thickness = Ls[i_min]
+            area      = np.prod(Ls[index != i_min]) # product of non-thickness gives area
+            om_d = np.pi*self.fluid.c0/thickness
+            mod_dens = self.volume*omega**2/2/np.pi**2/self.fluid.c0**3
+            i_mod = omega <= om_d
+            mod_dens[i_mod] = area*omega[i_mod]/2/np.pi/self.fluid.c0**2
+            return(mod_dens)
+        else:
+            raise ValueError('Method unkown or not allowed in combination with flat_cavity option')
+            
+        
             
     def surfint(self,y0,y1,z0,z1,n):
         """

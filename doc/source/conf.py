@@ -27,7 +27,7 @@ author = 'Dr. Alexander Peiffer'
 
 # The full version, including alpha/beta/rc tags
 release = '1.3.0'
-
+# Important setting for canonical tag
 html_baseurl = 'https://pyva.eu'
 
 

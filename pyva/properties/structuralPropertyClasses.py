@@ -1385,7 +1385,7 @@ class PlateProp:
         wave_DOF : int
             identifier of radiation matrix 0 all waves, 1,2,(3 or 4) correponds 
             to longitudinal, shear and bending wave
-            5 stands for inplane (1+2)
+            5 stands for in-plane (1+2)
 
         Returns
         -------
@@ -1394,27 +1394,9 @@ class PlateProp:
             
         """
 
-        if wave_DOF in {0,3,4,5}:
-            M = self.edge_radiation_stiffness_wavenumber_LM(omega,wavenumber,wave_DOF=wave_DOF)
-            return -0.5j*(M-M.H())
-        elif wave_DOF in {1,2}:#according to RL theory
-            if wave_DOF in {2}: # fill matrix with in-plane block
-                # get #matrix for all (including kx>kL)
-                M = self.edge_radiation_stiffness_wavenumber_LM(omega,wavenumber,wave_DOF=5)
-                M = -0.5j*(M-M.H())
-                #M = self.edge_single_radiation_stiffness_wavenumber_LM(omega, wavenumber,wave_DOF = wave_DOF)
-            else: # longitudinal
-                # fill wavenumber <= kL with zeros to remove excitation
-                M = mC.LinearMatrix.zeros(0,(4,4,len(wavenumber)))
-
-            kL = self.wavenumber_L(omega)
-            #kL = np.inf # option to test the wavenumber range above kL
-            index, = np.where(wavenumber < kL)
-            
-            M_buf = self.edge_single_radiation_stiffness_wavenumber_LM(omega, wavenumber[index],wave_DOF = wave_DOF)
-            M.data[:,:,index] = M_buf.data
-  
-            return M 
+        M = self.edge_radiation_stiffness_wavenumber_LM(omega,wavenumber,wave_DOF=wave_DOF)
+        return -0.5j*(M-M.H())
+        
         
     def edge_skew_radiation_stiffness_wavenumber(self,omega,wavenumber,wave_DOF=0):
         """
@@ -1482,10 +1464,15 @@ class PlateProp:
         #nu = self.material.nu #poisson
         
         index_L = wavenumber < kL
-        in_fac = np.ones(np.size(wavenumber))
+        in_fac_uL = np.ones(np.size(wavenumber))
+        in_fac_uS = 1
+        in_fac_uB = 1
+
         
         if in_sw:
-            in_fac[index_L] = -1   
+            in_fac_uL[index_L] = -1 # stay with propating wavenumber when kL is not propagating
+            in_fac_uS = -1
+            in_fac_uB = -1
  
         # in-plane motion, roots
         #uL= -np.sqrt(Kx**2-np.complex128(kL)**2)
@@ -1507,8 +1494,8 @@ class PlateProp:
             facSL = 1/(Kx**2-uS*uL)
             # in-plane motion, matrix function elements
             data_[0,0,:] = facSL*Kx                        # Fx - u
-            data_[0,1,:] = 1j*facSL*uS*in_fac                     # Fx - v 
-            data_[1,0,:] = 1j*facSL*uL*in_fac                     # Fy - u
+            data_[0,1,:] = 1j*facSL*uS*in_fac_uS                     # Fx - v 
+            data_[1,0,:] = 1j*facSL*uL*in_fac_uL                     # Fy - u
             data_[1,1,:] = -facSL*Kx                       # Fy - v
             # out-of-plane motion, matrix function elements
             facB = -1/(uB1-uB2)
@@ -1521,14 +1508,14 @@ class PlateProp:
             
             # in-plane motion, matrix function elements
             data_[0,0,:] = Kx                        # Fx - u
-            data_[0,1,:] = 1j*uS*in_fac                     # Fx - v 
-            data_[1,0,:] = 1j*uL*in_fac                     # Fy - u
+            data_[0,1,:] = 1j*uS*in_fac_uS                     # Fx - v 
+            data_[1,0,:] = 1j*uL*in_fac_uL                     # Fy - u
             data_[1,1,:] = -Kx                       # Fy - v
             # out-of-plane motion, matrix function elements
             data_[2,2,:] = 1                     # Fx - w
             data_[2,3,:] = 1                     # Fx - beta
             data_[3,2,:] = uB1                   # Mx - w
-            data_[3,3,:] = uB2                   # Mx - beta
+            data_[3,3,:] = uB2*in_fac_uB         # Mx - beta
                 
         return mC.LinearMatrix(data_)
      
@@ -1931,7 +1918,7 @@ class PlateProp:
         elif wave_DOF in (3,4):
             k_plate = np.real(self.wavenumber_B(omega))
         else:
-            raise ValueError('wave_DOF argument must be in [1,2,3 or 4] but is {0}'.format(wave_DOF))
+            raise ValueError('wave_DOF argument must be in [0,1,2,3 or 4] but is {0}'.format(wave_DOF))
 
         phi = np.zeros(wavenumber.shape)
         ix = wavenumber <= k_plate

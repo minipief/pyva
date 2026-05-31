@@ -2,8 +2,8 @@ Impressum
 =========
 
 | Dr. Alexander Peiffer
-| Egenhofenstr. 23A
-| 82152 Planegg
+| Hildegardstr. 14A
+| 82131 Gauting
 | Germany
 | author@alexanderpeiffer.de
 | `www.docpeiffer.com <https://docpeiffer.com>`_

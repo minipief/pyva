@@ -641,9 +641,26 @@ to a much higher isolation and lower sound power levels.
    
    Total input power to all SIFs for isolated box.
 
- 
+Price and Crocker double panel transmission loss using SEA
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+The first simulation of the sound transmission of double wall panels was given by Price and Crocker [Pri1970]_. 
+In this paper all resonant and non-resonant path is dealt with, but neglecting the deterministic nature of this set-up and the strong coupling at the double wall resonance.
+Pyva is an excellent tool to study the details of the models of this paper. A detailed description is found in `price example`_ on my author page. The full code 
+is given in :ref:`sec-sea-price-example`.
+
+   
+.. _fig-Price_SEA_double_panel_configuration:
+    
+.. figure:: ./images/price_double_wall_cavity_3D.*
+   :align: center
+   :width: 70% 
+   
+   Possible paths of the double panel set-up from [Pri1970]_ in the paper version presenting both power flows in one arrow 
    
 
+
+.. _price example: https://docpeiffer.com/pyva/modelling-sound-transmission-through-double-panels-using-pyva/
    
    
 
