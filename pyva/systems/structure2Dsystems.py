@@ -465,7 +465,7 @@ class Structure2DSystem(SEAsys.SEA_system):
         """
         return self.prop.plate_wavenumber(omega,wave_DOF)
 
-    def wave_transformation_matrix(self,omega,wavenumber,inv=False):
+    def wave_transformation_matrix(self,omega,wavenumber,inv=False,in_sw=False):
         """
         wave_transform taken from property method
 
@@ -473,7 +473,7 @@ class Structure2DSystem(SEAsys.SEA_system):
         --------
         :meth:`pyva.properties.structuralPropertyClasses.PlateProp.wave_transformation_matrix`
         """
-        return self.prop.wave_transformation_matrix(omega,wavenumber,inv)           
+        return self.prop.wave_transformation_matrix(omega,wavenumber,inv,in_sw)           
 
     def wave_transformation_matrix_LM(self,omega,wavenumber,inv=False,in_sw=False):
         """

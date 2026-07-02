@@ -95,13 +95,64 @@ def edge_transform(theta):
                      [0., sn,  cs, 0.],
                      [0., 0.,  0., 1.]],dtype = np.complex128)
 
-def three_step(x,x1,x2):
-    buf_ = np.ones(x.shape)
-    buf_[x<x1] += 1
-    buf_[x<x2] += 1
-    return (buf_)
+# def three_step(x,x1,x2):
+#     buf_ = np.ones(x.shape)
+#     buf_[x<x1] += 1
+#     buf_[x<x2] += 1
+#     return (buf_)
     
+
+def HDH(D,H):
+    """
+    HDH performs the left and right matrix multiplication by the inverse of other from
+    left and right in a numerical stable way using solve 
     
+    Args:
+        D: center matrix size(N,M,M)
+        H: matrix of size(N,M,M)
+                           
+    Returns:
+        H^-1@D@H^-H
+
+    """
+
+    # Solve H . X = D => X = H^-1 . D
+    X = np.linalg.solve(H,D)      
+    # Solve H . Y = X^H = D^H . H^-H => Y = H^-1 . D^H . H^-H
+    # Y^H = H^-1 . D . H^-H
+    return hermitian(np.linalg.solve(H,hermitian(X)))
+
+def hermitian(D):
+    """
+    hermitian matrix of D
+
+    Parameters
+    ----------
+    D : nd.array of size (N,M,M)
+        matrix symetric in axis 1 and 2
+
+    Returns
+    -------
+    hemitian matrix
+
+    """
+    return np.transpose(D.conj(),(0,2,1))
+
+def inv(D):
+    """
+    inverse matrix of D
+
+    Parameters
+    ----------
+    D : nd.array of size (N,M,M)
+        matrix symetric in axis 1 and 2
+
+    Returns
+    -------
+    inverse matrix
+
+    """
+    return np.linalg.inv(D)
 
 class Junction:
     """ 
@@ -808,65 +859,23 @@ class LineJunction(Junction) :
         T_rot_1  = edge_transform(self.thetas[i_sys[0]])
         T_rot_1_T = T_rot_1.transpose()
         T_rot_2  = edge_transform(self.thetas[i_sys[1]])
-        #T_rot_2_T = T_rot_2.transpose()
         
-        # Determine wave transformation for output wave amplitude determiniation
-        #T_wave_2 = self.systems[i_sys[1]].wave_transformation_matrix_f(omega,wavenumber)
-        T_wave_2_inv = self.systems[i_sys[1]].prop.wave_transformation_matrix(omega,wavenumber,inv=True)
-        T_wave_2_invH = mC.hermitian(T_wave_2_inv)
-
 
         D_mn_part = np.matmul(np.matmul(T_rot_1_T,D_tot),T_rot_2)
         D_mn_part = np.linalg.inv(D_mn_part)
-        D_mn_partH = mC.hermitian(D_mn_part)
-
+        D_mn_partH = np.transpose(D_mn_part.conj(),(0,2,1))
         
         Nsig = len(i_in_wave)
         _ydata= np.zeros((Nsig,np.size(wavenumber)))
         
-
-        #kL = self.systems[i_sys[0]].prop.wavenumber_L(omega) #longitudinal wavenumber
-        #kS = self.systems[i_sys[0]].prop.wavenumber_T(omega) #shear wavenumber
-        #kB = self.systems[i_sys[0]].prop.wavenumber_B(omega) #shear wavenumber
-        #B  = self.systems[i_sys[0]].prop.B
-        #S  = self.systems[i_sys[0]].prop.S
-    
     
         for i_in in range(Nsig):
-
-            ii_wave = i_in_wave[i_in]
-            D_in  = self.systems[i_sys[0]].prop.edge_skew_radiation_stiffness_wavenumber(omega,wavenumber,ii_wave)
-
-            #Sqqe = D_in.HDH_f(D_mn_part)
-            Sqqe = np.matmul(np.matmul(D_mn_part,D_in),D_mn_partH)
-
-                
-            # Transform to Psi...
-            Sqq_psi = np.matmul(np.matmul(T_wave_2_inv,Sqqe),T_wave_2_invH)
-            #MM = D_in.HDH.(D_mn_tot)
-
-                
-            #print('index {0}'.format(i_out))
-            io_wave = i_out_wave[i_in]
-            
-            
-            if io_wave == 3:
-                io_wave = 4
-                
-            if io_wave == 5: # all
-                Psi2 = np.abs(Sqq_psi[:,0,0])
-                Psi21 = np.abs(Sqq_psi[:,1,1])
-            else:    
-                Psi2 = np.abs(Sqq_psi[:,io_wave-1,io_wave-1])
-
-            if io_wave == 5: # all
-                # add in-plane waves
-                WQ0 = self.systems[i_sys[1]].prop.edge_wave_amplitude_radiated_power(1.,omega,wavenumber,1)
-                WQ1 = self.systems[i_sys[1]].prop.edge_wave_amplitude_radiated_power(1.,omega,wavenumber,2)
-                _ydata[i_in,:] = 8/omega*(np.abs(WQ0*Psi2)+np.abs(WQ1*Psi21))
-            else:
-                WQ = self.systems[i_sys[1]].prop.edge_wave_amplitude_radiated_power(1.,omega,wavenumber,io_wave)
-                _ydata[i_in,:] = 8/omega*WQ*Psi2 # Imag seperately assuming symmetry of D_out
+                ii_wave = i_in_wave[i_in]
+                io_wave = i_out_wave[i_in]
+                D_in  = self.systems[i_sys[0]].prop.edge_skew_radiation_stiffness_wavenumber(omega,wavenumber,ii_wave)
+                D_out  = self.systems[i_sys[1]].prop.edge_skew_radiation_stiffness_wavenumber(omega,wavenumber,io_wave)
+    
+                _ydata[i_in,:] = 4*np.trace(np.matmul(D_out,np.matmul(np.matmul(D_mn_part,D_in),D_mn_partH)),axis1=1,axis2=2)            
               
         if Signal:
             _tdof = dof.DOFtype(typestr='transmission')
@@ -876,7 +885,7 @@ class LineJunction(Junction) :
             return _ydata
 
 
-    def transmission_wavenumber_wave(self,omega,wavenumber,i_sys = (0,1),\
+    def transmission_wavenumber_wave_LM(self,omega,wavenumber,i_sys = (0,1),\
                                      i_in_wave = (1,)*3+(2,)*3+(3,)*3,i_out_wave = (1,2,3)*3,\
                                      no_single = False):
         """
@@ -923,7 +932,6 @@ class LineJunction(Junction) :
         #T_wave_2_inv = self.systems[i_sys[1]].wave_transformation_matrix_LM(omega,wavenumber,inv=True)
         
         D_dir_1_edge = self.systems[i_sys[0]].edge_skew_radiation_stiffness_wavenumber_LM(omega,wavenumber)
-        D_dir_1      = self.systems[i_sys[0]].edge_radiation_stiffness_wavenumber_LM(omega,wavenumber)
         D_dir_2_edge = self.systems[i_sys[1]].edge_skew_radiation_stiffness_wavenumber_LM(omega,wavenumber)
         D_dir_1_wave = (T_wave_1.H().dot(D_dir_1_edge).dot(T_wave_1))
         D_dir_2_wave = (T_wave_2.H().dot(D_dir_2_edge).dot(T_wave_2))
@@ -1032,7 +1040,132 @@ class LineJunction(Junction) :
 
         return mC.Signal(xdata,_ydata,dof.DOF(np.array(i_out_wave),np.zeros((1,Nsig)),_tdof))     
                 
-   
+    def transmission_wavenumber_wave(self,omega,wavenumber,i_sys = (0,1),\
+                                     i_in_wave = (1,)*3+(2,)*3+(3,)*3,i_out_wave = (1,2,3)*3, Signal=True):
+        """
+        Transmission coefficient assuming wave transformations for radiation stiffness.
+        
+        This method allows the individual treatment of L,S and B waves by implementing the specific wavetransforms
+        for incoming and outgoind waves.
+        
+        This method is used for academic reasons because the seperation of in-planes waves does not make sense due to 
+        their low contribution to the modal energy because of much higher wavelength.
+        
+        Parameters
+        ----------
+        omega : TYPE
+            DESCRIPTION.
+        wavenumber : TYPE
+            DESCRIPTION.
+        i_sys : TYPE, optional
+            DESCRIPTION. The default is (0,1).
+        i_in_wave : TYPE, optional
+            DESCRIPTION. The default is (1,)*3+(2,)*3+(3,)*3.
+        i_out_wave : TYPE, optional
+            DESCRIPTION. The default is (1,2,3)*3.
+        no_single : boolens, optional
+            Switch for removing single system correction. The default is False.
+
+        Returns
+        -------
+        None.
+
+        """
+        # In global coordinates
+        D_tot = self.total_radiation_stiffness_wavenumber(omega,wavenumber)
+        
+        # Input wave 
+        T_wave_1 = self.systems[i_sys[0]].wave_transformation_matrix(omega,wavenumber,in_sw = True)
+        
+        # Output wave
+        T_wave_2 = self.systems[i_sys[1]].wave_transformation_matrix(omega,wavenumber, in_sw = False )
+        T_wave_2_inv = inv(T_wave_2) 
+        
+        D_dir_1_edge = self.systems[i_sys[0]].edge_skew_radiation_stiffness_wavenumber(omega,wavenumber)
+        D_dir_2_edge = self.systems[i_sys[1]].edge_skew_radiation_stiffness_wavenumber(omega,wavenumber)
+        D_dir_1_wave = hermitian(T_wave_1)@D_dir_1_edge@T_wave_1
+        D_dir_2_wave = hermitian(T_wave_2)@D_dir_2_edge@T_wave_2
+            
+        
+        T_rot_1  = edge_transform(self.thetas[i_sys[0]])
+        T_rot_1_T = T_rot_1.transpose()
+        T_rot_2  = edge_transform(self.thetas[i_sys[1]])
+ 
+        D_tot_mn   = T_rot_1_T@D_tot@T_rot_2
+                
+        # New total stiffness matrix in wave3 coordinates 
+        D_tot_wave = hermitian(T_wave_1)@D_tot_mn@T_wave_2
+                
+        Nin   = len(i_in_wave)
+        Nsig  = Nin
+        
+        _ydata= np.zeros((Nsig,np.size(wavenumber) ))
+        
+        _tdof = dof.DOFtype(typestr='transmission')
+        xdata = mC.DataAxis(wavenumber,typestr='wavenumber')
+
+        res1_ = 0.
+        
+        buf_ = np.zeros((np.size(wavenumber),4,4),dtype=np.complex128)
+        buf_inv = np.zeros((np.size(wavenumber),4,4),dtype=np.complex128)
+        buf_div = np.zeros((np.size(wavenumber),4,4),dtype=np.complex128)
+    
+        for i_in in range(Nin):
+
+            ii_wave = i_in_wave[i_in]
+            if ii_wave == 3:
+                    ii_wave = 4   
+            
+            # Former version 
+            # Prepare D_dir wave for single wave input -> finally a scalar
+            # D_dir_1_wave_single = mC.LinearMatrix.zeros(0,(4,4,np.size(wavenumber)))
+            buf_[:] = 0. 
+            buf_inv[:] = 0.
+                        
+            # Workaround because index writing doesn't work
+            buf_[:,ii_wave-1,ii_wave-1]    = D_dir_1_wave[:,ii_wave-1,ii_wave-1] 
+            buf_inv[:,ii_wave-1,ii_wave-1] = 1/D_dir_1_wave[:,ii_wave-1,ii_wave-1]
+            #cross corr scalar
+            
+            D_dir_1_wave_single = buf_
+            D_dir_1_wave_single_inv = buf_inv
+            D_dir_1_wave_single_div = buf_div
+            
+            res_ = HDH(D_dir_1_wave_single,D_tot_wave)
+            
+            # Correction of same system situation
+            if i_sys[0]==i_sys[1]:
+ 
+                buf_div[:] = 0.
+                buf_div[:,ii_wave-1,ii_wave-1] = 1.
+                
+                print('Single system identified')
+                fac1 = 0.25
+                fac2 = 0.5j
+                res1_ = T_wave_2_inv@T_wave_1@D_dir_1_wave_single_inv@hermitian(T_wave_1)@hermitian(T_wave_2_inv)
+                # Cross correlation correction
+                res2_ = fac2*inv(D_tot_wave)@D_dir_1_wave_single_div@hermitian(T_wave_1)@hermitian(T_wave_2_inv)
+                res2_ = res2_ + hermitian(res2_)
+                
+                res_ += res1_*fac1
+                res_ -= res2_
+                                
+                        
+            res_ = 4.*D_dir_2_wave@res_
+
+            io_wave = i_out_wave[i_in]
+            if io_wave == 3:
+                io_wave = 4
+
+            _ydata[i_in,:] = np.real(res_[:,io_wave-1,io_wave-1])
+            
+        if Signal:
+            return mC.Signal(xdata,_ydata,dof.DOF(np.array(i_out_wave),np.zeros((1,Nsig)),_tdof))     
+        else:
+            return _ydata
+
+                
+  
                 
     def transmission_wavenumber_langley(self,omega,wavenumber,i_sys = (0,1),i_in_wave = (1,)*3+(2,)*3+(3,)*3,i_out_wave = (1,2,3)*3,matrix=False,Signal = True):
         """

@@ -803,8 +803,11 @@ class LinearMatrix:
 
         """
 
-        out = other.solve(self) # Solve H . X = self => out = D^-1 . self 
-        return other.solve(out.H()).H()
+        # solve other . out = self  => out = outer^-1 . self
+        out = other.solve(self)
+        # solve other . Y = out^H => Y = H^-1 D^H D^-H
+        # and Y^H = H^-1 D D^-H
+        return other.solve(out.H()).H()   
 
             
     def sqrt(self):

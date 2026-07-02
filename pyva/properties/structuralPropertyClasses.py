@@ -1426,7 +1426,7 @@ class PlateProp:
         """
         M = self.edge_radiation_stiffness_wavenumber(omega,wavenumber,wave_DOF=wave_DOF)
 
-        return -0.5j*(M-mC.hermitian(M)) 
+        return -0.5j*(M-np.transpose(M.conj(),(0,2,1))) 
 
     
     def wave_transformation_matrix_LM(self,omega,wavenumber,inv=False,in_sw=False):
@@ -1460,16 +1460,14 @@ class PlateProp:
         #eta = self.material.eta
         kB = self.wavenumber_B(omega) #bending wavenumber
         kL = self.wavenumber_L(omega) #longitudinal wavenumber
-        kS = self.wavenumber_T(omega) #shear wavenumber
-        #nu = self.material.nu #poisson
         
-        index_L = wavenumber < kL
-        in_fac_uL = np.ones(np.size(wavenumber))
+        in_fac_uL = 1
         in_fac_uS = 1
         in_fac_uB = 1
-
         
         if in_sw:
+            index_L = wavenumber < kL
+            in_fac_uL = np.ones(np.size(wavenumber))
             in_fac_uL[index_L] = -1 # stay with propating wavenumber when kL is not propagating
             in_fac_uS = -1
             in_fac_uB = -1
@@ -1493,16 +1491,16 @@ class PlateProp:
         if inv:
             facSL = 1/(Kx**2-uS*uL)
             # in-plane motion, matrix function elements
-            data_[0,0,:] = facSL*Kx                        # Fx - u
-            data_[0,1,:] = 1j*facSL*uS*in_fac_uS                     # Fx - v 
-            data_[1,0,:] = 1j*facSL*uL*in_fac_uL                     # Fy - u
-            data_[1,1,:] = -facSL*Kx                       # Fy - v
+            data_[0,0,:] = facSL*Kx
+            data_[0,1,:] = 1j*facSL*uS*in_fac_uS 
+            data_[1,0,:] = 1j*facSL*uL*in_fac_uL
+            data_[1,1,:] = -facSL*Kx
             # out-of-plane motion, matrix function elements
             facB = -1/(uB1-uB2)
-            data_[2,2,:] = facB*uB2                     # Fx - w
-            data_[2,3,:] = -facB                     # Fx - beta
-            data_[3,2,:] = -facB*uB1                   # Mx - w
-            data_[3,3,:] = facB                  # Mx - beta
+            data_[2,2,:] = facB*uB2
+            data_[2,3,:] = -facB
+            data_[3,2,:] = -facB*uB1
+            data_[3,3,:] = facB
             
         else:
             
@@ -1519,7 +1517,7 @@ class PlateProp:
                 
         return mC.LinearMatrix(data_)
      
-    def wave_transformation_matrix(self,omega,wavenumber,inv=False):
+    def wave_transformation_matrix(self,omega,wavenumber,inv=False,in_sw=False):
         """
         Transformation matrix from wave amplitude coordinates into edge harmonic displacement.
     
@@ -1530,7 +1528,9 @@ class PlateProp:
         wavenumber : float
             wavenumber
         inv : bool
-            switch for inverse version
+            switch for inverse matrix
+        in_sw : bool
+            switch for incoming waves
 
         Returns
         -------
@@ -1543,6 +1543,7 @@ class PlateProp:
  
         # use methods from property2structure to get properties
         kB = self.wavenumber_B(omega) #bending wavenumber
+        kL = self.wavenumber_L(omega) #longitudinal wavenumber
           
  
         # in-plane motion, roots
@@ -1555,7 +1556,19 @@ class PlateProp:
         
         data_ = np.zeros((len(wavenumber),4,4),dtype=np.complex128)
 
-        if inv:
+        in_fac_uL = 1
+        in_fac_uS = 1
+        in_fac_uB = 1
+
+                
+        if in_sw:
+            index_L = wavenumber < kL
+            in_fac_uL = np.ones(np.size(wavenumber))
+            in_fac_uL[index_L] = -1 # stay with propating wavenumber when kL is not propagating
+            in_fac_uS = -1
+            in_fac_uB = -1
+
+        if inv: # toto create inverse versoin of wavetransform
             facSL = 1/(Kx**2-uS*uL)
             # in-plane motion, matrix function elements
             data_[:,0,0] = facSL*Kx
@@ -1570,17 +1583,16 @@ class PlateProp:
             data_[:,3,3] = facB
             
         else:
-            
             # in-plane motion, matrix function elements
             data_[:,0,0] = Kx
-            data_[:,0,1] = 1j*uS
-            data_[:,1,0] = 1j*uL
+            data_[:,0,1] = 1j*uS*in_fac_uS 
+            data_[:,1,0] = 1j*uL*in_fac_uL 
             data_[:,1,1] = -Kx
             # out-of-plane motion, matrix function elements
             data_[:,2,2] = 1
             data_[:,2,3] = 1
             data_[:,3,2] = uB1
-            data_[:,3,3] = uB2
+            data_[:,3,3] = uB2*in_fac_uB 
                 
         return data_
     

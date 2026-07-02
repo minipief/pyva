@@ -1093,5 +1093,69 @@ class HalfSpace:
         #plt.show     
         
         return sigma
-              
-                
+             
+    def geometrical_radiation_impedance(self,omega,theta,phi,Lx,Ly):
+        """
+        method for finite size panel radiation stiffness calculation 
+        
+        Parameters
+        ----------
+        omega : float
+            angular frequency.
+        theta : float
+            heading angle.
+        phi : float
+            azimutal angle.
+        Lx : float
+            lengh of panel in x-direction.
+        Ly : float
+            lengh of panel in y-direction.
+    
+        Returns
+        -------
+        compplex
+            geometrical radiation impedance.
+    
+        """
+        
+    
+        k0 = self.fluid.wavenumber(omega)
+        kt = k0*np.sin(theta)
+        r  = Lx/Ly
+        r2 = r*r
+        rho0 = self.fluid.rho0
+        
+        F1 = 0.25j*rho0*omega*Ly/np.pi
+        
+        
+        def K(u,u_):
+            buf_ = np.sqrt(u*u+u_*u_/r2)
+            return np.exp(0.5j*k0*Lx*buf_)/buf_
+    
+        def Fn(u,u_):
+            return np.exp(-0.5j*kt*Lx*(u*np.cos(phi)+u_/r*np.sin(phi)))
+        
+        def func(u,u_):
+            return (1-u)*(1-u_)*K(u+1,u_+1)*Fn(u+1,u_+1)
+        
+        # Numerical integration
+        res,err = integrate.dblquad(func, -1, 1, -1, 1)
+        return F1*res
+    
+    def averaged_geometrical_radiation_efficienty(self,omega,theta,Lx,Ly):
+        
+        F1 = 0.5/np.pi
+        z0 =self.fluid.z0
+        S = Lx*Ly
+        
+        phis = np.linspace(0,2*np.pi,36)
+        Zrs  = np.zeros(np.shape(phis))
+
+        for ip,phi in enumerate(phis):
+            print("Calculating phi={0:.0f} degrees".format(phi*180/np.pi))
+            Zrs[ip] = np.real(self.geometrical_radiation_impedance(omega, theta, phi, Lx, Ly))
+                    
+        sigma = 0.5/np.pi*integrate.simpson(Zrs,x=phis)
+        
+        return F1/S/z0*sigma
+        
