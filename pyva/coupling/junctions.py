@@ -18,7 +18,6 @@ extended by classes with specific geometry, namely:
 
 
 import numpy as np
-import matplotlib.pyplot as plt
 import scipy.integrate as integrate
 
 import pyva.data.matrixClasses as mC
@@ -781,7 +780,7 @@ class LineJunction(Junction) :
                     
                 #_ydata[i_in,:] = (4*D_out*Sqqe).real().sum()  
                 # AP finally the trace option is working perfectly!
-                _ydata[i_in,:] = (4*D_out.dot(Sqqe)).trace()
+                _ydata[i_in,:] = 4*D_out.dot(Sqqe).real().trace()
                                     
             else: # rad_sw == 'wave'
 
@@ -875,7 +874,7 @@ class LineJunction(Junction) :
                 D_in  = self.systems[i_sys[0]].prop.edge_skew_radiation_stiffness_wavenumber(omega,wavenumber,ii_wave)
                 D_out  = self.systems[i_sys[1]].prop.edge_skew_radiation_stiffness_wavenumber(omega,wavenumber,io_wave)
     
-                _ydata[i_in,:] = 4*np.trace(np.matmul(D_out,np.matmul(np.matmul(D_mn_part,D_in),D_mn_partH)),axis1=1,axis2=2)            
+                _ydata[i_in,:] = 4*np.real(np.trace(np.matmul(D_out,np.matmul(np.matmul(D_mn_part,D_in),D_mn_partH)),axis1=1,axis2=2))
               
         if Signal:
             _tdof = dof.DOFtype(typestr='transmission')
@@ -924,7 +923,7 @@ class LineJunction(Junction) :
         
         # Input wave 
         T_wave_1 = self.systems[i_sys[0]].wave_transformation_matrix_LM(omega,wavenumber,in_sw = True)
-        #T_wave_1_inv = T_wave_1.inv() #self.systems[i_sys[0]].wave_transformation_matrix_LM(omega,wavenumber,inv=True)
+        T_wave_1_inv = T_wave_1.inv() #self.systems[i_sys[0]].wave_transformation_matrix_LM(omega,wavenumber,inv=True)
         
         # Output wave
         T_wave_2 = self.systems[i_sys[1]].wave_transformation_matrix_LM(omega,wavenumber, in_sw = False )
@@ -940,24 +939,24 @@ class LineJunction(Junction) :
         T_rot_1  = edge_transform_LM(self.thetas[i_sys[0]])
         T_rot_1_T = T_rot_1.H() #transpose()
         T_rot_2  = edge_transform_LM(self.thetas[i_sys[1]])
-        #T_rot_2_T = T_rot_2.H() #transpose()
+        T_rot_2_T = T_rot_2.H() #transpose()
 
-        # Original [D_tot,mn] from block matrix clf
-        D_tot_mn   = T_rot_1_T.dot(D_tot).dot(T_rot_2)
-                
-        # New total stiffness matrix in wave3 coordinates 
-        D_tot_wave = T_wave_1.H().dot(D_tot_mn).dot(T_wave_2)
-                
-        if i_sys[0]==i_sys[1]:
+        D_tot_inv = D_tot.inv()
+
+        if i_sys[0]==i_sys[1] and not(no_single):
             print('Same plate identified')
+            # A_nm in global coordinates
+            A_nm =  0.5*T_rot_1.dot(1j*D_dir_1_edge.inv()).dot(T_rot_1_T)
+            D_tot_inv += A_nm
+            
+        # New version keeping the inverse form
+        D_tot_mn_inv = T_rot_2_T.dot(D_tot_inv).dot(T_rot_1)
+                        
+        # New  version keeping the inverse form because of same system correction 
+        D_tot_wave_inv = T_wave_2_inv.dot(D_tot_mn_inv).dot(T_wave_1_inv.H())
 
-
-        # Version requiered when RLs input matrix is requires
-
-        #D_tot_wave = D_tot_mn.dot(T_wave_2)
 
         Nin   = len(i_in_wave)
-        #Nout  = len(i_out_wave)
         Nsig  = Nin
         
         _ydata= np.zeros((Nsig,np.size(wavenumber) ))
@@ -965,66 +964,24 @@ class LineJunction(Junction) :
         _tdof = dof.DOFtype(typestr='transmission')
         xdata = mC.DataAxis(wavenumber,typestr='wavenumber')
 
-        # plate1 = self.systems[i_sys[0]] 
-        # plate2 = self.systems[i_sys[1]] 
-        # rho_area = plate1.prop.mass_per_area
-        
-        #ser res1_ to 0 to keep two system equations correct
-        res1_ = 0.
-        
-        
+                
         for i_in in range(Nin):
 
             ii_wave = i_in_wave[i_in]
             if ii_wave == 3:
                     ii_wave = 4   
             
-            # Former version 
             # Prepare D_dir wave for single wave input -> finally a scalar
             # D_dir_1_wave_single = mC.LinearMatrix.zeros(0,(4,4,np.size(wavenumber)))
             buf_ = np.zeros((4,4,np.size(wavenumber)),dtype=np.complex128)
-            buf_inv = np.zeros((4,4,np.size(wavenumber)),dtype=np.complex128)
-            buf_div = np.zeros((4,4,np.size(wavenumber)),dtype=np.complex128)
-            
-            
+                        
             # Workaround because index writing doesn't work
             buf_[ii_wave-1,ii_wave-1,:] = D_dir_1_wave.data[ii_wave-1,ii_wave-1,:] 
-            buf_inv[ii_wave-1,ii_wave-1,:] = 1/D_dir_1_wave.data[ii_wave-1,ii_wave-1,:]
-            #cross corr scalar
-            buf_div[ii_wave-1,ii_wave-1,:] = 1.#bbb_
             
             D_dir_1_wave_single = mC.LinearMatrix(buf_)
-            D_dir_1_wave_single_inv = mC.LinearMatrix(buf_inv)
-            D_dir_1_wave_single_div = mC.LinearMatrix(buf_div)
-            # Prepare 
-
-            # RL version
-            #D_dir_1_wave_single = self.systems[i_sys[0]].edge_skew_radiation_stiffness_wavenumber_LM(omega,wavenumber,wave_DOF = ii_wave)
-
-            # Set up full trace matrix
             
-            res_ = D_dir_1_wave_single.HDH(D_tot_wave)
-            
-            # Correction of same system situation
-            if i_sys[0]==i_sys[1] and not(no_single):
-                print('Single system identified')
-                fac1 = 0.25
-                fac2 = 0.5j
-                res1_ = T_wave_2_inv.dot(T_wave_1).dot(D_dir_1_wave_single_inv).dot(T_wave_1.H()).dot(T_wave_2_inv.H())
-                # Cross correlation correction
-                res2_ = fac2*D_tot_wave.inv().dot(D_dir_1_wave_single_div).dot(T_wave_1.H()).dot(T_wave_2_inv.H()) # dot(D_dir_1_wave_single) weg
-                res2_ = res2_ + res2_.H()
-                
-                #res1_ = 4.*D_dir_2_wave.dot(res1_*fac)
-                res_ += res1_*fac1
-                res_ -= res2_
-                
-                # Res from different force
-                #H_ = T_wave_2_inv.dot(D_tot_mn.inv()).dot(D_dir_1).dot(T_wave_1)
-                #res_ = fac*H_.dot(D_dir_1_wave_single_inv).dot(H_.H())
-                
-                
-                        
+            res_ = D_tot_wave_inv.dot(D_dir_1_wave_single).dot(D_tot_wave_inv.H())
+    
             res_ = 4.*D_dir_2_wave.dot(res_) # no trace - single wave required
 
             #res_ = res_ - res1_
@@ -1035,9 +992,6 @@ class LineJunction(Junction) :
 
             _ydata[i_in,:] = np.real(res_.data[io_wave-1,io_wave-1,:])
             
-            
-
-
         return mC.Signal(xdata,_ydata,dof.DOF(np.array(i_out_wave),np.zeros((1,Nsig)),_tdof))     
                 
     def transmission_wavenumber_wave(self,omega,wavenumber,i_sys = (0,1),\
@@ -1063,8 +1017,6 @@ class LineJunction(Junction) :
             DESCRIPTION. The default is (1,)*3+(2,)*3+(3,)*3.
         i_out_wave : TYPE, optional
             DESCRIPTION. The default is (1,2,3)*3.
-        no_single : boolens, optional
-            Switch for removing single system correction. The default is False.
 
         Returns
         -------
@@ -1076,6 +1028,7 @@ class LineJunction(Junction) :
         
         # Input wave 
         T_wave_1 = self.systems[i_sys[0]].wave_transformation_matrix(omega,wavenumber,in_sw = True)
+        T_wave_1_inv = inv(T_wave_1) 
         
         # Output wave
         T_wave_2 = self.systems[i_sys[1]].wave_transformation_matrix(omega,wavenumber, in_sw = False )
@@ -1090,76 +1043,62 @@ class LineJunction(Junction) :
         T_rot_1  = edge_transform(self.thetas[i_sys[0]])
         T_rot_1_T = T_rot_1.transpose()
         T_rot_2  = edge_transform(self.thetas[i_sys[1]])
- 
-        D_tot_mn   = T_rot_1_T@D_tot@T_rot_2
+        T_rot_2_T = T_rot_2.transpose()
+        
+        # Inverse in global coordinates 
+        D_tot_inv = inv(D_tot)
+
+        # Correction of same system situation
+        if i_sys[0]==i_sys[1]:
+            print('Single system identified in non LM version')
+            # A_nm in global coordinates
+            A_nm =  0.5*T_rot_1@(np.linalg.pinv(1j*D_dir_1_edge))@(T_rot_1_T)
+            D_tot_inv -= A_nm
+    
+
+        D_tot_mn_inv   = T_rot_2_T@D_tot_inv@T_rot_1
                 
         # New total stiffness matrix in wave3 coordinates 
-        D_tot_wave = hermitian(T_wave_1)@D_tot_mn@T_wave_2
+        D_tot_wave_inv = T_wave_2_inv@D_tot_mn_inv@hermitian(T_wave_1_inv)
                 
         Nin   = len(i_in_wave)
         Nsig  = Nin
         
         _ydata= np.zeros((Nsig,np.size(wavenumber) ))
-        
-        _tdof = dof.DOFtype(typestr='transmission')
-        xdata = mC.DataAxis(wavenumber,typestr='wavenumber')
+                
+        D_dir_1_wave_single = np.zeros((np.size(wavenumber),4,4),dtype=np.complex128)          
 
-        res1_ = 0.
-        
-        buf_ = np.zeros((np.size(wavenumber),4,4),dtype=np.complex128)
-        buf_inv = np.zeros((np.size(wavenumber),4,4),dtype=np.complex128)
-        buf_div = np.zeros((np.size(wavenumber),4,4),dtype=np.complex128)
-    
         for i_in in range(Nin):
-
+            
             ii_wave = i_in_wave[i_in]
             if ii_wave == 3:
-                    ii_wave = 4   
+                    ii_wave = 4
+            elif ii_wave == 5:
+                ii_wave = [1,2]
             
-            # Former version 
-            # Prepare D_dir wave for single wave input -> finally a scalar
-            # D_dir_1_wave_single = mC.LinearMatrix.zeros(0,(4,4,np.size(wavenumber)))
-            buf_[:] = 0. 
-            buf_inv[:] = 0.
-                        
-            # Workaround because index writing doesn't work
-            buf_[:,ii_wave-1,ii_wave-1]    = D_dir_1_wave[:,ii_wave-1,ii_wave-1] 
-            buf_inv[:,ii_wave-1,ii_wave-1] = 1/D_dir_1_wave[:,ii_wave-1,ii_wave-1]
-            #cross corr scalar
+                      
+            D_dir_1_wave_single[:,ii_wave-1,ii_wave-1]    = D_dir_1_wave[:,ii_wave-1,ii_wave-1] 
             
-            D_dir_1_wave_single = buf_
-            D_dir_1_wave_single_inv = buf_inv
-            D_dir_1_wave_single_div = buf_div
+            res_ = D_tot_wave_inv@D_dir_1_wave_single@hermitian(D_tot_wave_inv)
             
-            res_ = HDH(D_dir_1_wave_single,D_tot_wave)
-            
-            # Correction of same system situation
-            if i_sys[0]==i_sys[1]:
- 
-                buf_div[:] = 0.
-                buf_div[:,ii_wave-1,ii_wave-1] = 1.
-                
-                print('Single system identified')
-                fac1 = 0.25
-                fac2 = 0.5j
-                res1_ = T_wave_2_inv@T_wave_1@D_dir_1_wave_single_inv@hermitian(T_wave_1)@hermitian(T_wave_2_inv)
-                # Cross correlation correction
-                res2_ = fac2*inv(D_tot_wave)@D_dir_1_wave_single_div@hermitian(T_wave_1)@hermitian(T_wave_2_inv)
-                res2_ = res2_ + hermitian(res2_)
-                
-                res_ += res1_*fac1
-                res_ -= res2_
-                                
-                        
             res_ = 4.*D_dir_2_wave@res_
 
             io_wave = i_out_wave[i_in]
             if io_wave == 3:
                 io_wave = 4
 
-            _ydata[i_in,:] = np.real(res_[:,io_wave-1,io_wave-1])
+            if io_wave == 5:
+                _ydata[i_in,:] = np.real(res_[:,0,0]) \
+                               + np.real(res_[:,1,1])
+            else:
+                _ydata[i_in,:] = np.real(res_[:,io_wave-1,io_wave-1])
+                
+            # Reset the input matrix
+            D_dir_1_wave_single[:] = 0.  
             
         if Signal:
+            _tdof = dof.DOFtype(typestr='transmission')
+            xdata = mC.DataAxis(wavenumber,typestr='wavenumber')
             return mC.Signal(xdata,_ydata,dof.DOF(np.array(i_out_wave),np.zeros((1,Nsig)),_tdof))     
         else:
             return _ydata
@@ -1278,7 +1217,6 @@ class LineJunction(Junction) :
             Psi_out = wave_out[io_psi,0,:].data.flatten()
             Pow_out = self.systems[i_sys[1]].edge_wave_amplitude_radiated_power(Psi_out,omega,wavenumber,io_wave)
             
-            #print('index {0}'.format(i_out))
             _ydata[i_in,:] = Pow_out/Pow_in
 
         #return mC.Signal(xdata,_ydata,dof.DOF(1+np.arange(Nsig),np.zeros((1,Nsig)),_tdof))
@@ -1339,7 +1277,7 @@ class LineJunction(Junction) :
                 k_in = self.systems[i_sys[0]].plate_wavenumber(om,i_in_wave[0])
                 
             if method == 'diffuse':
-                taus = self.transmission_wavenumber(om,kx,i_sys,i_in_wave,i_out_wave,Signal=False)#.ydata # check late with Signal option
+                taus = self.transmission_wavenumber_wave(om,kx,i_sys,i_in_wave,i_out_wave,Signal=False)#.ydata # check late with Signal option
             elif method == 'langley':
                 taus = self.transmission_wavenumber_langley(om,kx,i_sys,i_in_wave,i_out_wave,Signal=False)#.ydata
             
@@ -1443,7 +1381,7 @@ class LineJunction(Junction) :
         
 
 
-    def CLF(self,omega,i_sys = (0,1),i_in_wave = (5,5),i_out_wave = (5,3), N_step = 100,method = 'diffuse',Signal = True):
+    def CLF(self,omega,i_sys = (0,1),i_in_wave = (5,5),i_out_wave = (5,3), N_step = 100,Signal = True):
         """
         coupling loss factor for line junctions
         
@@ -1509,19 +1447,14 @@ class LineJunction(Junction) :
 
             #k_in = self.systems[i_sys[0]].plate_wavenumber(om,i_in_wave[0])
             
+            # Determine kx sampling depending on conected subsystems
             kx   = self.kx(om,i_sys,i_in_wave[0],i_out_wave,N_step,method = 'in-plane')
             
-            if method == 'diffuse':
-                taus = self.transmission_wavenumber(om,kx,i_sys,i_in_wave,i_out_wave,Signal=False) # check late with Signal option
-                #taus = self.transmission_wavenumber_LM(om,kx,i_sys,i_in_wave,i_out_wave,Signal=False) # check late with Signal option
-            elif method == 'langley':
-                taus = self.transmission_wavenumber_langley(om,kx,i_sys,i_in_wave,i_out_wave,Signal=False)
+            taus = self.transmission_wavenumber(om,kx,i_sys,i_in_wave,i_out_wave,Signal=False) # check late with Signal option
                         
             for i_o_wave,i_type in enumerate(i_out_wave):
                 etas[i_o_wave,ifreq] = fak1[ifreq]/modal_dens*integrate.trapezoid(taus[i_o_wave,:],kx)
                 
-                
-
         if Signal:
             xdata = mC.DataAxis(omega,typestr = 'angular frequency')
             return mC.Signal(xdata,etas,dof.DOF(i_out_wave,np.zeros((1,Nsig)),_tdof))
@@ -1634,9 +1567,8 @@ class LineJunction(Junction) :
         #mod_dens = self.modal_density(omega)
 
         # prepare relevant wave_DOFs of junction only 3,4 couples to the fluid!          
-        j_wave_DOF = self.wave_DOF # DOF of this junction 
+        # j_wave_DOF = self.wave_DOF # DOF of this junction 
         Nw         = self.N_wave   
-
     
         # .. indexes into upper triangular
         i_row,i_col = np.triu_indices(self.N_wave,1)    
@@ -1672,7 +1604,6 @@ class LineJunction(Junction) :
            # prepare input arguments of transmission_wavenumber for each system ID configuraiion
            out_IDs,ix_out,Ns_out= np.unique(sys_IDs, return_index = True,return_counts=True)
            
-           #i0 = 0       
            # loop over physical system index
            for ii,ix_sys in enumerate(ix_out):
                Nr = Ns_out[ii] # Number of rows (output wave systems) for this phsysical system
@@ -1782,7 +1713,14 @@ class AreaJunction(Junction):
  
                 else:
                     raise ValueError('Area junctions must not have 2 plates')
-
+        elif self.N == 1: # Only reasonable when used in a SIF configuration
+            if systems[0].isplate():
+                self.plate = systems[0]
+                self.ix_plate = 0
+            elif systems[0].iscavity():
+                self.cavity = systems[0]
+                self.ix_plate = 1E20
+            
         if area == 0:
             if self.ix_plate < 1E19: # with plate
                 self.area = self.plate.area
@@ -2460,10 +2398,17 @@ class HybridAreaJunction(Junction) :
         
 class SemiInfiniteFluid(AreaJunction):
     """
-    Class for non reverberant sinks due to semi infinite fluid half space
+    Class for non reverberant sinks due to semi infinite fluid (SIF) half space
     
     The aim of this class is to add absoption to the connected area junctions, to calculate
     the radiated power into the sink and to calculate the power at certain discance
+    
+    A SIF can be connected to
+    
+    - a single plate
+    - a single cavity
+    - a plate (resonant) and by non-resonant conection to this plate
+    
     """
     
 
@@ -2473,8 +2418,8 @@ class SemiInfiniteFluid(AreaJunction):
 
         Parameters
         ----------
-        systems : tuple of list of SEA systems
-            connected SIFs.
+        systems : tuple or list of SEA systems
+            connected to the SIFs.
         fluid : fluid
             DESCRIPTION.
         area : float, optional
@@ -2490,12 +2435,16 @@ class SemiInfiniteFluid(AreaJunction):
         super().__init__(systems,area)
         
         self.fluid = fluid
-        # create strange cavity to allow for non resonent methods of mother class
+        # create dummy cavity to allow for non resonent methods of mother class
         self.cavity2 = ac3Dsys.Acoustic3DSystem(0,0,0,0,fluid)
         # in case of 2 connected systems the non_res attribute is not set correctly in the 
         # mother class constructor 
         if self.N == 2 and not(self.double_cavity):
             self.non_res = self.plate.non_resonant_TMM()
+        elif self.N == 1:
+            if systems[0].iscavity():
+                # Setting this switch makes tau = 1 between cavities
+                self.double_cavity = True
 
               
     def __repr__(self):

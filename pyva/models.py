@@ -23,7 +23,7 @@ class FEM:
     describes the system.
 
     This class is the least mature class in this toolbox, because it was mainly 
-    created fot training purpose and the examples from the book.
+    created for training purpose and the examples from the book.
     """
     
     def __init__(self,ID,mesh,modes,damping_loss = 0.01,**kwargs):
@@ -2408,6 +2408,7 @@ class HybridModel:
                 power[i,:] = power_buf[i]
                 pow_in_dof[i].typestr = 'power'
         else: # pathwise calculation, single CLFs must be recalculated
+
             # specific treament of SIF. They have junction character
             if sif_sw:
                 # loop over all subsystems connected to sif 

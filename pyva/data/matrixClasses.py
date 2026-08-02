@@ -966,11 +966,17 @@ class LinearMatrix:
         elif self.sym in [1,2]: # inverse if hermitian and symmetric is also symmetric
             iu = np.triu_indices(self.shape[0])
             for iz in range(self.Ndepth):
-                lBuf   = np.linalg.inv(self.Dindex(iz))
-                _data[:,iz] = lBuf[iu]
+                try:
+                    lBuf   = np.linalg.pinv(self.Dindex(iz))
+                    _data[:,iz] = lBuf[iu]    
+                except:
+                    print('Inversion fails at index {0} with condition {1}'.format(iz,np.linalg.cond(self.Dindex(iz))))
         else:
             for iz in range(self.Ndepth):
-                _data[:,:,iz] = np.linalg.inv(self.Dindex(iz))
+                try:
+                    _data[:,:,iz] = np.linalg.pinv(self.Dindex(iz))
+                except:
+                    print('Inversion fails at index {0} with condition {1}'.format(iz,np.linalg.cond(self.Dindex(iz))))
         
         return LinearMatrix(_data,shape = self.shape, sym = self.sym)
 
@@ -1061,7 +1067,7 @@ class LinearMatrix:
     
     def spy(self,res='mag',iz=0,**kwargs):
         """
-        Show sparasity of matrix in a graphical way. Uses matplotlib.pyplot.spy
+        Show sparsity of matrix in a graphical way. Uses matplotlib.pyplot.spy
            
        
         Args:

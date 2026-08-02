@@ -1027,8 +1027,7 @@ class PlateProp:
             data_[2,3,:] = B*(uB2*uB1+nu*Kx**2)
             data_[3,2,:] = B*(uB2*uB1+nu*Kx**2) # data_[2,3,:]
             data_[3,3,:] = -B*(uB2+uB1)
-            
-            
+                      
         elif wave_DOF == 1:#according to RL theory valid for kx < kL
             data_[0,0,:] = -Sfac*2*(uL*Kx**2) 
             data_[0,1,:] = -Sfac*2j*Kx*uS*uL 
@@ -1047,8 +1046,6 @@ class PlateProp:
             data_[2,3,:] = B*(uB2*uB1+nu*Kx**2)
             data_[3,2,:] = B*(uB2*uB1+nu*Kx**2) # data_[2,3,:]
             data_[3,3,:] = -B*(uB2+uB1)
-
-
             
         elif wave_DOF == 5: #in plane Eq. (8.121)
             # in-plane motion, matrix function elements
