@@ -1074,7 +1074,7 @@ class LineJunction(Junction) :
             if ii_wave == 3:
                     ii_wave = 4
             elif ii_wave == 5:
-                ii_wave = [1,2]
+                ii_wave = np.array([1,2]) 
             
                       
             D_dir_1_wave_single[:,ii_wave-1,ii_wave-1]    = D_dir_1_wave[:,ii_wave-1,ii_wave-1] 

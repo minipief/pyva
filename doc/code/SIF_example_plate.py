@@ -108,16 +108,17 @@ sif1_in = plate.power_input('sif1')
 sif_all = sif1_in.sum()
 
 #%% plot 3
-
-sif1_in.plot(3,xscale='log',yscale='linear')
-plt.figure(3)
-#plt.plot(om_VA1,power_in_1_res,':',label = 'VA1 res')
+plt.close(3)
+sif1_in.plot(3,xscale='log',yscale='log')
 #plt.plot(om_VA1,power_in_1_nonres,':',label = 'VA1 non-res')
-plt.yscale('log')
+#plt.yscale('log')
+
+#plt.xscale('log')
 plt.xlabel('$f_c/$Hz')
-plt.xticks(2*np.pi*fc,fclabels)
-plt.xscale('log')
 plt.ylabel('$\Pi_{in}/$W')
+
+plt.xticks(2*np.pi*fc,fclabels)
+
 plt.legend()
 plt.tight_layout()
 plt.show()
