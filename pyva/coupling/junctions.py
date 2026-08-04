@@ -1217,7 +1217,8 @@ class LineJunction(Junction) :
             Psi_out = wave_out[io_psi,0,:].data.flatten()
             Pow_out = self.systems[i_sys[1]].edge_wave_amplitude_radiated_power(Psi_out,omega,wavenumber,io_wave)
             
-            _ydata[i_in,:] = Pow_out/Pow_in
+            index = Pow_out != 0.
+            _ydata[i_in,index] = Pow_out[index]/Pow_in[index]
 
         #return mC.Signal(xdata,_ydata,dof.DOF(1+np.arange(Nsig),np.zeros((1,Nsig)),_tdof))
     
