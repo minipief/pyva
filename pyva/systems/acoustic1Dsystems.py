@@ -3,7 +3,7 @@
 Module for acoustic one-dimensional systems
 
 The acoustic1Dsystems module defines acoustic one dimensional systems and
-related tools and methods to calculate their dynamic bahaviour.
+related tools and methods to calculate their dynamic behavior.
 Acoustic systems means 'fluid' systems.
 """
 
@@ -19,8 +19,8 @@ class AcousticTube:
     """
     The acoustic tube class deals with one dimensional tubes filled with fluid
     
-    Many system desciptions are implemented because of the examples in 
-    [Pei2022]_ and therefor usually not required for system modelling but only
+    Many system descriptions are implemented because of the examples in 
+    [Pei2022]_ and therefore usually not required for system modelling but only
     for presentation purpose.
     
     Attributes
@@ -115,14 +115,14 @@ class AcousticTube:
         """
         Pressure amplitude for n-th resonance and velocity v
         
-        Culculates the pressure at the resonance frequencies
+        Calculates the pressure at the resonance frequencies
 
         Parameters
         ----------
         n : int
             number of resonance.
         v : float
-            velocit.
+            velocity.
 
         Returns
         -------
@@ -207,7 +207,7 @@ class AcousticTube:
             
     def k_mode(self,n):
         """
-        Wavenumnber for mode n
+        Wavenumber for mode n
         
         take simple 1D transmission line model based on AcousticTube properties
 
@@ -328,7 +328,7 @@ class AcousticTube:
         
     def p_modal(self,omega,x,N,v1 = 1.):
         """
-        Modal pressure reponse for velocity at port 1
+        Modal pressure response for velocity at port 1
         
         Takes simple 1D transmission line model based on AcousticTube properties
 
@@ -426,7 +426,7 @@ class AcousticTube:
             \\end{bmatrix} 
             \\begin{Bmatrix} p_2 \\\\ q_2 \\end{Bmatrix}
         
-        depending on the velocity paramter
+        depending on the velocity parameter
         
         Parameters
         ----------
@@ -486,7 +486,7 @@ class AcousticTube:
         Acoustic Finite Element of acoustic tubes
         
         Takes simple 1D transmission line model based on AcousticTube properties
-        to model the so mobility matrix, given by
+        to model the mobility matrix, given by
         
         .. math:: 
             \\begin{bmatrix} 
@@ -550,19 +550,19 @@ class LumpedAcoustic:
     The LumpedAcoustic class represents the lumped elements with no wave motion along the duct
     
     The aim of this class is mainly to be a mother class to all following limp elements.
-    Thus, there are only two attributes with the key attribute imnpedance that defines the dynamics and 
+    Thus, there are only two attributes with the key attribute impedance that defines the dynamics and 
     is a function.
 
     
     Attributes
     ----------
-    impedance: constant or  frequency depenent impedance of the layer in the 1D element
+    impedance: constant or  frequency dependent impedance of the layer in the 1D element
 
     """
     
     def __init__(self,impedance,area=1):
         """
-        Class contructor for LumpedAcoustic objects        
+        Class constructor for LumpedAcoustic objects        
 
         Parameters
         ----------
@@ -605,7 +605,7 @@ class LumpedAcoustic:
 
     def Signal(self,omega):
         """
-        generates a Signal from the requested frequency range
+        Generates a Signal from the requested frequency range
 
         Parameters
         ----------
@@ -635,7 +635,7 @@ class LumpedAcoustic:
         Takes simple 1D transmission line model based on AcousticTube properties
         to model the so called transfer impedance, given by :math:`Z = (p_2-p_1)/v` 
         
-        This class is an abstrat class that has no implementation of the specific
+        This class is an abstract class that has no implementation of the specific
         transfer impedance. This must be done  by the daughter classes 
         
         
@@ -725,7 +725,7 @@ class LumpedAcoustic:
         Returns
         -------
         DynamicMatrix
-            Mobility matrix of limped acoustic         
+            Mobility matrix of lumped acoustic         
         
         """
         
@@ -821,10 +821,7 @@ class MassStiffness(LumpedAcoustic):
         _str += "area           : {0}\n".format(self.area)
         
         return _str
-        
-        
-        return "AcousticTube of length {0}, cross section {1}".format(self.L,self.area)
-    
+
     def __repr__(self):
         """
         Reps of acoutic tube
@@ -933,7 +930,7 @@ class PerforatedLayer(LumpedAcoustic):
     
     def __init__(self,thickness,hole_radius,area=1.,fluid=mc.Fluid(damping_model='viscous'),pattern='square',alpha=2.,**kwargs):
         """
-        Class contructor for PerforatedLayer
+        Class constructor of PerforatedLayer
         
         Parameters
         ----------
@@ -1007,7 +1004,7 @@ class PerforatedLayer(LumpedAcoustic):
         
     def transfer_resistivity(self,omega):
         """
-        Calculates the scalar transfer impedance of the flow in one perforate
+        Calculates the scalar transfer impedance of the flow in a perforate
         
         Parameters
         ----------
@@ -1031,7 +1028,7 @@ class PerforatedLayer(LumpedAcoustic):
     
     def transfer_reactance(self,omega):
         """
-        Calculates the resistive end correction of both siges of one perforate
+        Calculates the resistive end correction of both sides of one perforate
         
         Parameters
         ----------
@@ -1057,7 +1054,7 @@ class PerforatedLayer(LumpedAcoustic):
         
     def reactive_end_correction_perforate(self,omega):
         """
-        Calculates the reactive end correctoin of both sides of one perforate
+        Calculates the reactive end correction of both sides of one perforate
         
         Parameters
         ----------
@@ -1099,7 +1096,7 @@ class HelmholtzResonator:
     
     def __init__(self,volume,length,radius,fluid = mc.Fluid('air'),length_correction_factor = 1.7,**kwargs):
         """
-        Class contructor for helholtzResonator
+        Class constructor for HelmholtzResonator
         
         Parameters
         ----------
@@ -1246,7 +1243,7 @@ class QuarterWaveResonator:
     
     def __init__(self,length,radius,fluid = air,length_correction_factor = 0.85,**kwargs):
         """
-        Class contructor for helholtzResonator
+        Class constructor for QuarterWaveResonator
 
         Parameters
         ----------

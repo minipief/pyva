@@ -86,8 +86,8 @@ plt.plot(omega,np.imag(z_fibre_10.ydata.flatten()),label='Im 10cm fibre')
 plt.plot(omega,np.real(Z0_fibre_10),label='Re 10cm fibre Alla')
 plt.plot(omega,np.imag(Z0_fibre_10),label='Im 10cm fibre Alla')
 plt.xscale('log')
-plt.xlabel('$\omega/$s$^{-1}$')
-plt.ylabel('z/Pa m s$^{-1}$')
+plt.xlabel(r'$\omega/$s$^{-1}$')
+plt.ylabel(r'z/Pa m s$^{-1}$')
 plt.legend()
 
 
@@ -98,8 +98,8 @@ plt.plot(omega,np.real(Z0_perf_fibre_10),label='Re 10cm fibre Alla')
 plt.plot(omega,np.imag(Z0_perf_fibre_10),label='Im 10cm fibre Alla')
 
 plt.xscale('log')
-plt.xlabel('$\omega/$s$^{-1}$')
-plt.ylabel('z/Pa m s$^{-1}$')
+plt.xlabel(r'$\omega/$s$^{-1}$')
+plt.ylabel(r'z/Pa m s$^{-1}$')
 plt.legend()
 
 #%% plot impedance of fibre results for publishing
@@ -109,7 +109,7 @@ plt.plot(omega,alpha_fibre_10_alla,label='10cm fibre alla')
 #plt.plot(omega,alpha_perf_fibre_10,label='perforate + 10cm fibre' )
 
 plt.xscale('log')
-plt.xlabel('$\omega/$s$^{-1}$')
+plt.xlabel(r'$\omega/$s$^{-1}$')
 plt.ylabel('absorption')
 plt.legend()
 
