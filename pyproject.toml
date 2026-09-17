@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling >= 1.26","packaging>=24.2conda"]
+requires = ["hatchling >= 1.26"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
