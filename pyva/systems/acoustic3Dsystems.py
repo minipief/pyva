@@ -29,7 +29,7 @@ class Acoustic3DSystem(SEAsys.SEA_system):
     surface : float
         surface area of the cavity
     perimeter : float
-        perimeter of the cavitiy
+        perimeter of the cavity
     fluid : fluid
         fluid of the cavity
     absorption_area : float
@@ -51,7 +51,7 @@ class Acoustic3DSystem(SEAsys.SEA_system):
         volume : float
             volume of SEA cavity.
         surface : float
-            surface of SEA cavitiy.
+            surface of SEA cavity.
         perimeter : float
             perimeter of SEA cavity.
         fluid : fluid
@@ -59,7 +59,7 @@ class Acoustic3DSystem(SEAsys.SEA_system):
         absorption_area : float of Signal, optional
             absorption area of cavity. The default is 0..
         damping_type : list of str, optional
-            identifyer for dampping method. The default is ['eta',].
+            identifier for damping method. The default is ['eta',].
         eta : float or Signal
             damping loss
         flat_cavity_sw : bool
@@ -118,7 +118,7 @@ class Acoustic3DSystem(SEAsys.SEA_system):
         """
         
         if wave_DOF != 0:
-            raise ValueError('modal density of acoustic systme require wavedof = 0')
+            raise ValueError('modal density of acoustic systems require wavedof = 0')
         
         V = self.volume
         S = self.surface
@@ -156,7 +156,7 @@ class Acoustic3DSystem(SEAsys.SEA_system):
 
     def damping_loss(self,omega,wave_DOF=0):
         """
-        Damping loss of cavity SEA systemns
+        Damping loss of cavity SEA systems
         
         Parameters
         ----------
@@ -182,7 +182,7 @@ class Acoustic3DSystem(SEAsys.SEA_system):
     
     def physical_unit(self,omega,energy):
         """
-        Physical unit pressure calculated from system energy
+        Pressure calculated from system energy
 
         Parameters
         ----------
@@ -220,7 +220,7 @@ class RectangularRoom(Acoustic3DSystem):
     """
     This class deals with three dimensional, rectangular rooms filled with fluid
     
-    Practical cavities are rarely. This class is applied in 
+    Practical cavities are rarely rectangular. This class is applied in 
     chapters 4 and 6 [Pei2022]_ for demonstration of complex and random systems.
     
     Attributes
@@ -238,7 +238,7 @@ class RectangularRoom(Acoustic3DSystem):
     def __init__(self,ID,Lx,Ly,Lz,fluid,absorption_area = 0.,damping_type = ['eta',],
                  eta = 0.01, **kwargs):
         """
-        Class contructor for acoustic tube
+        Class constructor of RectangularRoom
         
         Parameters
         ----------
@@ -290,12 +290,12 @@ class RectangularRoom(Acoustic3DSystem):
         """
         Modal pressure shape for room with rigid walls
         
-        Implementation of simple recangular room model 
+        Implementation of simple rectangular room model 
 
         Parameters
         ----------
         r : list or tuple of float
-            (x,y,z) room coodinates
+            (x,y,z) room coordinates
         n : int
             number of mode
                 
@@ -349,7 +349,7 @@ class RectangularRoom(Acoustic3DSystem):
         Parameters
         ----------
         n : tuple of int
-            (nx,ny,nz) tupel of mode number
+            (nx,ny,nz) tuple of mode number
                 
         Returns
         -------
@@ -365,7 +365,7 @@ class RectangularRoom(Acoustic3DSystem):
         Parameters
         ----------
         n : tuple of int
-            (nx,ny,nz) tupel of mode number
+            (nx,ny,nz) tuple of mode number
                 
         Returns
         -------
@@ -381,7 +381,7 @@ class RectangularRoom(Acoustic3DSystem):
         Parameters
         ----------
         n : tuple of int
-            (nx,ny,nz) tupel of mode number
+            (nx,ny,nz) tuple of mode number
                 
         Returns
         -------
@@ -400,7 +400,7 @@ class RectangularRoom(Acoustic3DSystem):
         r0 : tuple of float
             source location  r0 = (x0,y0,z0)
         N : tuple of int
-            (Nx,Ny,Nz) tupel of maximal mode number
+            (Nx,Ny,Nz) tuple of maximal mode number
         Bnn : function of mode index tuple
             modal damping loss factor
                 
@@ -424,7 +424,7 @@ class RectangularRoom(Acoustic3DSystem):
         """
         Modal mechanical point impedance
         
-        This method requires a suface S to create a force from the acoustic impedance
+        This method requires a surface S to create a force from the acoustic impedance
         following from the Green function
         
         Parameters
@@ -438,10 +438,10 @@ class RectangularRoom(Acoustic3DSystem):
           
         Returns
         -------
-        Mechancal point impedance from modal approximation
+        Mechanical point impedance from modal approximation
         """
         
-        return self.green_modal(omega,r0,r0,N,S)*S # siehe S als quellstärke
+        return self.green_modal(omega,r0,r0,N,S)*S 
 
     def radiation_point_impedance(self,omega,r0,N,Bnn=lambda: 0):
         """
@@ -587,7 +587,7 @@ class RectangularRoom(Acoustic3DSystem):
             
     def surfint(self,y0,y1,z0,z1,n):
         """
-        Surface integral required for rectangluar piston
+        Surface integral required for rectangular piston
         
         Integral implementation of equation (4.92) from [Pei2022]_
         
@@ -596,9 +596,9 @@ class RectangularRoom(Acoustic3DSystem):
         y0 : float
             minimum y-coodinate of piston
         y1 : float
-            maximum y-coodinate of piston
+            maximum y-coordinate of piston
         z0 : float
-            minimum z-coodinate of piston
+            minimum z-coordinate of piston
         z1 : float
             maximum z-coodinate of piston
         omega : float
