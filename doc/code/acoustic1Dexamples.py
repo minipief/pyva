@@ -100,7 +100,7 @@ Za_perf = quarter_perf.radiation_impedance(omega)
 plt.figure()
 plt.plot(omega,np.real(Za_perf),label = 'Re perf')
 plt.plot(omega,np.imag(Za_perf),label = 'Im perf')
-plt.xlabel('$\omega/s^{-1}$')
+plt.xlabel(r'$\omega/s^{-1}$')
 plt.ylabel('radiation impedance')
 
 plt.xscale('log')

@@ -87,7 +87,7 @@ plt.plot(omega,np.real(Z0_fibre_10),label='Re 10cm fibre Alla')
 plt.plot(omega,np.imag(Z0_fibre_10),label='Im 10cm fibre Alla')
 plt.xscale('log')
 plt.xlabel(r'$\omega/$s$^{-1}$')
-plt.ylabel('z/Pa m s$^{-1}$')
+plt.ylabel(r'z/Pa m s$^{-1}$')
 plt.legend()
 
 
