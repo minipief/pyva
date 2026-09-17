@@ -81,7 +81,7 @@ class BeamProp:
     @property
     def By(self):
         """
-        Bending stiffness around y-axis.
+        Bending stiffness in around x
 
         Returns
         -------
