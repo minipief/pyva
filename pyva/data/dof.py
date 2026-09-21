@@ -3,7 +3,7 @@
 Module for degrees of freedom management
 
 The dof module deals with the handling of nodal and system (wave) degrees of freedom. 
-This comprised the identification of node IDs and related local degrees of freedom.
+This comprises the identification of node IDs and related local degrees of freedom.
 An example would be a node with ID = 99 and displacment in x-, y- and z-direction.
 
 In finite element methods this is called a grid or mesh when combined with the nodal
