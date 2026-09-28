@@ -462,24 +462,24 @@ class AcousticTube:
         if volumeflow:
             T12 = lambda omega: 1j*np.sin(kz(omega))*z(omega)/self.area
             T21 = lambda omega: 1j*np.sin(kz(omega))/z(omega)*self.area
-            Tdof = dof.DOFtype(typestr=('pressure','volume flow'))
+            type_str=('pressure','volume flow')
         else:
             T12 = lambda omega: 1j*np.sin(kz(omega))*z(omega)
             T21 = lambda omega: 1j*np.sin(kz(omega))/z(omega)
-            Tdof = dof.DOFtype(typestr=('pressure','velocity'))
+            type_str=('pressure','velocity')
         
-        excdof = dof.DOF([ID[1], ID[1]],[0,1],Tdof)
-        resdof = dof.DOF([ID[0], ID[0]],[0,1],Tdof)
-        xdata  = mC.DataAxis(omega,dof.DOFtype(typestr='angular frequency'))
+        excdof = dof.DOF([ID[1], ID[1]],[0,1],type_str)
+        resdof = dof.DOF([ID[0], ID[0]],[0,1],type_str)
+        xdata  = mC.DataAxis(omega, typestr='angular frequency')
         
-        data   = np.zeros((2,2,len(omega)))
-        for iomega in range(len(omega)):
+        data   = np.zeros((2,2,len(omega)),dtype = complex )
+        for iomega,omega in enumerate(omega):
             data[0,0,iomega] = T11(omega)
             data[1,1,iomega] = T11(omega)
             data[0,1,iomega] = T12(omega)
             data[1,0,iomega] = T21(omega)
               
-        return mC.dynamicmatrix(mC.LinearMatrix(data),xdata,excdof,resdof)
+        return mC.DynamicMatrix(mC.LinearMatrix(data),xdata,excdof,resdof)
 
     def acoustic_FE(self,omega,ID=[1,2]):
         """
@@ -535,7 +535,7 @@ class AcousticTube:
         resdof = dof.DOF(ID,[1,1],dof.DOFtype(typestr=('volume flow')) )
         xdata  = mC.DataAxis(omega,typestr='angular frequency')
         
-        data   = np.zeros((3,len(omega)),dtype=complex)
+        data   = np.zeros((3,len(omega)),dtype=np.cdouble)
         
         for iomega in range(len(omega)):
             data[0,iomega] = K11(omega[iomega])
