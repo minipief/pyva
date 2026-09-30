@@ -5,7 +5,7 @@ Subpackage for the coupling of dynamic systems.
 The two modules deal either with the dynamics and physics of the junction
 or the topology of the connection 
 
-.. moduleauthor:: Alexander Peiffer <alexander.peiffer@pyva.eu>
+.. moduleauthor:: Alexander Peiffer <author@alexanderpeiffer.de >
 """
 
 __all__ = ['junctions.py','connections.py']

@@ -76,6 +76,6 @@ plt.ylabel('TL/dB')
 plt.xscale("log")
 plt.legend()
 
-plt.savefig('../source/images/allard_DW_TL.png')
+#plt.savefig('../source/images/allard_DW_TL.png')
 
 

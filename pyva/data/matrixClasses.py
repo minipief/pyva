@@ -2479,8 +2479,8 @@ class Signal:
 
         Returns
         -------
-        None.
-
+            fig : figure handle
+            ax : axis handle
         """
         #
         iDOF = range(self._Nsig)
@@ -2684,7 +2684,7 @@ class Signal:
         if grid_sw:
             ax.plot(grid_arg)
         
-        plt.tight_layout
+        plt.tight_layout()
         plt.show()
         
         return (fig,ax)

@@ -3,7 +3,7 @@
 Module for degrees of freedom management
 
 The dof module deals with the handling of nodal and system (wave) degrees of freedom. 
-This comprised the identification of node IDs and related local degrees of freedom.
+This comprises the identification of node IDs and related local degrees of freedom.
 An example would be a node with ID = 99 and displacment in x-, y- and z-direction.
 
 In finite element methods this is called a grid or mesh when combined with the nodal
@@ -798,8 +798,8 @@ DIVDICT = { (13,24) : 15 ,
             (10,24) : 11 }
 
 DBREF   = {    8 : (1.E-12, 2,'pm') ,      
-              11 : (1.E-9 , 2,'nm/s')  ,        12 : (1.E-6, 2, '\mu m') ,
-              15 : (2.E-5 , 2, '20 \mu Pa')  ,  23 : (1.E-12,1, 'pW'),
+              11 : (1.E-9 , 2,'nm/s')  ,        12 : (1.E-6, 2, r'\mu m') ,
+              15 : (2.E-5 , 2, r'20 \mu Pa')  ,  23 : (1.E-12,1, 'pW'),
               25 : (   1. ,-1 ,'1') } 
 
 
@@ -887,8 +887,8 @@ class DOFtype:
         ----------
         **kwargs : dict
             Arbitrary keyword arguemts list.
-        typestr : int
-            ID of DOF type, e.g. 8 for displacement
+        typestr : str
+            string identifier of DOF type, e.g. 'displacement'
         typeID : int
             ID of nodal DOF for x axis, e.g. 1,2,3 for x,y,z direction 4 for 
             roation around x-axis
