@@ -388,9 +388,9 @@ class TMmodel:
         Parameters
         ----------
         layers : tuple or lost of AcousticLayer
-            lay-up of different infinitly extende layers
+            lay-up of different infinitely extended layers
         **kwargs : dict
-            Arbitrary keyword agrguments
+            Arbitrary keyword arguments
 
         Returns
         -------
@@ -403,7 +403,7 @@ class TMmodel:
         #self._loads = {}
         #self._results = {}
         #self._boundary_conditions = {}
-        self._scalar_param = 0. # defauls kx = 0 
+        self._scalar_param = 0. # defaults kx = 0 
                     
         for kw in kwargs:
             if kw == 'loads':
@@ -450,7 +450,7 @@ class TMmodel:
 
         Parameters
         ----------
-        BC : TYPE
+        BC : boundary condition
             DESCRIPTION.
 
         Returns

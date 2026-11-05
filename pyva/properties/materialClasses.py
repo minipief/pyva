@@ -1485,8 +1485,8 @@ class PoroElasticMat(EquivalentFluid):
             PoroElasticMat expression.
 
         """
-        _str = 'PoroElasticMat({0},flow_res={1},porosity={2},tortuosity={3},rho_bulk={4},length_visc={5},length_visc={6},'.\
-            format(repr(self.solid_mat),self.flow_res, self.porosity,self.tortuosity,self.rho_bulk,self.length_visc,self.length_visc)
+        _str = 'PoroElasticMat({0},flow_res={1},porosity={2},tortuosity={3},rho_bulk={4},length_visc={5},length_therm={6},'.\
+            format(repr(self.solid_mat),self.flow_res, self.porosity,self.tortuosity,self.rho_bulk,self.length_visc,self.length_therm)
         _str += 'c0={0},rho0={1},eta={2})'.format(self.c0, self.rho0,self.eta)
         return _str
     
