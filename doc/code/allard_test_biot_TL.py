@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 #
 # Example with 3 tubes showing the capabilities of DynamicMatrix
+import os
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -14,7 +16,6 @@ import pyva.properties.structuralPropertyClasses as stPC
 import pyva.properties.materialClasses as matC
 
 plt.close('all')
-
 
 # default fluid
 air    = matC.Fluid(eta = 0.01)
@@ -67,15 +68,17 @@ plt.plot(omega/2/np.pi,np.imag(ka),'+',label='Im')
 plt.plot(omega/2/np.pi,np.real(kl),'d',label='Re')
 plt.plot(omega/2/np.pi,np.imag(kl),'+',label='Im')
 plt.legend()
-plt.xlabel('f/Hz')
-plt.ylabel('k/m^-1')
+plt.xlabel('$f$/Hz')
+plt.ylabel('k/m$^{-1}$')
 
 #%% Plot2
 plt.figure(2)
 tau.plot(2,res='dB')
-# plt.plot(freq,np.real(Z0_ref/z0),label='Re')
+# plt.plot(freq,np.real(Z0_ref /z0),label='$Re$')
 # plt.plot(freq,np.imag(Z0_ref/z0),label='Im')
 # plt.plot(freq,np.real(Z0.ydata[0]/z0),'+:',label='Re')
 # plt.plot(freq,np.imag(Z0.ydata[0]/z0),'+:',label='Im')
-# plt.legend()
+plt.legend()
 
+
+# %%

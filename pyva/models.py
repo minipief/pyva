@@ -288,7 +288,7 @@ class FEM:
 
         Parameters
         ----------
-        q_mod : mC.Signal
+        mat_mod : mC.Signal
             Vector in modal coordinates.
 
         Returns

@@ -898,23 +898,22 @@ class LineJunction(Junction) :
         
         Parameters
         ----------
-        omega : TYPE
-            DESCRIPTION.
-        wavenumber : TYPE
-            DESCRIPTION.
-        i_sys : TYPE, optional
-            DESCRIPTION. The default is (0,1).
-        i_in_wave : TYPE, optional
-            DESCRIPTION. The default is (1,)*3+(2,)*3+(3,)*3.
-        i_out_wave : TYPE, optional
-            DESCRIPTION. The default is (1,2,3)*3.
+        omega : float or ndarray
+            angular frequency.
+        wavenumber : float or ndarray
+            wavenumber in x- or edge-direction.
+        i_sys : tuple of integer, optional
+            physical system index. The default is (0,1).
+        i_in_wave : tuple of integer, optional
+            incoming wave indexes. The default is (1,)*3+(2,)*3+(3,)*3.
+        i_out_wave : tuple of integer, optional
+            outgoing wave indexes. The default is (1,2,3)*3.
         no_single : boolens, optional
             Switch for removing single system correction. The default is False.
 
         Returns
         -------
-        None.
-
+        Transmission coefficient.
         """
         
         
@@ -1007,20 +1006,20 @@ class LineJunction(Junction) :
         
         Parameters
         ----------
-        omega : TYPE
-            DESCRIPTION.
-        wavenumber : TYPE
-            DESCRIPTION.
-        i_sys : TYPE, optional
-            DESCRIPTION. The default is (0,1).
-        i_in_wave : TYPE, optional
-            DESCRIPTION. The default is (1,)*3+(2,)*3+(3,)*3.
-        i_out_wave : TYPE, optional
-            DESCRIPTION. The default is (1,2,3)*3.
+        omega : float or ndarray
+            angular frequency.
+        wavenumber : float or ndarray
+            wavenumber in x- or edge-direction.
+        i_sys : tuple of integer, optional
+            physical system index. The default is (0,1).
+        i_in_wave : tuple of integer, optional
+            incoming wave indexes. The default is (1,)*3+(2,)*3+(3,)*3.
+        i_out_wave : tuple of integer, optional
+            outgoing wave indexes. The default is (1,2,3)*3.
 
         Returns
         -------
-        None.
+        Transmission coefficient.
 
         """
         # In global coordinates
@@ -1329,7 +1328,7 @@ class LineJunction(Junction) :
 
     def kx(self,omega,i_sys,i_in_wave,i_out_wave,Nstep,method = 'angle'):
         """
-        wavenumber sampling for diffuse field intgegration.
+        wavenumber sampling for diffuse field integration.
         
         The different wave number regimes require a well balanced sampling of the 
         wavnumber. High sampling in-plane waves and low sampling for bending waves

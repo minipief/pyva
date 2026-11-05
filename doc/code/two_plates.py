@@ -93,5 +93,5 @@ plt.savefig('../source/images/line_junction_tau.png')
 # check tau first
 taus = J12.transmission_wavenumber_diffuse(omega.angular_frequency, (0,1), i_in_wave = (3,3) , i_out_wave= (5,3))
 taus.plot(2)
-plt.savefig('../source/images/line_junction_tau_diffuse.png')
+# plt.savefig('../source/images/line_junction_tau_diffuse.png')
 
