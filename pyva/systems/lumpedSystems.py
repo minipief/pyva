@@ -42,6 +42,26 @@ class HarmonicOscillator:
         self.mass      = mass
         self.stiffness = stiffness
         self.damping   = damping
+
+    def __str__(self):
+            """
+            str for HarmonicOscillator
+
+            Returns
+            -------
+            _str : str
+                HarmonicOscillator description.
+
+            """
+            _str  = "mass              : {0}\n".format(self.mass)
+            _str += "stiffness         : {0}\n".format(self.stiffness)
+            _str += "damping c_v       : {0}\n".format(self.damping)
+            
+            return _str
+
+    def __repr__(self):
+        _str = 'HarmonicOscillator({0},{1},damping={2})'.format(self.mass, self.stiffness,self.damping)
+        return _str
     
     # Simple properties from combination of CrossSection and IsoMat
 

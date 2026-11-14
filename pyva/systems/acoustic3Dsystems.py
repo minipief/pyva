@@ -34,8 +34,8 @@ class Acoustic3DSystem(SEAsys.SEA_system):
         fluid of the cavity
     absorption_area : float
         cumulative absorption area
-    damping_type : str
-        identifier for damping type
+    damping_type : list of str
+        identifier list for damping type with items 'eta' and 'surface'
     """
 
     def __init__(self,ID,volume,surface,perimeter,fluid,\
@@ -59,7 +59,7 @@ class Acoustic3DSystem(SEAsys.SEA_system):
         absorption_area : float of Signal, optional
             absorption area of cavity. The default is 0..
         damping_type : list of str, optional
-            identifier for damping method. The default is ['eta',].
+            identifier 'eta' and 'surface' for damping method. The default is ['eta',].
         eta : float or Signal
             damping loss
         flat_cavity_sw : bool

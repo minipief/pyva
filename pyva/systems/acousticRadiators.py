@@ -608,7 +608,7 @@ class HalfSpace:
             fak = 2*np.pi**3*omega**3*self.fluid.rho0/(ks**4*self.fluid.c0)
             # @todo The current itj0y0 does not work - reuse when issue soves
             #bes,_ = spl.itj0y0(dist[ix]*ks)
-            bes = itj0(dist[ix]*ks)
+            bes = itj0(dist*ks)
             res = np.zeros(omega.shape,dtype=np.complex128)
             
             if dist != 0:
